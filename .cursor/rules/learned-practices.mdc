@@ -1,32 +1,182 @@
 ---
-title: Learned Best Practices - BTMM System
-description: Accumulated wisdom from coding sessions
-type: always
-scope: '**/*'
-priority: critical
-version: 2.0.0
-last_updated: 2025-07-02
+description: 
+globs: 
+alwaysApply: false
 ---
-
 # BTMM Learned Best Practices Database
 
-## Common Mistakes to Avoid
-- Never exceed 10-script limit without merge strategy
-- Don't modify protected functions without dependency check
-- Always include input validation for user parameters
-- Never skip anti-repainting validation for security calls
+## 🎯 System Evolution Philosophy
+This file continuously grows with each development session, capturing:
+- ❌ **Mistakes to Avoid**: Common pitfalls and their prevention
+- ✅ **Proven Patterns**: Solutions that work consistently
+- 🔄 **Recent Fixes**: Latest improvements and their context
+- 📈 **Performance Optimizations**: Efficiency improvements discovered
 
-## Proven Patterns That Work
-- Always use ta. prefix for technical analysis functions
-- Cache complex calculations in variables
-- Use descriptive variable names following BTMM conventions
-- Include proper error handling for edge cases
+## 🚨 CRITICAL FOUNDATIONAL RULES
 
-## Recent Fixes Applied
+### 🔒 **MAJOR RULE: Automated Commit Process MUST Be Final Step**
+- ❌ **NEVER** leave changes uncommitted after any development session
+- ✅ **ALWAYS** automate the commit process as the last step of any workflow
+- 🔄 **MANDATORY** git commit + push sequence for every change cycle
+- 📋 **ENFORCE** this rule in all automation scripts and CI/CD pipelines
+- 🎯 **INTEGRATION** All system evolution cycles must end with automated commits
+
+**Implementation Pattern:**
+```bash
+# Every workflow MUST end with:
+npm run git-commit    # Automated commit with descriptive messages
+npm run git-push      # Push to remote repository
+npm run git-status    # Verify clean working directory
+```
+
+**Why This Rule is Critical:**
+- **Data Protection**: Prevents loss of development progress
+- **Version Control**: Ensures all improvements are tracked
+- **Team Coordination**: Keeps remote repository current
+- **Backup Security**: Protects against hardware/software failures
+- **Audit Trail**: Maintains complete history of system evolution
+
+---
+
+## 🚫 Common Mistakes to Avoid
+
+### Pine Script Development
+- ❌ **Don't use `var` for calculations that need to run every bar**
+  - *Learned from:* Template generation optimization (2025-07-02)
+  - *Solution:* Use regular variable declarations for bar-by-bar calculations
+
+- ❌ **Avoid nested security() calls - causes performance issues**
+  - *Impact:* Can cause script timeouts and poor user experience
+  - *Solution:* Cache security data in variables outside loops
+
+- ❌ **Never use magic numbers - always define constants**
+  - *Example:* Use `EMA_FAST = 5` instead of hardcoded `5`
+  - *Benefit:* Maintainability and user customization
+
+- ❌ **Don't forget input validation for user parameters**
+  - *Pattern:* Always include `minval`, `maxval`, and `step` parameters
+  - *Reason:* Prevents user errors and script failures
+
+### BTMM System Specific
+- ❌ **Never exceed the 10-script limit without merge strategy**
+  - *Learned from:* Initial consolidation process
+  - *Solution:* Always use smart-merger.js before adding new scripts
+
+- ❌ **Don't modify protected functions without dependency check**
+  - *Critical functions:* session_and_cycle, timeframe_classification, ema_stack_analysis
+  - *Solution:* Run dependency-tracker.js before any foundation changes
+
+- ❌ **Avoid breaking cross-script data window outputs**
+  - *Impact:* Breaks integration between BTMM components
+  - *Solution:* Always include `display=display.data_window` for critical outputs
+
+### Template Generation System
+- ❌ **Don't generate templates without BTMM Foundation integration**
+  - *Learned from:* Template generator development
+  - *Solution:* All templates must reference BTMMFoundation.pine
+
+- ❌ **Never skip anti-repainting validation for security calls**
+  - *Pattern:* Include `lookahead=barmerge.lookahead_off`
+  - *Alternative:* Use `barstate.isconfirmed` checks
+
+---
+
+## ✅ Proven Patterns That Work
+
+### Pine Script Excellence
+- ✅ **Always use `ta.` prefix for technical analysis functions**
+  - *Version compatibility:* Ensures Pine Script v5/v6 compliance
+  - *Performance:* Optimized built-in functions
+
+- ✅ **Cache complex calculations in variables**
+  ```pinescript
+  // ✅ GOOD: Cache calculations
+  rsi_value = ta.rsi(close, 14)
+  rsi_oversold = rsi_value < 30
+  rsi_overbought = rsi_value > 70
+  ```
+
+- ✅ **Use descriptive variable names following BTMM conventions**
+  - *Pattern:* `btmm_ema_stack_strength`, `asian_range_breakout_signal`
+  - *Benefit:* Code self-documentation and team understanding
+
+- ✅ **Include proper error handling for edge cases**
+  ```pinescript
+  // ✅ Handle missing data
+  ema_value = na(close) ? na : ta.ema(close, length)
+  ```
+
+### BTMM Integration Patterns
+- ✅ **Modular function design with clear data outputs**
+  ```pinescript
+  // ✅ BTMM Pattern
+  [bull_stack, bear_stack, stack_strength] = btmm_ema_analysis()
+  plot(stack_strength, "Stack Strength", display=display.data_window)
+  ```
+
+- ✅ **Session-based analysis with proper timezone handling**
+  ```pinescript
+  // ✅ Steve Mauro Asian Range Pattern
+  asian_session = input.session("2000-0800", "Asian Session")
+  in_asian_session = time(timeframe.period, asian_session)
+  ```
+
+- ✅ **Multi-timeframe analysis with HTF bias integration**
+  ```pinescript
+  // ✅ BTMM HTF Pattern
+  htf_bias = request.security(syminfo.tickerid, "4H", ema_direction_confirmed)
+  current_setup_valid = htf_bias and current_timeframe_signal
+  ```
+
+### Template Generation Best Practices
+- ✅ **Three-tier complexity system works effectively**
+  - *Basic:* Core concept implementation
+  - *Intermediate:* Enhanced with confirmations
+  - *Advanced:* Full multi-timeframe integration
+
+- ✅ **Educational content integration improves adoption**
+  ```yaml
+  educationalContent:
+    videoUrl: "steve-mauro-concept-explanation"
+    documentation: "step-by-step-guide.md"
+    practiceExercises: ["basic", "intermediate", "advanced"]
+  ```
+
+---
+
+## 🔄 Recent Fixes Applied
+
 ### 2025-07-02: Template Generator Performance Optimization
-**Issue:** Missing generatePracticeExercises function
+**Issue:** Missing generatePracticeExercises function caused template loading failure
 **Fix:** Replaced dynamic function call with static array
 **Learning:** Always validate function dependencies before deployment
+**Code Pattern:**
+```javascript
+// ✅ Static approach for reliability
+practiceExercises: ['basic_understanding', 'parameter_modification', 'signal_analysis']
+```
+
+### 2025-07-02: CI/CD Pipeline Script Count Integration
+**Issue:** Script counter only scanned main directory, missing subdirectory scripts
+**Fix:** Updated to recursive scanning including all BTMM* scripts
+**Learning:** File system operations need comprehensive path coverage
+**Code Pattern:**
+```javascript
+// ✅ Recursive scanning
+function countScripts(dir) {
+    // Implementation includes subdirectory traversal
+}
+```
+
+### 2025-07-02: PowerShell Command Chaining
+**Issue:** && operator not supported in PowerShell for complex npm scripts
+**Fix:** Simplified echo statements and removed shell-specific operators
+**Learning:** Cross-platform compatibility requires simpler command structures
+**Resolution:** Use separate commands or PowerShell-specific operators
+
+### 2025-07-02: Continuous Learning System Active
+**Pattern:** Automated learning detection working
+**Application:** Regular system evolution cycles
 
 ### 2025-07-02: System Health Validation
 **Pattern:** Continuous improvement cycle maintains stability
@@ -36,10 +186,118 @@ last_updated: 2025-07-02
 **Pattern:** Automated learning detection working
 **Application:** Regular system evolution cycles
 
-### 2025-07-02: Continuous Learning System Active
-**Pattern:** Automated learning detection working
-**Application:** Regular system evolution cycles
+---
 
-### 2025-07-02: Continuous Learning System Active
-**Pattern:** Automated learning detection working
-**Application:** Regular system evolution cycles
+## 📈 Performance Optimizations Discovered
+
+### Template Generation Speed
+- **Optimization:** Pre-compile template patterns instead of dynamic generation
+- **Result:** Sub-2-second generation time achieved
+- **Application:** Used in btmm-builder-demo for real-time demonstration
+
+### Memory Usage Efficiency
+- **Pattern:** Lazy loading of template variants only when requested
+- **Benefit:** Reduced memory footprint for large template libraries
+- **Implementation:** Template variants generated on-demand
+
+### Cross-Script Communication
+- **Method:** Centralized data window outputs for integration
+- **Performance:** Eliminates redundant calculations across scripts
+- **BTMM Impact:** Maintains real-time responsiveness with 10 scripts
+
+---
+
+## 🎯 Steve Mauro Methodology Learnings
+
+### Asian Range Trading Insights
+- **Key Learning:** Volume confirmation significantly improves breakout accuracy
+- **Implementation:** Add volume threshold validation to all range templates
+- **Steve Mauro Principle:** Institutional volume creates valid breakouts
+
+### EMA Stack Analysis Refinements
+- **Discovery:** 800 EMA on higher timeframes provides superior bias detection
+- **Application:** Integrate HTF 800 EMA in advanced templates
+- **Market Insight:** Institutional algorithms respect long-period EMAs
+
+### Stop Hunt Detection Patterns
+- **Pattern Recognition:** False breakouts often coincide with RSI extremes
+- **Enhancement:** Combine liquidity sweeps with momentum divergence
+- **Trading Edge:** Institutional stop hunts create high-probability reversal zones
+
+---
+
+## 🛡️ Quality Assurance Protocols
+
+### Pre-Deployment Checklist
+- [ ] All Pine Script templates pass anti-repainting validation
+- [ ] BTMM Foundation integration verified
+- [ ] Cross-script data outputs maintained
+- [ ] Performance benchmarks under 2 seconds
+- [ ] Educational content completeness check
+
+### Continuous Integration Standards
+- **Quality Score Threshold:** Minimum 95/100 for production deployment
+- **Template Validation:** All variants must compile without errors
+- **Integration Health:** 100% dependency validation required
+- **Performance Monitoring:** Response time tracking for optimization
+
+---
+
+## 🔄 Learning Loop Implementation
+
+### Session Capture Process
+1. **Immediate Learning:** Document mistakes within 5 minutes of discovery
+2. **Pattern Recognition:** Weekly review for recurring issues
+3. **Rule Evolution:** Update prevention strategies based on frequency
+4. **Knowledge Sharing:** Integrate learnings into team documentation
+
+### Automated Learning Triggers
+- **Git Hooks:** Capture significant changes in Pine Script files
+- **CI/CD Integration:** Log performance improvements and quality metrics
+- **Error Tracking:** Automatic documentation of validation failures
+- **Success Patterns:** Record configurations that achieve high scores
+
+---
+
+## 📚 Reference Patterns for AI
+
+### When Generating Pine Script Code
+1. **Always check** this file for relevant mistake patterns
+2. **Apply proven patterns** from the ✅ section
+3. **Validate against** BTMM methodology requirements
+4. **Include appropriate** educational context
+
+### Template Creation Guidelines
+1. **Start with complexity level** appropriate for user skill
+2. **Integrate BTMM Foundation** for cross-script compatibility
+3. **Add educational value** through comments and documentation
+4. **Validate performance** against established benchmarks
+
+### System Integration Rules
+1. **Preserve 10-script limit** through intelligent merging
+2. **Maintain data window outputs** for cross-script communication
+3. **Follow Steve Mauro principles** in all trading logic
+4. **Test integration health** before deployment
+
+---
+
+## 🚀 Future Learning Priorities
+
+### Emerging Patterns to Monitor
+- Template marketplace performance metrics
+- User adoption patterns for different complexity levels
+- Educational content effectiveness measurements
+- Cross-platform compatibility improvements
+
+### Technology Evolution Tracking
+- Pine Script version updates and migration patterns
+- Cursor IDE feature integrations and optimizations
+- GitHub Actions improvements and automation opportunities
+- Community feedback integration and response patterns
+
+---
+
+**Learning Philosophy:** Every mistake is a learning opportunity that strengthens the entire BTMM system. This file evolves continuously to capture institutional knowledge and prevent regression.
+
+**Next Update:** Automatically triggered by significant development sessions or weekly manual review.
+

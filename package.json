@@ -59,8 +59,13 @@
     "cicd-analyze": "node -e \"console.log('📊 CI/CD Analysis: System performing excellently')\"",
     "learning-update": "node automation/learning-updater.js",
     "prd-sync": "node -e \"console.log('🔄 PRD Sync: Requirements synchronized with system state'); console.log('✅ PRD sync completed!')\"",
-    "continuous-improvement": "npm run learning-update && npm run cicd-enhance && npm run prd-sync && echo ✅ Continuous improvement cycle completed!",
-    "system-evolve": "npm run continuous-improvement && npm run btmm-builder-test && echo 🚀 System evolution cycle completed!"
+    "continuous-improvement": "npm run learning-update && npm run cicd-enhance && npm run prd-sync && echo ✅ Continuous improvement cycle completed! && npm run git-commit && npm run git-push",
+    "system-evolve": "npm run continuous-improvement && npm run btmm-builder-test && echo 🚀 System evolution cycle completed! && npm run git-commit && npm run git-push && npm run git-status",
+    "auto-commit-all": "npm run git-commit && npm run git-push && npm run git-status && echo 📦 All changes committed and pushed!",
+    "safe-deploy": "npm run validate-all && npm run system-evolve && echo 🛡️ Safe deployment completed with automated commits!",
+    "enforce-commits": "node automation/commit-enforcer.js",
+    "commit-check": "node automation/commit-enforcer.js check",
+    "commit-validate": "node automation/commit-enforcer.js validate"
   },
   "keywords": [
     "trading",
