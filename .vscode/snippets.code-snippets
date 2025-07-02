@@ -1,0 +1,35 @@
+{
+  "BTMM Script Header": {
+    "prefix": "btmm-header",
+    "body": [
+      "//@version=5",
+      "${1|indicator,library,strategy|}(\"${2:BTMM Script Name}\", \"${3:Short Name}\", overlay=${4|true,false|})",
+      "",
+      "// ============================================================================" ,
+      "// IMPORTS",
+      "// ============================================================================" ,
+      "import BTMMFoundation as foundation",
+      "",
+      "// ============================================================================" ,
+      "// ${5:SECTION NAME}",
+      "// ============================================================================" ,
+      "",
+      "$0"
+    ],
+    "description": "BTMM Pine Script header template"
+  },
+  
+  "BTMM Function Template": {
+    "prefix": "btmm-function",
+    "body": [
+      "${1:function_name}(${2:parameters}) =>",
+      "    ${3:// Function description}",
+      "    var ${4:return_type} result = ${5:default_value}",
+      "    ",
+      "    ${6:// Function logic}",
+      "    ",
+      "    result"
+    ],
+    "description": "BTMM function template"
+  }
+} 

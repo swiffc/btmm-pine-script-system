@@ -1,0 +1,325 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "BTMM: Check Script Count",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "count-scripts"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Validate All Scripts",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dependency-check"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Check Integration Health",
+      "type": "shell", 
+      "command": "npm",
+      "args": ["run", "integration-health"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Auto-Update Dependencies",
+      "type": "shell",
+      "command": "npm", 
+      "args": ["run", "auto-update"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Merge Functionality",
+      "type": "shell",
+      "command": "npm", 
+      "args": ["run", "merge"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Suggest Merge Target",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "suggest-merge"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Start Script Monitor",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "validate-limit", "--", "--monitor"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Run Full Validation",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "validate-all"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "BTMM: Check Script Count",
+        "BTMM: Validate All Scripts", 
+        "BTMM: Check Integration Health"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Backup All Scripts",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "backup-all"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Rollback Last Changes",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "rollback"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Deploy Script to TradingView (with Git)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "deploy", "${input:scriptName}", "auto"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Deploy All Scripts (with Git)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "deploy-all"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Git Commit & Push",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "sync"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Git Status",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "git-status"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Create Release",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "release", "${input:version}", "${input:releaseMessage}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Save & Commit Version",
+      "type": "shell",
+      "command": "sh",
+      "args": ["-c", "npm run backup-all '${input:comment}' && npm run git-auto-commit '${input:comment}'"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Setup GitHub Repository",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "setup-github", "${input:githubUrl}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: View Git Log",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "git-log"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Cleanup Blocked Files",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "validate-limit", "--", "--cleanup"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Pre-Save Validation",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "pre-save", "--", "${file}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "scriptName",
+      "description": "Script name (without .pine extension)",
+      "default": "BTMM_EMA_System",
+      "type": "promptString"
+    },
+    {
+      "id": "comment",
+      "description": "Version/commit comment",
+      "default": "Manual save and commit",
+      "type": "promptString"
+    },
+    {
+      "id": "version",
+      "description": "Release version (e.g., 1.0.0)",
+      "default": "1.0.0",
+      "type": "promptString"
+    },
+    {
+      "id": "releaseMessage",
+      "description": "Release description",
+      "default": "BTMM System Release",
+      "type": "promptString"
+    },
+    {
+      "id": "githubUrl",
+      "description": "GitHub repository URL",
+      "default": "https://github.com/YOUR_USERNAME/btmm-pine-script-system.git",
+      "type": "promptString"
+    }
+  ]
+} 

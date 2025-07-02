@@ -1,0 +1,83 @@
+{
+  "name": "btmm-trading-system",
+  "version": "2.0.0",
+  "description": "Beat The Market Makers Trading System - Pine Script v5 with Cursor IDE Integration",
+  "main": "index.js",
+  "scripts": {
+    "count-scripts": "node -e \"console.log('Scripts:', require('fs').readdirSync('scripts').filter(f=>f.endsWith('.pine')&&f.startsWith('BTMM')).length + '/10')\"",
+    "validate-limit": "node automation/script-limit-enforcer.js",
+    "merge": "node automation/smart-merger.js",
+    "suggest-merge": "node automation/merge-strategy.js",
+    "check-merge-conflicts": "node automation/pre-merge-validator.js",
+    "dependency-check": "node automation/dependency-tracker.js",
+    "integration-health": "node automation/integration-health-check.js",
+    "auto-update": "node automation/auto-update-dependencies.js",
+    "backup-all": "node automation/backup-system.js",
+    "rollback": "node automation/rollback-system.js",
+    "validate-all": "npm run count-scripts && npm run dependency-check && npm run integration-health",
+    "pre-save": "node automation/pre-save-validation.js",
+    "setup": "npm install && node automation/git-manager.js init && mkdir -p versions",
+    "setup-github": "node automation/git-manager.js connect",
+    "deploy": "node automation/deploy-to-tradingview.js",
+    "deploy-all": "node automation/deploy-to-tradingview.js all",
+    "deploy-no-git": "node automation/deploy-to-tradingview.js",
+    "git-status": "node automation/git-manager.js status",
+    "git-commit": "node automation/git-manager.js commit",
+    "git-push": "node automation/git-manager.js push",
+    "git-sync": "node automation/git-manager.js sync",
+    "git-log": "node automation/git-manager.js log",
+    "git-auto-commit": "node automation/git-manager.js auto-commit",
+    "git-info": "node automation/git-manager.js info",
+    "release": "node automation/git-manager.js release",
+    "sync": "npm run git-commit && npm run git-push",
+    "status": "echo '📊 BTMM System Status:' && npm run count-scripts && npm run git-status"
+  },
+  "keywords": [
+    "trading",
+    "pine-script",
+    "market-makers",
+    "btmm",
+    "tradingview",
+    "automation",
+    "cursor-ide"
+  ],
+  "author": "BTMM Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "clipboardy": "^3.0.0"
+  },
+  "devDependencies": {
+    "chokidar": "^3.5.3",
+    "fs-extra": "^11.1.1"
+  },
+  "btmm": {
+    "scriptLimit": 10,
+    "currentScripts": [
+      "BTMMFoundation.pine",
+      "BTMM_EMA_System.pine",
+      "BTMM_Asian_Range.pine",
+      "BTMM_HTF_Bias.pine",
+      "BTMM_Pattern_Detection.pine",
+      "BTMM_Entry_System.pine",
+      "BTMM_Risk_Management.pine",
+      "BTMM_Stop_Hunt_Detection.pine",
+      "BTMM_Master_Dashboard.pine",
+      "BTMM_Alert_System.pine"
+    ],
+    "protectedFunctions": [
+      "session_and_cycle",
+      "timeframe_classification",
+      "ema_stack_analysis",
+      "volume_analysis"
+    ],
+    "criticalOutputs": [
+      "Bull_Stack",
+      "Bear_Stack",
+      "HTF_Bias",
+      "Bullish_Setup",
+      "Bearish_Setup",
+      "Stack_Strength",
+      "Integration_Errors"
+    ]
+  }
+}
