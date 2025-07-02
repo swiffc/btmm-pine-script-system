@@ -288,6 +288,20 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "BTMM: Reload Window (Fix Language Support)",
+      "type": "shell",
+      "command": "echo",
+      "args": ["Please reload Cursor window (Ctrl+Shift+P → Developer: Reload Window) to apply Pine Script language support"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
     }
   ],
   "inputs": [

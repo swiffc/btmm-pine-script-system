@@ -1,0 +1,49 @@
+{
+  "name": "Pine Script",
+  "scopeName": "source.pinescript",
+  "fileTypes": ["pine", "psc"],
+  "patterns": [
+    {
+      "name": "comment.line.double-slash.pinescript",
+      "match": "//.*$"
+    },
+    {
+      "name": "keyword.control.pinescript",
+      "match": "\\b(if|else|for|while|switch|break|continue|true|false|na|input|plot|hline|fill|bgcolor|barcolor|strategy|indicator|library|import|export|var|varip|method|type)\\b"
+    },
+    {
+      "name": "keyword.operator.pinescript",
+      "match": "(\\+|\\-|\\*|\\/|%|==|!=|<|>|<=|>=|and|or|not|\\?|:)"
+    },
+    {
+      "name": "string.quoted.single.pinescript",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.pinescript",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "string.quoted.double.pinescript",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.pinescript",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "constant.numeric.pinescript",
+      "match": "\\b\\d+(\\.\\d+)?\\b"
+    },
+    {
+      "name": "entity.name.function.pinescript",
+      "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*(?=\\()"
+    }
+  ]
+} 
