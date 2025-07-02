@@ -286,7 +286,7 @@ jspm_packages/
     try {
       if (addAll) {
         // Add only specific files we want to track
-        execSync('git add scripts/ automation/ configs/ .vscode/ .cursor/ package.json package-lock.json');
+        execSync('git add scripts/ automation/ configs/ .vscode/ package.json package-lock.json');
         
         // Add documentation if exists
         if (fs.existsSync('README.md')) {
