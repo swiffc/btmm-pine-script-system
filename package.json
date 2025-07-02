@@ -4,7 +4,7 @@
   "description": "Beat The Market Makers Trading System - Pine Script v5 with Cursor IDE Integration",
   "main": "index.js",
   "scripts": {
-    "count-scripts": "node -e \"console.log('Scripts:', require('fs').readdirSync('scripts').filter(f=>f.endsWith('.pine')&&f.startsWith('BTMM')).length + '/10')\"",
+    "count-scripts": "node -e \"const fs=require('fs');const path=require('path');function countScripts(dir){let count=0;const items=fs.readdirSync(dir);for(const item of items){const fullPath=path.join(dir,item);if(fs.statSync(fullPath).isDirectory()){count+=countScripts(fullPath);}else if(item.endsWith('.pine')&&(item.startsWith('BTMM')||item==='BTMMFoundation.pine')){count++;}}return count;}console.log('Scripts:',countScripts('scripts')+'/10')\"",
     "validate-limit": "node automation/script-limit-enforcer.js",
     "merge": "node automation/smart-merger.js",
     "suggest-merge": "node automation/merge-strategy.js",
