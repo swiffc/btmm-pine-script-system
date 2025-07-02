@@ -9,29 +9,54 @@ class CommitEnforcer {
     }
 
     async enforceCommitProcess(context = 'general') {
-        console.log(' BTMM Commit Enforcement - ACTIVATING...');
-        console.log(` Context: ${context}`);
+        console.log('🔒 BTMM Commit Enforcement - ACTIVATING...');
+        console.log(`📋 Context: ${context}`);
         
         try {
             const commitStatus = await this.checkCommitStatus();
             
             if (!commitStatus.required) {
-                console.log(' Working directory clean - no commits needed');
+                console.log('✅ Working directory clean - no commits needed');
                 return { success: true, action: 'none_required' };
             }
             
-            console.log(' Executing MANDATORY commit sequence...');
+            // CRITICAL: Execute file organization BEFORE commits
+            console.log('🏗️ Executing MANDATORY file organization...');
+            await this.executeFileOrganization();
+            
+            console.log('📦 Executing MANDATORY commit sequence...');
             const result = await this.executeMandatoryCommitSequence(context);
             
             await this.verifyCommitSuccess();
             await this.logSuccessfulEnforcement(context);
             
-            console.log(' COMMIT ENFORCEMENT SUCCESSFUL - All changes secured!');
+            console.log('✅ COMMIT ENFORCEMENT SUCCESSFUL - All changes secured!');
             return result;
             
         } catch (error) {
-            console.error(' COMMIT ENFORCEMENT FAILED:', error.message);
+            console.error('❌ COMMIT ENFORCEMENT FAILED:', error.message);
             throw error;
+        }
+    }
+
+    /**
+     * Execute mandatory file organization before commits
+     */
+    async executeFileOrganization() {
+        try {
+            console.log('🔍 Professional DevOps file organization starting...');
+            
+            // Execute the file organizer (updated path after organization)
+            execSync('node automation/devops/file-organizer.js organize', { 
+                stdio: 'inherit',
+                timeout: 60000 // 1 minute timeout
+            });
+            
+            console.log('✅ File organization completed successfully');
+            
+        } catch (error) {
+            console.error('❌ File organization failed:', error.message);
+            throw new Error(`File organization prerequisite failed: ${error.message}`);
         }
     }
 
@@ -58,7 +83,7 @@ class CommitEnforcer {
         ];
         
         for (const command of steps) {
-            console.log(` Executing: ${command}`);
+            console.log(`🔧 Executing: ${command}`);
             execSync(command, { stdio: 'inherit' });
         }
         
@@ -75,7 +100,7 @@ class CommitEnforcer {
         if (gitStatus.trim().length > 0) {
             throw new Error('Working directory not clean after commit');
         }
-        console.log(' Commit verification successful');
+        console.log('✅ Commit verification successful');
     }
 
     async logSuccessfulEnforcement(context) {
@@ -84,17 +109,17 @@ class CommitEnforcer {
             const logEntry = `
 ### ${timestamp}: Automated Commit Enforcement Success
 **Context:** ${context}
-**Pattern:** All workflows ending with mandatory commits
-**Application:** Bulletproof version control achieved
+**Pattern:** File organization + commits - Professional DevOps standards
+**Application:** Enterprise-grade repository management achieved
 `;
             
             if (fs.existsSync(this.rulesPath)) {
                 const currentContent = fs.readFileSync(this.rulesPath, 'utf8');
                 fs.writeFileSync(this.rulesPath, currentContent + logEntry);
-                console.log(' Learning database updated');
+                console.log('📚 Learning database updated');
             }
         } catch (error) {
-            console.warn(' Could not update learning database:', error.message);
+            console.warn('⚠️ Could not update learning database:', error.message);
         }
     }
 }
@@ -104,8 +129,8 @@ if (require.main === module) {
     const context = process.argv[2] || 'manual_execution';
     
     enforcer.enforceCommitProcess(context)
-        .then(() => console.log(' Commit enforcement completed!'))
-        .catch(error => console.error(' Failed:', error.message));
+        .then(() => console.log('🎉 Commit enforcement completed!'))
+        .catch(error => console.error('❌ Failed:', error.message));
 }
 
 module.exports = CommitEnforcer;

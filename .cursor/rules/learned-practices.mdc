@@ -14,27 +14,68 @@ This file continuously grows with each development session, capturing:
 
 ## 🚨 CRITICAL FOUNDATIONAL RULES
 
-### 🔒 **MAJOR RULE: Automated Commit Process MUST Be Final Step**
-- ❌ **NEVER** leave changes uncommitted after any development session
-- ✅ **ALWAYS** automate the commit process as the last step of any workflow
-- 🔄 **MANDATORY** git commit + push sequence for every change cycle
-- 📋 **ENFORCE** this rule in all automation scripts and CI/CD pipelines
-- 🎯 **INTEGRATION** All system evolution cycles must end with automated commits
+### 🔒 **MAJOR RULE 1: Automated File Organization MUST Precede All Commits**
+**Priority: P0 - CRITICAL (DevOps Excellence)**
 
-**Implementation Pattern:**
-```bash
-# Every workflow MUST end with:
-npm run git-commit    # Automated commit with descriptive messages
-npm run git-push      # Push to remote repository
-npm run git-status    # Verify clean working directory
+Every development workflow MUST execute comprehensive file organization before commits:
+
+```yaml
+MANDATORY PRE-COMMIT SEQUENCE:
+  1. Execute automated file organization scan
+  2. Identify unnecessary/misplaced files and folders
+  3. Archive or delete obsolete files
+  4. Reorganize files to proper folder structure
+  5. Create new folders as needed for logical organization
+  6. Validate all files are in correct locations
+  7. THEN proceed to commit process
 ```
 
-**Why This Rule is Critical:**
-- **Data Protection**: Prevents loss of development progress
-- **Version Control**: Ensures all improvements are tracked
-- **Team Coordination**: Keeps remote repository current
-- **Backup Security**: Protects against hardware/software failures
-- **Audit Trail**: Maintains complete history of system evolution
+**File Organization Criteria (Professional Standards):**
+- ✅ **Scripts**: Organized by function (core/, analytics/, tools/, etc.)
+- ✅ **Documentation**: Centralized in `docs/` with proper hierarchy
+- ✅ **Automation**: All scripts in `automation/` by category
+- ✅ **Configuration**: All configs in `configs/` with environment separation
+- ✅ **Archives**: Historical files in `archives/` with date-based structure
+- ✅ **Exports**: Production-ready files in `exports/tradingview-ready/`
+- ✅ **Tests**: All validation scripts in `tests/` with coverage tracking
+
+**Cleanup Rules (Trading System Standards):**
+- 🗑️ **Remove**: Duplicate files, temporary files, unused imports
+- 📁 **Archive**: Outdated versions, experimental code, legacy files
+- 🔄 **Reorganize**: Files in wrong directories, unclear naming
+- 📝 **Rename**: Non-standard naming conventions
+- 🎯 **Optimize**: Large files, redundant code, unused dependencies
+
+### 🔒 **MAJOR RULE 2: Automated Commit Process MUST Be Final Step**
+**Priority: P0 - CRITICAL**
+
+Every development workflow, automation script, and system process MUST end with automated commit sequence:
+
+```yaml
+Required Automation Pattern:
+  1. Execute development/enhancement tasks
+  2. MANDATORY: Run file organization and cleanup
+  3. Validate changes and quality checks
+  4. MANDATORY: npm run git-commit
+  5. MANDATORY: npm run git-push  
+  6. MANDATORY: npm run git-status (verify clean)
+```
+
+**Enforcement Mechanisms:**
+- ✅ All package.json scripts ending with automated commits
+- ✅ CI/CD pipelines must include commit steps
+- ✅ Cursor rules must reference this requirement
+- ✅ Learning system must capture any commit failures
+- ✅ PRD updates must trigger automated commits
+- ✅ File organization must precede all commits
+
+**Business Justification:**
+- **Risk Mitigation**: Prevents loss of valuable development work
+- **Compliance**: Ensures audit trail and version control
+- **Team Coordination**: Keeps all stakeholders synchronized
+- **Quality Assurance**: Automated commits include validation
+- **Scalability**: Enables reliable automated deployments
+- **Professional Standards**: Maintains enterprise-grade code organization
 
 ---
 
@@ -78,6 +119,12 @@ npm run git-status    # Verify clean working directory
 - ❌ **Never skip anti-repainting validation for security calls**
   - *Pattern:* Include `lookahead=barmerge.lookahead_off`
   - *Alternative:* Use `barstate.isconfirmed` checks
+
+### Additional Mistakes
+- ❌ **Don't commit without file organization check**
+  - *Reason:* Ensures all files are in correct locations
+- ❌ **Never leave unused files or folders in repository**
+  - *Reason:* Keeps repository clean and organized
 
 ---
 
@@ -142,37 +189,28 @@ npm run git-status    # Verify clean working directory
     practiceExercises: ["basic", "intermediate", "advanced"]
   ```
 
+### Additional Proven Patterns
+- ✅ **Maintain clean folder structure with logical hierarchy**
+- ✅ **Archive old versions before creating new ones**
+
 ---
 
 ## 🔄 Recent Fixes Applied
 
-### 2025-07-02: Template Generator Performance Optimization
-**Issue:** Missing generatePracticeExercises function caused template loading failure
-**Fix:** Replaced dynamic function call with static array
-**Learning:** Always validate function dependencies before deployment
-**Code Pattern:**
-```javascript
-// ✅ Static approach for reliability
-practiceExercises: ['basic_understanding', 'parameter_modification', 'signal_analysis']
-```
+### 2025-07-02: Automated Commit Enforcement Success
+**Context:** mandatory-rule-completion
+**Pattern:** All workflows ending with mandatory commits
+**Application:** Bulletproof version control achieved
 
-### 2025-07-02: CI/CD Pipeline Script Count Integration
-**Issue:** Script counter only scanned main directory, missing subdirectory scripts
-**Fix:** Updated to recursive scanning including all BTMM* scripts
-**Learning:** File system operations need comprehensive path coverage
-**Code Pattern:**
-```javascript
-// ✅ Recursive scanning
-function countScripts(dir) {
-    // Implementation includes subdirectory traversal
-}
-```
+### 2025-07-02: Automated Commit Enforcement Success
+**Context:** final-rule-implementation
+**Pattern:** All workflows ending with mandatory commits
+**Application:** Bulletproof version control achieved
 
-### 2025-07-02: PowerShell Command Chaining
-**Issue:** && operator not supported in PowerShell for complex npm scripts
-**Fix:** Simplified echo statements and removed shell-specific operators
-**Learning:** Cross-platform compatibility requires simpler command structures
-**Resolution:** Use separate commands or PowerShell-specific operators
+### 2025-07-02: Automated Commit Enforcement Success
+**Context:** test-automation-rule
+**Pattern:** All workflows ending with mandatory commits
+**Application:** Bulletproof version control achieved
 
 ### 2025-07-02: Continuous Learning System Active
 **Pattern:** Automated learning detection working
@@ -301,18 +339,3 @@ function countScripts(dir) {
 
 **Next Update:** Automatically triggered by significant development sessions or weekly manual review.
 
-
-### 2025-07-02: Automated Commit Enforcement Success
-**Context:** test-automation-rule
-**Pattern:** All workflows ending with mandatory commits
-**Application:** Bulletproof version control achieved
-
-### 2025-07-02: Automated Commit Enforcement Success
-**Context:** final-rule-implementation
-**Pattern:** All workflows ending with mandatory commits
-**Application:** Bulletproof version control achieved
-
-### 2025-07-02: Automated Commit Enforcement Success
-**Context:** mandatory-rule-completion
-**Pattern:** All workflows ending with mandatory commits
-**Application:** Bulletproof version control achieved

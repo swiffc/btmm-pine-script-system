@@ -63,7 +63,11 @@
     "system-evolve": "npm run continuous-improvement && npm run btmm-builder-test && echo 🚀 System evolution cycle completed! && npm run git-commit && npm run git-push && npm run git-status",
     "auto-commit-all": "npm run git-commit && npm run git-push && npm run git-status && echo 📦 All changes committed and pushed!",
     "safe-deploy": "npm run validate-all && npm run system-evolve && echo 🛡️ Safe deployment completed with automated commits!",
-    "enforce-commits": "node automation/commit-enforcer.js",
+    "organize-files": "node automation/file-organizer.js organize",
+    "scan-files": "node automation/file-organizer.js scan",
+    "devops-organize": "npm run organize-files && echo 🏗️ Professional file organization completed!",
+    "enforce-commits-full": "node automation/commit-enforcer.js",
+    "professional-commit": "npm run organize-files && npm run enforce-commits",
     "commit-check": "node automation/commit-enforcer.js check",
     "commit-validate": "node automation/commit-enforcer.js validate"
   },
