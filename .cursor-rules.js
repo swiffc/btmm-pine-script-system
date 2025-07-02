@@ -32,14 +32,46 @@ module.exports = {
     "rule": "ALL Pine Script files MUST pass syntax validation",
     "requirements": [
       "Must start with //@version=5",
-      "Must include indicator(), strategy(), or library() declaration",
+      "Must include indicator(), strategy(), or library() declaration with descriptive title",
       "All brackets must be properly matched: (), [], {}",
       "Maximum line length: 120 characters",
       "Use 4-space indentation consistently",
-      "No trailing whitespace"
+      "No trailing whitespace",
+      "Proper overlay and scale parameters set",
+      "Include shorttitle for chart clarity"
     ],
     "validation": "Check syntax before save and deployment",
     "action": "BLOCK save if syntax errors found"
+  },
+
+  "naming-conventions": {
+    "rule": "ENFORCE consistent and descriptive naming conventions",
+    "standards": {
+      "variables": "camelCase (fastLength, slowEma, rsiValue)",
+      "constants": "UPPERCASE (DEFAULT_LENGTH, OVERBOUGHT_LEVEL)", 
+      "inputs": "descriptive prefixes (maLength, rsiPeriod, signalThreshold)",
+      "functions": "descriptive purpose (priceAboveMa not flag1)",
+      "forbidden": ["flag1, temp, x, y, data, val, num"]
+    },
+    "validation": "Scan for non-descriptive variable names",
+    "action": "WARN about unclear naming"
+  },
+
+  "input-parameters": {
+    "rule": "IMPLEMENT proper input parameter best practices",
+    "requirements": [
+      "Provide sensible default values based on common usage",
+      "Include min/max constraints to prevent invalid inputs", 
+      "Use descriptive titles and helpful tooltips",
+      "Group related inputs logically with group parameter",
+      "Validate inputs at script start with runtime.error()"
+    ],
+    "examples": [
+      "maLength = input.int(20, 'MA Length', minval=1, maxval=200, group='Moving Average')",
+      "rsiOverbought = input.float(70.0, 'Overbought Level', minval=50, maxval=95, group='RSI')"
+    ],
+    "validation": "Check for proper input validation",
+    "action": "SUGGEST input validation improvements"
   },
 
   "anti-repainting": {
@@ -87,24 +119,117 @@ module.exports = {
     "action": "SUGGEST built-in alternatives"
   },
 
-  "code-quality": {
-    "rule": "MAINTAIN high code quality and documentation standards",
-    "requirements": [
-      "All functions must have descriptive comments",
-      "Variable names must be descriptive and consistent",
-      "Include input validation for user parameters",
-      "Add error handling for edge cases",
-      "Document all exported functions",
-      "Use consistent naming conventions"
+  "code-structure": {
+    "rule": "ENFORCE proper Pine Script code organization and flow",
+    "logical-flow": [
+      "1. Version declaration and script setup",
+      "2. Input parameters (grouped logically)", 
+      "3. Variable declarations and constants",
+      "4. Mathematical calculations and logic",
+      "5. Plotting and visual elements",
+      "6. Alerts and notifications"
     ],
-    "naming-conventions": {
-      "functions": "snake_case or camelCase",
-      "variables": "descriptive_names",
-      "constants": "UPPER_CASE",
-      "inputs": "user_friendly_names"
-    },
-    "validation": "Check code quality metrics",
-    "action": "SUGGEST improvements for clarity"
+    "performance-rules": [
+      "Use 'var' for variables that don't need recalculation on every bar",
+      "Avoid unnecessary calculations in loops",
+      "Cache complex calculations when used multiple times",
+      "Minimize security() function calls",
+      "Use built-in functions over custom implementations"
+    ],
+    "validation": "Check code organization and structure",
+    "action": "SUGGEST reorganization for better flow"
+  },
+
+  "error-handling": {
+    "rule": "IMPLEMENT comprehensive error handling and validation",
+    "requirements": [
+      "Always validate inputs at script start",
+      "Handle division by zero scenarios", 
+      "Check for sufficient data before calculations",
+      "Use proper 'na' handling for series functions",
+      "Include runtime.error() for invalid inputs",
+      "Safe historical references with bounds checking"
+    ],
+    "patterns": [
+      "if maLength < 1 runtime.error('MA Length must be greater than 0')",
+      "rsiValue = maLength > 0 ? ta.rsi(close, maLength) : na",
+      "hasSufficientData = bar_index >= maLength",
+      "prevClose = bar_index > 0 ? close[1] : close"
+    ],
+    "validation": "Scan for error handling patterns",
+    "action": "WARN about missing error handling"
+  },
+
+  "visual-standards": {
+    "rule": "MAINTAIN consistent visual design and plotting standards",
+    "requirements": [
+      "Use consistent color schemes throughout indicators",
+      "Implement appropriate transparency for overlays",
+      "Choose proper line styles and widths for clarity", 
+      "Ensure plots are distinguishable from price action",
+      "Use dynamic colors based on market conditions",
+      "Proper scale and overlay management"
+    ],
+    "color-standards": [
+      "bullishColor = color.new(color.green, 0)",
+      "bearishColor = color.new(color.red, 0)", 
+      "neutralColor = color.new(color.gray, 50)"
+    ],
+    "plotting-best-practices": [
+      "plot(smaValue, 'SMA', color=bullishColor, linewidth=2)",
+      "plotshape(buySignal, 'Buy', shape.triangleup, location.belowbar)"
+    ],
+    "validation": "Check plotting and visual consistency",
+    "action": "SUGGEST visual improvements"
+  },
+
+  "documentation-standards": {
+    "rule": "REQUIRE comprehensive documentation and comments",
+    "header-requirements": [
+      "Include comprehensive header with purpose and methodology",
+      "Comment complex mathematical formulas",
+      "Explain non-standard calculations", 
+      "Document expected behavior and limitations",
+      "Include author, version, and date information"
+    ],
+    "header-template": [
+      "// =============================================================================",
+      "// [INDICATOR NAME]", 
+      "// =============================================================================",
+      "// Purpose: [Description of what the indicator does]",
+      "// Method: [Technical analysis methodology used]",
+      "// Author: BTMM Development Team",
+      "// Version: [Version number]",
+      "// Date: [Date]",
+      "// ============================================================================="
+    ],
+    "inline-documentation": [
+      "Explain complex logic sections",
+      "Document parameter choices and reasoning",
+      "Include references to technical analysis sources",
+      "Add TODO comments for future improvements"
+    ],
+    "validation": "Check documentation completeness",
+    "action": "REQUIRE proper documentation headers"
+  },
+
+  "alert-implementation": {
+    "rule": "IMPLEMENT proper alert system with best practices",
+    "requirements": [
+      "Create clear, actionable alert messages",
+      "Include relevant context (price, indicator values, timeframe)",
+      "Use proper alert conditions to avoid spam",
+      "Test alert logic thoroughly"
+    ],
+    "alert-template": [
+      "alertMessage = 'Signal Name\\n' +",
+      "              'Symbol: ' + syminfo.ticker + '\\n' +", 
+      "              'Price: ' + str.tostring(close, '#.##') + '\\n' +",
+      "              'Indicator: ' + str.tostring(indicatorValue, '#.##') + '\\n' +",
+      "              'Timeframe: ' + timeframe.period"
+    ],
+    "validation": "Check alert implementation quality",
+    "action": "SUGGEST alert improvements"
   },
 
   "github-automation": {
