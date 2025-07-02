@@ -1,0 +1,45 @@
+---
+title: Learned Best Practices - BTMM System
+description: Accumulated wisdom from coding sessions
+type: always
+scope: '**/*'
+priority: critical
+version: 2.0.0
+last_updated: 2025-07-02
+---
+
+# BTMM Learned Best Practices Database
+
+## Common Mistakes to Avoid
+- Never exceed 10-script limit without merge strategy
+- Don't modify protected functions without dependency check
+- Always include input validation for user parameters
+- Never skip anti-repainting validation for security calls
+
+## Proven Patterns That Work
+- Always use ta. prefix for technical analysis functions
+- Cache complex calculations in variables
+- Use descriptive variable names following BTMM conventions
+- Include proper error handling for edge cases
+
+## Recent Fixes Applied
+### 2025-07-02: Template Generator Performance Optimization
+**Issue:** Missing generatePracticeExercises function
+**Fix:** Replaced dynamic function call with static array
+**Learning:** Always validate function dependencies before deployment
+
+### 2025-07-02: System Health Validation
+**Pattern:** Continuous improvement cycle maintains stability
+**Application:** Apply automated learning updates regularly
+
+### 2025-07-02: Continuous Learning System Active
+**Pattern:** Automated learning detection working
+**Application:** Regular system evolution cycles
+
+### 2025-07-02: Continuous Learning System Active
+**Pattern:** Automated learning detection working
+**Application:** Regular system evolution cycles
+
+### 2025-07-02: Continuous Learning System Active
+**Pattern:** Automated learning detection working
+**Application:** Regular system evolution cycles
