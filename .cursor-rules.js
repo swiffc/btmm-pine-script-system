@@ -1,4 +1,4 @@
-// .cursor-rules.js - BTMM SCRIPT LIMIT ENFORCEMENT
+// .cursor-rules.js - BTMM SCRIPT LIMIT ENFORCEMENT & QUALITY STANDARDS
 module.exports = {
   "max-scripts": {
     "limit": 10,
@@ -25,6 +25,107 @@ module.exports = {
     "rule": "ALL data window outputs must remain consistent",
     "action": "Auto-update dependent files when source changes",
     "validation": "Check all input.source() references"
+  },
+
+  // =================== PINE SCRIPT QUALITY STANDARDS ===================
+  "pine-script-syntax": {
+    "rule": "ALL Pine Script files MUST pass syntax validation",
+    "requirements": [
+      "Must start with //@version=5",
+      "Must include indicator(), strategy(), or library() declaration",
+      "All brackets must be properly matched: (), [], {}",
+      "Maximum line length: 120 characters",
+      "Use 4-space indentation consistently",
+      "No trailing whitespace"
+    ],
+    "validation": "Check syntax before save and deployment",
+    "action": "BLOCK save if syntax errors found"
+  },
+
+  "anti-repainting": {
+    "rule": "PREVENT look-ahead bias and repainting issues",
+    "required-practices": [
+      "Use barstate.isconfirmed for historical accuracy",
+      "Avoid request.security() with lookahead=barmerge.lookahead_on",
+      "Use proper series declarations (var, varip, series)",
+      "Validate all ta.valuewhen() and ta.barssince() usage",
+      "Ensure calculations don't change on historical bars"
+    ],
+    "forbidden-patterns": [
+      "lookahead=barmerge.lookahead_on",
+      "Calculations that change historical values",
+      "Future data references"
+    ],
+    "validation": "Scan for anti-repainting violations",
+    "action": "WARN and suggest corrections"
+  },
+
+  "performance-optimization": {
+    "rule": "USE efficient coding techniques and built-in functions",
+    "best-practices": [
+      "Use built-in ta.* functions instead of custom implementations",
+      "Prefer math.* functions for mathematical operations", 
+      "Use array.* and map.* for data structures",
+      "Limit complex calculations and nested loops",
+      "Cache expensive calculations in variables",
+      "Use series declarations appropriately"
+    ],
+    "required-built-ins": [
+      "ta.sma() instead of custom SMA",
+      "ta.ema() instead of custom EMA", 
+      "ta.rsi() instead of custom RSI",
+      "math.max(), math.min(), math.abs()",
+      "array.* for array operations",
+      "map.* for key-value storage"
+    ],
+    "limits": {
+      "max-calculations-per-bar": 500,
+      "max-loop-iterations": 100,
+      "max-nested-loops": 2
+    },
+    "validation": "Check for optimization opportunities",
+    "action": "SUGGEST built-in alternatives"
+  },
+
+  "code-quality": {
+    "rule": "MAINTAIN high code quality and documentation standards",
+    "requirements": [
+      "All functions must have descriptive comments",
+      "Variable names must be descriptive and consistent",
+      "Include input validation for user parameters",
+      "Add error handling for edge cases",
+      "Document all exported functions",
+      "Use consistent naming conventions"
+    ],
+    "naming-conventions": {
+      "functions": "snake_case or camelCase",
+      "variables": "descriptive_names",
+      "constants": "UPPER_CASE",
+      "inputs": "user_friendly_names"
+    },
+    "validation": "Check code quality metrics",
+    "action": "SUGGEST improvements for clarity"
+  },
+
+  "github-automation": {
+    "rule": "AUTOMATICALLY commit and push all validated changes",
+    "workflow": [
+      "1. Validate syntax and quality",
+      "2. Run integration health check", 
+      "3. Create automatic backup",
+      "4. Commit with descriptive message",
+      "5. Push to GitHub repository",
+      "6. Tag deployment if applicable"
+    ],
+    "commit-patterns": {
+      "syntax-fix": "Fix: Pine Script syntax errors in {filename}",
+      "optimization": "Optimize: Performance improvements in {filename}",
+      "anti-repaint": "Fix: Anti-repainting improvements in {filename}",
+      "feature": "Add: New functionality in {filename}",
+      "merge": "Merge: {source} functionality into {target}"
+    },
+    "auto-push": true,
+    "validation": "All changes must pass quality checks before GitHub push"
   },
 
   // Current 10-script allocation (LOCKED)
