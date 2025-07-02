@@ -1,0 +1,141 @@
+//@version=5
+indicator("BTMM EMA System", "BTMM EMA", overlay=true)
+
+// ============================================================================
+// BTMM EMA SYSTEM - COMPREHENSIVE EMA ANALYSIS & STACK MONITORING
+// ============================================================================
+// This script consolidates all EMA-related functionality including:
+// - EMA stack analysis and strength calculation
+// - Multi-timeframe EMA monitoring
+// - EMA-based trend determination
+// - Stack strength scoring
+// ============================================================================
+
+// Import Foundation Library
+import BTMMFoundation/BTMMFoundationLib/1 as btmm
+
+// ============================================================================
+// SETTINGS & INPUTS
+// ============================================================================
+
+var g_ema_settings = "EMA System Settings"
+ema5_length = input.int(5, "EMA 5 Length", minval=1, group=g_ema_settings)
+ema13_length = input.int(13, "EMA 13 Length", minval=1, group=g_ema_settings)
+ema50_length = input.int(50, "EMA 50 Length", minval=1, group=g_ema_settings)
+ema200_length = input.int(200, "EMA 200 Length", minval=1, group=g_ema_settings)
+ema800_length = input.int(800, "EMA 800 Length", minval=1, group=g_ema_settings)
+
+var g_display = "Display Settings"
+show_emas = input.bool(true, "Show EMAs", group=g_display)
+show_stack_areas = input.bool(true, "Show Stack Areas", group=g_display)
+show_signals = input.bool(true, "Show Stack Signals", group=g_display)
+
+// ============================================================================
+// EMA CALCULATIONS
+// ============================================================================
+
+// Calculate EMAs
+ema5 = ta.ema(close, ema5_length)
+ema13 = ta.ema(close, ema13_length)
+ema50 = ta.ema(close, ema50_length)
+ema200 = ta.ema(close, ema200_length)
+ema800 = ta.ema(close, ema800_length)
+
+// ============================================================================
+// EMA STACK ANALYSIS
+// ============================================================================
+
+// Bull stack: 5 > 13 > 50 > 200 > 800
+bull_stack = ema5 > ema13 and ema13 > ema50 and ema50 > ema200 and ema200 > ema800
+
+// Bear stack: 5 < 13 < 50 < 200 < 800
+bear_stack = ema5 < ema13 and ema13 < ema50 and ema50 < ema200 and ema200 < ema800
+
+// Mixed stack (partial alignment)
+mixed_stack = not bull_stack and not bear_stack
+
+// Stack strength calculation (0-100)
+stack_alignment_bull = (ema5 > ema13 ? 20 : 0) + 
+                      (ema13 > ema50 ? 20 : 0) + 
+                      (ema50 > ema200 ? 20 : 0) + 
+                      (ema200 > ema800 ? 20 : 0) + 
+                      (close > ema5 ? 20 : 0)
+
+stack_alignment_bear = (ema5 < ema13 ? 20 : 0) + 
+                      (ema13 < ema50 ? 20 : 0) + 
+                      (ema50 < ema200 ? 20 : 0) + 
+                      (ema200 < ema800 ? 20 : 0) + 
+                      (close < ema5 ? 20 : 0)
+
+stack_strength = math.max(stack_alignment_bull, stack_alignment_bear)
+
+// Stack status
+stack_status = bull_stack ? "BULL" : bear_stack ? "BEAR" : "MIXED"
+
+// ============================================================================
+// TREND ANALYSIS
+// ============================================================================
+
+// Short-term trend (5/13 EMA)
+short_term_bull = ema5 > ema13 and close > ema5
+short_term_bear = ema5 < ema13 and close < ema5
+
+// Medium-term trend (13/50 EMA)
+medium_term_bull = ema13 > ema50 and close > ema13
+medium_term_bear = ema13 < ema50 and close < ema13
+
+// Long-term trend (50/200 EMA)
+long_term_bull = ema50 > ema200
+long_term_bear = ema50 < ema200
+
+// Overall trend score
+trend_score = (short_term_bull ? 1 : short_term_bear ? -1 : 0) +
+              (medium_term_bull ? 2 : medium_term_bear ? -2 : 0) +
+              (long_term_bull ? 3 : long_term_bear ? -3 : 0)
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Plot EMAs
+plot(show_emas ? ema5 : na, "EMA 5", color=color.yellow, linewidth=1)
+plot(show_emas ? ema13 : na, "EMA 13", color=color.orange, linewidth=2)
+plot(show_emas ? ema50 : na, "EMA 50", color=color.blue, linewidth=2)
+plot(show_emas ? ema200 : na, "EMA 200", color=color.purple, linewidth=3)
+plot(show_emas ? ema800 : na, "EMA 800", color=color.red, linewidth=3)
+
+// Stack area fills
+ema5_plot = plot(ema5, color=color.new(color.yellow, 100))
+ema13_plot = plot(ema13, color=color.new(color.orange, 100))
+ema50_plot = plot(ema50, color=color.new(color.blue, 100))
+
+fill(ema5_plot, ema13_plot, 
+     color=show_stack_areas ? (bull_stack ? color.new(color.green, 90) : 
+                               bear_stack ? color.new(color.red, 90) : 
+                               color.new(color.gray, 95)) : na)
+
+// Stack signals
+plotshape(show_signals and bull_stack and not bull_stack[1], 
+          "Bull Stack", shape.triangleup, location.belowbar, 
+          color.green, size=size.small)
+
+plotshape(show_signals and bear_stack and not bear_stack[1], 
+          "Bear Stack", shape.triangledown, location.abovebar, 
+          color.red, size=size.small)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(bull_stack ? 1 : 0, "Bull_Stack", display=display.data_window)
+plot(bear_stack ? 1 : 0, "Bear_Stack", display=display.data_window)
+plot(stack_strength, "Stack_Strength", display=display.data_window)
+plot(ema5, "EMA_5", display=display.data_window)
+plot(ema13, "EMA_13", display=display.data_window)
+plot(ema50, "EMA_50", display=display.data_window)
+plot(ema200, "EMA_200", display=display.data_window)
+plot(ema800, "EMA_800", display=display.data_window)
+plot(trend_score, "Trend_Score", display=display.data_window)
+plot(short_term_bull ? 1 : 0, "Short_Term_Bull", display=display.data_window)
+plot(medium_term_bull ? 1 : 0, "Medium_Term_Bull", display=display.data_window)
+plot(long_term_bull ? 1 : 0, "Long_Term_Bull", display=display.data_window) 
