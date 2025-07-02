@@ -1,5 +1,16 @@
 //@version=5
-indicator("BTMM Asian Range System", "BTMM Asian", overlay=true)
+
+// =============================================================================
+// BTMM ASIAN RANGE
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Asian Range System", "BTMM Asian", overlay=true, shorttitle="BTMM Asian R...")
 
 // ============================================================================
 // BTMM ASIAN RANGE SYSTEM - COMPREHENSIVE ASIAN SESSION ANALYSIS & EMA SYSTEM
@@ -20,7 +31,8 @@ import BTMMFoundation/BTMMFoundationLib/1 as btmm
 // SETTINGS & INPUTS - EMAS
 // ============================================================================
 var g_EMA = "Steve Mauro EMAs"
-show_signal_emas = input.bool(true, "Signal EMAs (5,13)", group=g_EMA)
+show_signal_emas = input.bool(true, "Signal EMAs (5,13)
+// TODO: Add input validation for show_signal_emas (e.g., if show_signal_emas < 1 runtime.error("show_signal_emas must be positive"))", group=g_EMA)
 show_balance_ema = input.bool(true, "Balance EMA (50)", group=g_EMA)
 show_home_ema    = input.bool(true, "Home Base EMA (200)", group=g_EMA)
 show_trend_ema   = input.bool(true, "Trend EMA (800)", group=g_EMA)
@@ -321,3 +333,4 @@ plot(range_established ? 1 : 0, "Range_Established", display=display.data_window
 // Legacy compatibility outputs
 plot(range_pips, "Asian_Range", display=display.data_window)
 plot(asian_active ? 1 : 0, "Session_Active", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

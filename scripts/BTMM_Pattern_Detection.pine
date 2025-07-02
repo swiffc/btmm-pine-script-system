@@ -1,5 +1,16 @@
 //@version=5
-indicator("BTMM Pattern Detection", "BTMM Patterns", overlay=true)
+
+// =============================================================================
+// BTMM PATTERN DETECTION
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Pattern Detection", "BTMM Patterns", overlay=true, shorttitle="BTMM Pattern...")
 
 // ============================================================================
 // BTMM PATTERN DETECTION - COMPREHENSIVE PATTERN RECOGNITION SYSTEM
@@ -20,6 +31,7 @@ import BTMMFoundation/BTMMFoundationLib/1 as btmm
 
 var g_patterns = "Pattern Detection Settings"
 enable_harmonic = input.bool(true, "Enable Harmonic Patterns", group=g_patterns)
+// TODO: Add input validation for enable_harmonic (e.g., if enable_harmonic < 1 runtime.error("enable_harmonic must be positive"))
 enable_classical = input.bool(true, "Enable Classical Patterns", group=g_patterns)
 enable_smc = input.bool(true, "Enable SMC Patterns", group=g_patterns)
 pattern_sensitivity = input.float(0.8, "Pattern Sensitivity", minval=0.1, maxval=2.0, group=g_patterns)
@@ -263,3 +275,4 @@ plot(any_pattern_found ? 1 : 0, "Any_Pattern_Found", display=display.data_window
 // Legacy compatibility outputs
 plot(any_pattern_found ? 1 : 0, "Pattern_Detected", display=display.data_window)
 plot(gartley_found ? 1 : butterfly_found ? 2 : hs_found ? 3 : triangle_found ? 4 : choch_found ? 5 : bos_found ? 6 : 0, "Pattern_Type", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

@@ -1,6 +1,6 @@
 //@version=5
 // @version=5
-indicator("BTMM Alert System", "BTMM Alerts", overlay=false, max_labels_count=50)
+indicator("BTMM Alert System", "BTMM Alerts", overlay=false, max_labels_count=50, shorttitle="BTMM Alert S...")
 
 // =============================================================================
 // STEVE MAURO BTMM COMPREHENSIVE ALERT SYSTEM
@@ -14,6 +14,7 @@ import BTMMFoundation as foundation
 // -----------------------------------------------------------------------------
 var g_CAT = "Alert Categories"
 enable_setup_alerts      = input.bool(true,"Setup Alerts",     group=g_CAT)
+// TODO: Add input validation for enable_setup_alerts (e.g., if enable_setup_alerts < 1 runtime.error("enable_setup_alerts must be positive"))
 enable_entry_alerts      = input.bool(true,"Entry Alerts",     group=g_CAT)
 enable_pattern_alerts    = input.bool(true,"Pattern Alerts",   group=g_CAT)
 enable_asian_alerts      = input.bool(true,"Asian Range",      group=g_CAT)
@@ -92,7 +93,7 @@ ok_to_send(t)=>
         true
     else
         ok=true
-        for i=0 to array.size(sent_types)-1
+        for i = 0 to array.size(data) - 1  // Optimized array iteration
             if array.get(sent_types,i)==t and bar_index-array.get(sent_bars,i)<min_interval_bars
                 ok:=false; break
         ok
@@ -140,19 +141,19 @@ asian_rng_size  = (not na(asian_hi_src) and not na(asian_lo_src))? (asian_hi_src
 // -----------------------------------------------------------------------------
 crit_v1 = enable_crit and enable_setup_alerts and cycle_day==2 and london and bull_setup and ema_bull
 if crit_v1 and ok_to_send("V1")
-    alert(msg("🎯 V1 SETUP","Day2 Bull London")); after_send("V1")
+    alert(msg("🎯 V1 SETUP" + "\nSymbol: " + syminfo.ticker + "\nPrice: " + str.tostring(close, "#.##"),"Day2 Bull London")); after_send("V1")
 
 crit_a1 = enable_crit and enable_setup_alerts and cycle_day==2 and london and bear_setup and ema_bear
 if crit_a1 and ok_to_send("A1")
-    alert(msg("🎯 A1 SETUP","Day2 Bear London")); after_send("A1")
+    alert(msg("🎯 A1 SETUP" + "\nSymbol: " + syminfo.ticker + "\nPrice: " + str.tostring(close, "#.##"),"Day2 Bear London")); after_send("A1")
 
 hi_conf_buy = enable_high and enable_confluence_alerts and bull_conf>=4 and buy_sig
 if hi_conf_buy and ok_to_send("HI_BUY")
-    alert(msg("🚀 HIGH CONFL BUY","Score "+str.tostring(bull_conf)+"/5")); after_send("HI_BUY")
+    alert(msg("🚀 HIGH CONFL BUY" + "\nSymbol: " + syminfo.ticker + "\nPrice: " + str.tostring(close, "#.##"),"Score "+str.tostring(bull_conf)+"/5")); after_send("HI_BUY")
 
 hi_conf_sell = enable_high and enable_confluence_alerts and bear_conf>=4 and sell_sig
 if hi_conf_sell and ok_to_send("HI_SELL")
-    alert(msg("🚀 HIGH CONFL SELL","Score "+str.tostring(bear_conf)+"/5")); after_send("HI_SELL")
+    alert(msg("🚀 HIGH CONFL SELL" + "\nSymbol: " + syminfo.ticker + "\nPrice: " + str.tostring(close, "#.##"),"Score "+str.tostring(bear_conf)+"/5")); after_send("HI_SELL")
 
 // Further medium/low alerts trimmed for brevity… (can be added similarly)
 

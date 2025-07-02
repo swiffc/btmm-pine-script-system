@@ -1,5 +1,16 @@
 //@version=5
-indicator("BTMM Risk Management System", "BTMM Risk", overlay=false)
+
+// =============================================================================
+// BTMM RISK MANAGEMENT
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Risk Management System", "BTMM Risk", overlay=false, shorttitle="BTMM Risk Ma...")
 
 // ============================================================================
 // BTMM RISK MANAGEMENT SYSTEM - COMPREHENSIVE POSITION & RISK CONTROL
@@ -20,7 +31,8 @@ import BTMMFoundation/BTMMFoundationLib/1 as btmm
 
 var g_risk = "Risk Settings"
 account_balance = input.float(10000.0, "Account Balance", minval=100, group=g_risk)
-max_risk_per_trade = input.float(1.0, "Max Risk Per Trade (%)", minval=0.1, maxval=5.0, group=g_risk)
+max_risk_per_trade = input.float(1.0, "Max Risk Per Trade (%)
+// TODO: Add input validation for max_risk_per_trade (e.g., if max_risk_per_trade < 1 runtime.error("max_risk_per_trade must be positive"))", minval=0.1, maxval=5.0, group=g_risk)
 max_daily_risk = input.float(3.0, "Max Daily Risk (%)", minval=0.5, maxval=10.0, group=g_risk)
 max_portfolio_risk = input.float(10.0, "Max Portfolio Risk (%)", minval=1.0, maxval=20.0, group=g_risk)
 
@@ -199,3 +211,4 @@ plot(take_profit, "Take_Profit", display=display.data_window)
 plot(position_size, "Position_Size", display=display.data_window)
 plot(risk_percent, "Risk_Percent", display=display.data_window)
 plot(current_rr, "Current_RR", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

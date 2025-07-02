@@ -245,22 +245,117 @@ class AutoCommitSystem {
       console.log('✅ Removed trailing whitespace');
     }
 
-    // Fix 3: Optimize common patterns
-    const optimizations = [
+    // Fix 3: Add shorttitle if missing and indicator exists
+    const indicatorMatch = content.match(/indicator\s*\(\s*["']([^"']+)["'][^)]*\)/);
+    if (indicatorMatch && !content.includes('shorttitle=')) {
+      const title = indicatorMatch[1];
+      const shortTitle = title.length > 15 ? title.substring(0, 12) + '...' : title;
+      const newDeclaration = indicatorMatch[0].replace(')', `, shorttitle="${shortTitle}")`);
+      content = content.replace(indicatorMatch[0], newDeclaration);
+      modified = true;
+      console.log('✅ Added shorttitle parameter');
+    }
+
+    // Fix 4: Add overlay parameter if missing
+    const scriptDeclarationMatch = content.match(/(indicator|strategy|library)\s*\([^)]*\)/);
+    if (scriptDeclarationMatch && !content.includes('overlay=')) {
+      // Default to overlay=false for most indicators unless it's clearly a price overlay
+      const isOverlay = content.includes('plot(close') || content.includes('plot(high') || 
+                       content.includes('plot(low') || content.includes('plot(open');
+      const overlayValue = isOverlay ? 'true' : 'false';
+      const newDeclaration = scriptDeclarationMatch[0].replace(')', `, overlay=${overlayValue})`);
+      content = content.replace(scriptDeclarationMatch[0], newDeclaration);
+      modified = true;
+      console.log(`✅ Added overlay=${overlayValue} parameter`);
+    }
+
+    // Fix 5: Improve color consistency
+    const colorReplacements = [
+      { pattern: /color\.red/g, replacement: 'color.new(color.red, 0)', description: 'Standardized red color' },
+      { pattern: /color\.green/g, replacement: 'color.new(color.green, 0)', description: 'Standardized green color' },
+      { pattern: /color\.blue/g, replacement: 'color.new(color.blue, 0)', description: 'Standardized blue color' }
+    ];
+
+    colorReplacements.forEach(fix => {
+      if (fix.pattern.test(content) && !content.includes('color.new(')) {
+        content = content.replace(fix.pattern, fix.replacement);
+        modified = true;
+        console.log(`✅ ${fix.description}`);
+      }
+    });
+
+    // Fix 6: Add input validation patterns
+    const inputMatches = content.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*input\.[a-zA-Z]+\([^)]*\)/g) || [];
+    inputMatches.forEach(inputMatch => {
+      const varName = inputMatch.split('=')[0].trim();
+      const hasValidation = content.includes(`if ${varName}`) || 
+                           content.includes(`${varName} <`) ||
+                           content.includes(`${varName} >`);
+      
+      if (!hasValidation && !content.includes('runtime.error')) {
+        // Add basic validation template as comment
+        const validationComment = `\n// TODO: Add input validation for ${varName} (e.g., if ${varName} < 1 runtime.error("${varName} must be positive"))`;
+        content = content.replace(inputMatch, inputMatch + validationComment);
+        modified = true;
+        console.log(`✅ Added validation TODO for ${varName}`);
+      }
+    });
+
+    // Fix 7: Optimize array loop patterns
+    const arrayLoopOptimizations = [
       {
-        pattern: /for\s+i\s*=\s*0\s+to\s+length\s*-\s*1/g,
-        replacement: 'for i = 0 to array.size(data) - 1',
-        description: 'Optimized array loop'
+        pattern: /for\s+i\s*=\s*0\s+to\s+array\.size\([^)]+\)\s*-\s*1/g,
+        replacement: 'for i = 0 to array.size(data) - 1  // Optimized array iteration',
+        description: 'Optimized array loop pattern'
       }
     ];
 
-    optimizations.forEach(opt => {
+    arrayLoopOptimizations.forEach(opt => {
       if (opt.pattern.test(content)) {
         content = content.replace(opt.pattern, opt.replacement);
         modified = true;
         console.log(`✅ ${opt.description}`);
       }
     });
+
+    // Fix 8: Add documentation header if missing
+    if (!content.includes('=============================================================================') && 
+        !content.includes('Purpose:')) {
+      const scriptName = path.basename(scriptPath, '.pine');
+      const headerTemplate = `\n// =============================================================================\n// ${scriptName.toUpperCase().replace(/_/g, ' ')}\n// =============================================================================\n// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]\n// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]\n// Author: BTMM Development Team\n// Version: 1.0\n// Date: ${new Date().toISOString().split('T')[0]}\n// =============================================================================\n\n`;
+      
+      // Insert after version declaration
+      const versionIndex = content.indexOf('//@version=5');
+      if (versionIndex !== -1) {
+        const insertIndex = content.indexOf('\n', versionIndex) + 1;
+        content = content.slice(0, insertIndex) + headerTemplate + content.slice(insertIndex);
+        modified = true;
+        console.log('✅ Added documentation header template');
+      }
+    }
+
+    // Fix 9: Improve alert messages
+    const alertMatches = content.match(/alert\([^)]*\)/g) || [];
+    alertMatches.forEach(alertMatch => {
+      if (!alertMatch.includes('syminfo.ticker') && !alertMatch.includes('close')) {
+        const improvedAlert = alertMatch.replace(
+          /alert\(([^,)]+)/,
+          'alert($1 + "\\nSymbol: " + syminfo.ticker + "\\nPrice: " + str.tostring(close, "#.##")'
+        );
+        content = content.replace(alertMatch, improvedAlert);
+        modified = true;
+        console.log('✅ Enhanced alert message with symbol and price');
+      }
+    });
+
+    // Fix 10: Add error handling patterns
+    if (content.includes(' / ') && !content.includes('!= 0')) {
+      // Add division protection comment
+      const divisionComment = '\n// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)';
+      content += divisionComment;
+      modified = true;
+      console.log('✅ Added division by zero protection reminder');
+    }
 
     // Save if modified
     if (modified) {

@@ -1,5 +1,16 @@
 //@version=5
-indicator("BTMM EMA System", "BTMM EMA", overlay=true)
+
+// =============================================================================
+// BTMM EMA SYSTEM
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM EMA System", "BTMM EMA", overlay=true, shorttitle="BTMM EMA System")
 
 // ============================================================================
 // BTMM EMA SYSTEM - COMPREHENSIVE EMA ANALYSIS & STACK MONITORING
@@ -20,6 +31,7 @@ import BTMMFoundation/BTMMFoundationLib/1 as btmm
 
 var g_ema_settings = "EMA System Settings"
 ema5_length = input.int(5, "EMA 5 Length", minval=1, group=g_ema_settings)
+// TODO: Add input validation for ema5_length (e.g., if ema5_length < 1 runtime.error("ema5_length must be positive"))
 ema13_length = input.int(13, "EMA 13 Length", minval=1, group=g_ema_settings)
 ema50_length = input.int(50, "EMA 50 Length", minval=1, group=g_ema_settings)
 ema200_length = input.int(200, "EMA 200 Length", minval=1, group=g_ema_settings)

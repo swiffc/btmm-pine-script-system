@@ -43,7 +43,11 @@
     "quality:check": "node automation/pine-script-validator.js && node automation/integration-health-check.js",
     "quality:fix": "node automation/auto-commit-system.js autofix && npm run validate",
     "full-validation": "npm run validate && npm run integration-health && npm run count-scripts",
-    "commit-with-quality": "npm run quality:check && npm run commit:auto"
+    "commit-with-quality": "npm run quality:check && npm run commit:auto",
+    "guidelines:apply": "npm run autofix:all && npm run validate && npm run commit:auto",
+    "guidelines:check": "node automation/pine-script-validator.js && echo 'Guidelines validation complete'",
+    "apply-standards": "npm run guidelines:apply",
+    "cursor-guidelines": "npm run guidelines:apply && echo 'Cursor Pine Script guidelines applied successfully'"
   },
   "keywords": [
     "trading",

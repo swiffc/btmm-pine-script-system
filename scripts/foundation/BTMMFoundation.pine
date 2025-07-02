@@ -1,5 +1,16 @@
 //@version=5
-library("BTMMFoundation")
+
+// =============================================================================
+// BTMMFOUNDATION
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+library("BTMMFoundation", overlay=false)
 
 // ============================================================================
 // BTMM FOUNDATION LIBRARY - Core Infrastructure (enhanced)
@@ -186,3 +197,4 @@ export pivot_arrays(phLen, plLen, maxSize) =>
 // ATR HELPER (14-period by default)
 // ---------------------------------------------------------------------------
 export atr14() => ta.atr(14)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

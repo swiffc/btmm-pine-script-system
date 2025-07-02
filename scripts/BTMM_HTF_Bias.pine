@@ -1,5 +1,16 @@
 //@version=5
-indicator("BTMM HTF Bias System", "BTMM HTF", overlay=false)
+
+// =============================================================================
+// BTMM HTF BIAS
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM HTF Bias System", "BTMM HTF", overlay=false, shorttitle="BTMM HTF Bia...")
 
 // ============================================================================
 // BTMM HTF BIAS SYSTEM - HIGHER TIMEFRAME BIAS ANALYSIS
@@ -19,7 +30,8 @@ import BTMMFoundation/BTMMFoundationLib/1 as btmm
 // ============================================================================
 
 var g_htf = "Higher Timeframe Settings"
-htf_timeframe_1 = input.timeframe("1H", "HTF 1 (1H)", group=g_htf)
+htf_timeframe_1 = input.timeframe("1H", "HTF 1 (1H)
+// TODO: Add input validation for htf_timeframe_1 (e.g., if htf_timeframe_1 < 1 runtime.error("htf_timeframe_1 must be positive"))", group=g_htf)
 htf_timeframe_2 = input.timeframe("4H", "HTF 2 (4H)", group=g_htf)
 htf_timeframe_3 = input.timeframe("1D", "HTF 3 (1D)", group=g_htf)
 htf_timeframe_4 = input.timeframe("1W", "HTF 4 (1W)", group=g_htf)
@@ -192,3 +204,4 @@ plot(flow_confirmed ? 1 : 0, "Flow_Confirmed", display=display.data_window)
 plot(bias_percentage, "HTF_Bias", display=display.data_window)
 plot(composite_bias > 0 and strong_alignment ? 1 : 0, "Bullish_Setup", display=display.data_window)
 plot(composite_bias < 0 and strong_alignment ? 1 : 0, "Bearish_Setup", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

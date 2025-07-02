@@ -53,11 +53,33 @@ class PineScriptValidator {
       this.errors.push('Missing //@version=5 declaration at the beginning');
     }
 
-    // Check script type declaration
+    // Check script type declaration with descriptive title
     const scriptTypes = ['indicator(', 'strategy(', 'library('];
     const hasScriptType = scriptTypes.some(type => content.includes(type));
     if (!hasScriptType) {
       this.errors.push('Missing script type declaration (indicator, strategy, or library)');
+    } else {
+      // Check for descriptive title in declaration
+      const indicatorMatch = content.match(/indicator\s*\(\s*["']([^"']+)["']/);
+      const strategyMatch = content.match(/strategy\s*\(\s*["']([^"']+)["']/);
+      const libraryMatch = content.match(/library\s*\(\s*["']([^"']+)["']/);
+      
+      const title = indicatorMatch?.[1] || strategyMatch?.[1] || libraryMatch?.[1];
+      if (title && title.length < 5) {
+        this.warnings.push('Script title should be more descriptive (minimum 5 characters)');
+      }
+      
+      // Check for shorttitle
+      const hasShortTitle = content.includes('shorttitle=') || content.includes('shorttitle =');
+      if (!hasShortTitle) {
+        this.suggestions.push('Consider adding shorttitle parameter for chart clarity');
+      }
+    }
+
+    // Check for proper overlay parameter
+    const hasOverlay = content.includes('overlay=');
+    if (!hasOverlay) {
+      this.suggestions.push('Consider specifying overlay parameter (overlay=true/false)');
     }
 
     // Check for trailing whitespace
@@ -158,27 +180,237 @@ class PineScriptValidator {
       this.suggestions.push('Consider adding more comments to document functions and logic');
     }
 
-    // Check variable naming
-    const variables = content.match(/(?:var|varip|series)\s+([a-zA-Z_][a-zA-Z0-9_]*)/g) || [];
+    // Check naming conventions
+    this.checkNamingConventions(content);
+    
+    // Check input parameter best practices
+    this.checkInputParameters(content);
+    
+    // Check documentation standards
+    this.checkDocumentationStandards(content);
+    
+    // Check error handling patterns
+    this.checkErrorHandling(content);
+    
+    // Check code structure and organization
+    this.checkCodeStructure(content, lines);
+    
+    // Check visual standards
+    this.checkVisualStandards(content);
+    
+    // Check alert implementation
+    this.checkAlertImplementation(content);
+  }
+
+  // Check naming conventions
+  checkNamingConventions(content) {
+    // Check for forbidden variable names
+    const forbiddenNames = ['flag1', 'temp', 'x', 'y', 'data', 'val', 'num'];
+    forbiddenNames.forEach(name => {
+      const regex = new RegExp(`\\b${name}\\b`, 'g');
+      if (regex.test(content)) {
+        this.warnings.push(`Avoid non-descriptive variable name: '${name}' - use descriptive names`);
+      }
+    });
+
+    // Check variable naming (camelCase for variables)
+    const variables = content.match(/(?:var|varip|series|float|int|bool|string)\s+([a-zA-Z_][a-zA-Z0-9_]*)/g) || [];
     variables.forEach(variable => {
       const varName = variable.split(' ').pop();
       if (varName.length < 3) {
         this.suggestions.push(`Variable '${varName}' could have a more descriptive name`);
       }
+      
+      // Check for camelCase (variables should start lowercase)
+      if (varName[0] === varName[0].toUpperCase() && !varName.includes('_')) {
+        this.suggestions.push(`Variable '${varName}' should use camelCase (start with lowercase)`);
+      }
+    });
+
+    // Check for constants (should be UPPERCASE)
+    const constants = content.match(/^[A-Z_][A-Z0-9_]*\s*=/gm) || [];
+    const invalidConstants = content.match(/^[a-z][a-zA-Z0-9_]*\s*=\s*\d+$/gm) || [];
+    if (invalidConstants.length > 0) {
+      this.suggestions.push('Constants should use UPPERCASE naming (e.g., DEFAULT_LENGTH = 14)');
+    }
+  }
+
+  // Check input parameter best practices  
+  checkInputParameters(content) {
+    const inputs = content.match(/input\.[a-zA-Z]+\([^)]*\)/g) || [];
+    
+    inputs.forEach(inputDecl => {
+      // Check for minval/maxval constraints
+      if (!inputDecl.includes('minval') && !inputDecl.includes('maxval')) {
+        this.suggestions.push('Consider adding minval/maxval constraints to input parameters');
+      }
+      
+      // Check for group parameter
+      if (!inputDecl.includes('group=')) {
+        this.suggestions.push('Consider grouping related inputs with group parameter');
+      }
+      
+      // Check for tooltip
+      if (!inputDecl.includes('tooltip=')) {
+        this.suggestions.push('Consider adding tooltips to input parameters for better UX');
+      }
     });
 
     // Check for input validation
-    const inputs = (content.match(/input\./g) || []).length;
-    const validations = (content.match(/if.*input/g) || []).length;
+    const hasInputValidation = content.includes('runtime.error') || 
+                              content.match(/if\s+[a-zA-Z_][a-zA-Z0-9_]*\s*[<>=]/);
+    if (inputs.length > 0 && !hasInputValidation) {
+      this.warnings.push('Consider adding input validation with runtime.error() for invalid inputs');
+    }
+  }
+
+  // Check documentation standards
+  checkDocumentationStandards(content) {
+    // Check for comprehensive header
+    const hasHeader = content.includes('=============================================================================') ||
+                     content.includes('Purpose:') ||
+                     content.includes('Method:');
     
-    if (inputs > 0 && validations === 0) {
-      this.suggestions.push('Consider adding input validation for user parameters');
+    if (!hasHeader) {
+      this.warnings.push('Consider adding comprehensive documentation header with purpose and methodology');
     }
 
-    // Check for error handling
-    const errorHandling = content.includes('na(') || content.includes('nz(') || content.includes('if na');
-    if (!errorHandling) {
-      this.suggestions.push('Consider adding error handling for edge cases (na values)');
+    // Check for author and version information
+    const hasAuthor = content.includes('Author:') || content.includes('// Author');
+    const hasVersion = content.includes('Version:') || content.includes('// Version');
+    
+    if (!hasAuthor) {
+      this.suggestions.push('Consider adding author information in header comments');
+    }
+    
+    if (!hasVersion) {
+      this.suggestions.push('Consider adding version information in header comments');
+    }
+
+    // Check comment density
+    const totalLines = content.split('\n').length;
+    const commentLines = (content.match(/\/\/[^\n]*/g) || []).length;
+    const commentRatio = commentLines / totalLines;
+    
+    if (commentRatio < 0.1) {
+      this.suggestions.push('Consider adding more inline comments (aim for 10-20% comment ratio)');
+    }
+  }
+
+  // Check error handling patterns
+  checkErrorHandling(content) {
+    // Check for basic error handling
+    const hasBasicErrorHandling = content.includes('na(') || 
+                                 content.includes('nz(') || 
+                                 content.includes('if na') ||
+                                 content.includes('runtime.error');
+    
+    if (!hasBasicErrorHandling) {
+      this.warnings.push('Consider adding error handling for edge cases (na values, invalid inputs)');
+    }
+
+    // Check for division by zero protection
+    const hasDivision = content.includes(' / ') || content.includes('/=');
+    const hasDivisionProtection = content.includes('!= 0') || content.includes('> 0');
+    
+    if (hasDivision && !hasDivisionProtection) {
+      this.warnings.push('Consider adding division by zero protection');
+    }
+
+    // Check for sufficient data validation
+    const hasDataCheck = content.includes('bar_index >=') || 
+                        content.includes('barssince') ||
+                        content.includes('ta.barssince');
+    
+    if (!hasDataCheck && content.includes('ta.')) {
+      this.suggestions.push('Consider validating sufficient historical data before calculations');
+    }
+  }
+
+  // Check code structure and organization
+  checkCodeStructure(content, lines) {
+    let sectionOrder = [];
+    
+    // Detect sections in order
+    if (content.startsWith('//@version=5')) sectionOrder.push('version');
+    
+    const inputsStart = content.search(/input\./);
+    const varsStart = content.search(/(var|varip|series)\s/);
+    const calcStart = content.search(/(ta\.|math\.)/);
+    const plotStart = content.search(/(plot\(|plotshape\(|plotchar\()/);
+    const alertStart = content.search(/alert\(/);
+
+    // Check logical flow order
+    if (inputsStart > varsStart && varsStart !== -1 && inputsStart !== -1) {
+      this.suggestions.push('Consider moving input parameters before variable declarations for better code organization');
+    }
+    
+    if (varsStart > calcStart && calcStart !== -1 && varsStart !== -1) {
+      this.suggestions.push('Consider moving variable declarations before calculations for better code organization');
+    }
+
+    // Check for var usage optimization
+    const varUsage = (content.match(/var\s+/g) || []).length;
+    const totalAssignments = (content.match(/\s*=\s*/g) || []).length;
+    
+    if (varUsage < totalAssignments * 0.1) {
+      this.suggestions.push("Consider using 'var' for variables that don't need recalculation on every bar");
+    }
+  }
+
+  // Check visual standards
+  checkVisualStandards(content) {
+    // Check for consistent color usage
+    const hasColorNew = content.includes('color.new(');
+    const hasPlot = content.includes('plot(') || content.includes('plotshape(');
+    
+    if (hasPlot && !hasColorNew) {
+      this.suggestions.push('Consider using color.new() for consistent color management with transparency');
+    }
+
+    // Check for dynamic colors
+    const hasDynamicColors = content.includes('color = ') || content.includes('color.rgb(');
+    if (hasPlot && !hasDynamicColors) {
+      this.suggestions.push('Consider using dynamic colors based on market conditions');
+    }
+
+    // Check plotting parameters
+    const plots = content.match(/plot\([^)]*\)/g) || [];
+    plots.forEach(plot => {
+      if (!plot.includes('title=') && !plot.includes('"')) {
+        this.suggestions.push('Consider adding descriptive titles to plot() functions');
+      }
+      
+      if (!plot.includes('linewidth=') && !plot.includes('linewidth ')) {
+        this.suggestions.push('Consider specifying linewidth for better visual clarity');
+      }
+    });
+  }
+
+  // Check alert implementation
+  checkAlertImplementation(content) {
+    const hasAlerts = content.includes('alert(') || content.includes('alertcondition(');
+    
+    if (hasAlerts) {
+      // Check for proper alert frequency
+      const hasAlertFreq = content.includes('alert.freq_');
+      if (!hasAlertFreq) {
+        this.warnings.push('Consider specifying alert frequency to avoid spam (alert.freq_once_per_bar)');
+      }
+
+      // Check for comprehensive alert messages
+      const alertMessages = content.match(/alert\([^)]*\)/g) || [];
+      alertMessages.forEach(alert => {
+        if (!alert.includes('syminfo.ticker') && !alert.includes('close')) {
+          this.suggestions.push('Consider including symbol and price information in alert messages');
+        }
+      });
+
+      // Check for alert conditions
+      const hasAlertCondition = content.includes('alertcondition(');
+      if (!hasAlertCondition && hasAlerts) {
+        this.suggestions.push('Consider using alertcondition() for better alert management');
+      }
     }
   }
 

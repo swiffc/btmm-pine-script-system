@@ -1,5 +1,5 @@
 //@version=5
-indicator("BTMM Master Dashboard", "BTMM Dashboard", overlay=true, max_labels_count=50)
+indicator("BTMM Master Dashboard", "BTMM Dashboard", overlay=true, max_labels_count=50, shorttitle="BTMM Master ...")
 
 // =============================================================================
 // STEVE MAURO BTMM MASTER DASHBOARD
@@ -13,6 +13,7 @@ import BTMMFoundation as foundation
 // -----------------------------------------------------------------------------
 var g_DASH = "Dashboard Settings"
 dashboard_pos      = input.string("Top Left",  "Dashboard Position", options=["Top Left","Top Right","Bottom Left","Bottom Right","Middle Left","Middle Right"], group=g_DASH)
+// TODO: Add input validation for dashboard_pos (e.g., if dashboard_pos < 1 runtime.error("dashboard_pos must be positive"))
 dashboard_size_opt = input.string("Normal",   "Dashboard Size",     options=["Small","Normal","Large"], group=g_DASH)
 show_market_panel  = input.bool(true, "Market Overview",   group=g_DASH)
 show_setup_panel   = input.bool(true, "Setup Status",      group=g_DASH)

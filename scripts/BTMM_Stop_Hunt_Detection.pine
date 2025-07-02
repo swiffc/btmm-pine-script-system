@@ -1,5 +1,16 @@
 //@version=5
-indicator("BTMM Stop Hunt Detection", "BTMM Hunt", overlay=true)
+
+// =============================================================================
+// BTMM STOP HUNT DETECTION
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Stop Hunt Detection", "BTMM Hunt", overlay=true, shorttitle="BTMM Stop Hu...")
 
 // ============================================================================
 // BTMM STOP HUNT DETECTION - LIQUIDITY SWEEP & HUNT ANALYSIS
@@ -20,6 +31,7 @@ import BTMMFoundation/BTMMFoundationLib/1 as btmm
 
 var g_detection = "Stop Hunt Detection"
 hunt_sensitivity = input.float(1.0, "Hunt Sensitivity", minval=0.1, maxval=3.0, group=g_detection)
+// TODO: Add input validation for hunt_sensitivity (e.g., if hunt_sensitivity < 1 runtime.error("hunt_sensitivity must be positive"))
 min_liquidity_level = input.int(3, "Min Liquidity Level", minval=2, maxval=10, group=g_detection)
 hunt_confirmation_bars = input.int(3, "Hunt Confirmation Bars", minval=1, maxval=10, group=g_detection)
 
