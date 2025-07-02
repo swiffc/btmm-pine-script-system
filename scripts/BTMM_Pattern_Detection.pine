@@ -76,7 +76,7 @@ is_fib_ratio(ratio, target) =>
 detect_gartley() =>
     pattern_found = false
     pattern_score = 0.0
-    
+
     if array.size(recent_highs) >= 3 and array.size(recent_lows) >= 2
         // Get XABCD points for bullish Gartley
         X = array.get(recent_lows, array.size(recent_lows) - 3)
@@ -84,26 +84,26 @@ detect_gartley() =>
         B = array.get(recent_lows, array.size(recent_lows) - 2)
         C = array.get(recent_highs, array.size(recent_highs) - 2)
         D = array.get(recent_lows, array.size(recent_lows) - 1)
-        
+
         // Check Gartley ratios
         AB_XA = math.abs(B - A) / math.abs(A - X)
         BC_AB = math.abs(C - B) / math.abs(A - B)
         CD_BC = math.abs(D - C) / math.abs(C - B)
         AD_XA = math.abs(D - A) / math.abs(A - X)
-        
+
         // Validate Gartley pattern
-        if is_fib_ratio(AB_XA, 0.618) and is_fib_ratio(BC_AB, 0.382) and 
+        if is_fib_ratio(AB_XA, 0.618) and is_fib_ratio(BC_AB, 0.382) and
            is_fib_ratio(CD_BC, 1.272) and is_fib_ratio(AD_XA, 0.786)
             pattern_found := true
             pattern_score := 85.0
-    
+
     [pattern_found, pattern_score]
 
 // Butterfly Pattern Detection
 detect_butterfly() =>
     pattern_found = false
     pattern_score = 0.0
-    
+
     if array.size(recent_highs) >= 3 and array.size(recent_lows) >= 2
         // Similar structure to Gartley but different ratios
         X = array.get(recent_lows, array.size(recent_lows) - 3)
@@ -111,18 +111,18 @@ detect_butterfly() =>
         B = array.get(recent_lows, array.size(recent_lows) - 2)
         C = array.get(recent_highs, array.size(recent_highs) - 2)
         D = array.get(recent_lows, array.size(recent_lows) - 1)
-        
+
         AB_XA = math.abs(B - A) / math.abs(A - X)
         BC_AB = math.abs(C - B) / math.abs(A - B)
         CD_BC = math.abs(D - C) / math.abs(C - B)
         AD_XA = math.abs(D - A) / math.abs(A - X)
-        
+
         // Validate Butterfly pattern
-        if is_fib_ratio(AB_XA, 0.786) and is_fib_ratio(BC_AB, 0.382) and 
+        if is_fib_ratio(AB_XA, 0.786) and is_fib_ratio(BC_AB, 0.382) and
            is_fib_ratio(CD_BC, 1.618) and is_fib_ratio(AD_XA, 1.27)
             pattern_found := true
             pattern_score := 90.0
-    
+
     [pattern_found, pattern_score]
 
 // ============================================================================
@@ -133,20 +133,20 @@ detect_butterfly() =>
 detect_head_shoulders() =>
     pattern_found = false
     pattern_score = 0.0
-    
+
     if array.size(recent_highs) >= 3
         left_shoulder = array.get(recent_highs, array.size(recent_highs) - 3)
         head = array.get(recent_highs, array.size(recent_highs) - 2)
         right_shoulder = array.get(recent_highs, array.size(recent_highs) - 1)
-        
+
         // Check H&S criteria
         shoulder_symmetry = math.abs(left_shoulder - right_shoulder) / left_shoulder < 0.02
         head_dominance = head > left_shoulder and head > right_shoulder
-        
+
         if shoulder_symmetry and head_dominance
             pattern_found := true
             pattern_score := 75.0
-    
+
     [pattern_found, pattern_score]
 
 // Triangle Pattern Detection
@@ -154,22 +154,22 @@ detect_triangle() =>
     pattern_found = false
     pattern_score = 0.0
     pattern_type = "ascending"
-    
+
     if array.size(recent_highs) >= 2 and array.size(recent_lows) >= 2
         // Check for ascending triangle (horizontal resistance, rising support)
         high1 = array.get(recent_highs, array.size(recent_highs) - 2)
         high2 = array.get(recent_highs, array.size(recent_highs) - 1)
         low1 = array.get(recent_lows, array.size(recent_lows) - 2)
         low2 = array.get(recent_lows, array.size(recent_lows) - 1)
-        
+
         horizontal_resistance = math.abs(high1 - high2) / high1 < 0.01
         rising_support = low2 > low1
-        
+
         if horizontal_resistance and rising_support
             pattern_found := true
             pattern_score := 70.0
             pattern_type := "ascending"
-    
+
     [pattern_found, pattern_score, pattern_type]
 
 // ============================================================================
@@ -179,28 +179,28 @@ detect_triangle() =>
 // Change of Character (CHoCH) Detection
 detect_choch() =>
     [bullish_structure, bearish_structure, structure_break, liquidity_sweep] = btmm.market_structure_and_liquidity()
-    
+
     pattern_found = structure_break
     pattern_score = structure_break ? 80.0 : 0.0
     pattern_direction = bullish_structure ? "bullish" : bearish_structure ? "bearish" : "neutral"
-    
+
     [pattern_found, pattern_score, pattern_direction]
 
 // Break of Structure (BOS) Detection
 detect_bos() =>
     [bullish_structure, bearish_structure, structure_break, liquidity_sweep] = btmm.market_structure_and_liquidity()
-    
+
     # BOS is a continuation pattern vs CHoCH which is reversal
     recent_trend_bull = ta.ema(close, 20) > ta.ema(close, 50)
     recent_trend_bear = ta.ema(close, 20) < ta.ema(close, 50)
-    
+
     bos_bullish = structure_break and bullish_structure and recent_trend_bull
     bos_bearish = structure_break and bearish_structure and recent_trend_bear
-    
+
     pattern_found = bos_bullish or bos_bearish
     pattern_score = pattern_found ? 75.0 : 0.0
     pattern_direction = bos_bullish ? "bullish" : bos_bearish ? "bearish" : "neutral"
-    
+
     [pattern_found, pattern_score, pattern_direction]
 
 // ============================================================================
@@ -221,7 +221,7 @@ best_pattern_score = math.max(gartley_score, math.max(butterfly_score, math.max(
 
 // Pattern validation
 volume_confirmation = volume > ta.sma(volume, 20)
-pattern_valid = any_pattern_found and best_pattern_score >= min_pattern_score and 
+pattern_valid = any_pattern_found and best_pattern_score >= min_pattern_score and
                 (not require_volume_confirmation or volume_confirmation)
 
 // ============================================================================
@@ -262,4 +262,4 @@ plot(any_pattern_found ? 1 : 0, "Any_Pattern_Found", display=display.data_window
 
 // Legacy compatibility outputs
 plot(any_pattern_found ? 1 : 0, "Pattern_Detected", display=display.data_window)
-plot(gartley_found ? 1 : butterfly_found ? 2 : hs_found ? 3 : triangle_found ? 4 : choch_found ? 5 : bos_found ? 6 : 0, "Pattern_Type", display=display.data_window) 
+plot(gartley_found ? 1 : butterfly_found ? 2 : hs_found ? 3 : triangle_found ? 4 : choch_found ? 5 : bos_found ? 6 : 0, "Pattern_Type", display=display.data_window)

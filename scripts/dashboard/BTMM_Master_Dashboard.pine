@@ -164,4 +164,4 @@ if barstate.islast
 // Backgrounds
 bgcolor(london_sess?color.new(col_pos,98):na)
 bgcolor(ny_sess?color.new(color.blue,98):na)
-bgcolor(asian_sess?color.new(col_warn,98):na) 
+bgcolor(asian_sess?color.new(col_warn,98):na)

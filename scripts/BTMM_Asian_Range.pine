@@ -267,9 +267,9 @@ first_break_down = breakout_bear
 latest_asian_high = array.size(asian_highs) > 0 ? array.get(asian_highs, array.size(asian_highs) - 1) : na
 latest_asian_low = array.size(asian_lows) > 0 ? array.get(asian_lows, array.size(asian_lows) - 1) : na
 
-breakout_momentum_up = range_break_up and not na(latest_asian_high) and not na(latest_asian_low) ? 
+breakout_momentum_up = range_break_up and not na(latest_asian_high) and not na(latest_asian_low) ?
                       (close - latest_asian_high) / (latest_asian_high - latest_asian_low) : 0
-breakout_momentum_down = range_break_down and not na(latest_asian_high) and not na(latest_asian_low) ? 
+breakout_momentum_down = range_break_down and not na(latest_asian_high) and not na(latest_asian_low) ?
                         (latest_asian_low - close) / (latest_asian_high - latest_asian_low) : 0
 
 // Overall momentum score
@@ -282,7 +282,7 @@ momentum_score = breakout_momentum_up - breakout_momentum_down
 // Asian range box
 var box range_box = na
 if asian_active and not asian_active[1] and show_range_box
-    range_box := box.new(bar_index, asian_high, bar_index, asian_low, 
+    range_box := box.new(bar_index, asian_high, bar_index, asian_low,
                          border_color=color.yellow, bgcolor=color.new(color.yellow, 90),
                          extend=extend.right)
 
@@ -292,15 +292,15 @@ if asian_active and not na(range_box) and show_range_box
     box.set_bottom(range_box, asian_low)
 
 // Range levels
-plot(show_breakout_levels and range_established ? asian_high : na, 
+plot(show_breakout_levels and range_established ? asian_high : na,
      "Asian High", color=color.red, linewidth=2, style=plot.style_line)
-plot(show_breakout_levels and range_established ? asian_low : na, 
+plot(show_breakout_levels and range_established ? asian_low : na,
      "Asian Low", color=color.green, linewidth=2, style=plot.style_line)
 
 // Breakout signals
-plotshape(first_break_up, "Range Break Up", shape.triangleup, 
+plotshape(first_break_up, "Range Break Up", shape.triangleup,
           location.belowbar, color.lime, size=size.normal)
-plotshape(first_break_down, "Range Break Down", shape.triangledown, 
+plotshape(first_break_down, "Range Break Down", shape.triangledown,
           location.abovebar, color.red, size=size.normal)
 
 // ============================================================================
@@ -320,4 +320,4 @@ plot(range_established ? 1 : 0, "Range_Established", display=display.data_window
 
 // Legacy compatibility outputs
 plot(range_pips, "Asian_Range", display=display.data_window)
-plot(asian_active ? 1 : 0, "Session_Active", display=display.data_window) 
+plot(asian_active ? 1 : 0, "Session_Active", display=display.data_window)

@@ -77,33 +77,33 @@ detect_stop_hunt() =>
     bull_hunt = false
     bear_hunt = false
     hunt_level = 0.0
-    
+
     atr = ta.atr(14)
-    
+
     // Check for liquidity sweep above recent highs
     if array.size(liquidity_highs) > 0
         for i = 0 to math.min(array.size(liquidity_highs) - 1, 5)
             level = array.get(liquidity_highs, array.size(liquidity_highs) - 1 - i)
             level_bar = array.get(liquidity_high_bars, array.size(liquidity_high_bars) - 1 - i)
-            
+
             // Stop hunt criteria: price spikes above level then quickly reverses
             if high > level + (atr * hunt_sensitivity) and close < level and bar_index - level_bar <= 20
                 bull_hunt := true
                 hunt_level := level
                 break
-    
-    // Check for liquidity sweep below recent lows  
+
+    // Check for liquidity sweep below recent lows
     if array.size(liquidity_lows) > 0
         for i = 0 to math.min(array.size(liquidity_lows) - 1, 5)
             level = array.get(liquidity_lows, array.size(liquidity_lows) - 1 - i)
             level_bar = array.get(liquidity_low_bars, array.size(liquidity_low_bars) - 1 - i)
-            
+
             // Stop hunt criteria: price spikes below level then quickly reverses
             if low < level - (atr * hunt_sensitivity) and close > level and bar_index - level_bar <= 20
                 bear_hunt := true
                 hunt_level := level
                 break
-    
+
     [bull_hunt, bear_hunt, hunt_level]
 
 [stop_hunt_bull, stop_hunt_bear, hunt_level] = detect_stop_hunt()
@@ -197,15 +197,15 @@ bear_hunt = liquidity_sweep_bear or hunt_confirmed_bear
 // ============================================================================
 
 // Hunt signals
-plotshape(show_hunt_signals and liquidity_sweep_bull, "Bull Hunt", shape.arrowdown, 
+plotshape(show_hunt_signals and liquidity_sweep_bull, "Bull Hunt", shape.arrowdown,
           location.abovebar, color.orange, size=size.normal)
-plotshape(show_hunt_signals and liquidity_sweep_bear, "Bear Hunt", shape.arrowup, 
+plotshape(show_hunt_signals and liquidity_sweep_bear, "Bear Hunt", shape.arrowup,
           location.belowbar, color.orange, size=size.normal)
 
 // Major sweeps
-plotshape(show_liquidity_sweep and major_sweep_bull, "Major Bull Sweep", shape.triangledown, 
+plotshape(show_liquidity_sweep and major_sweep_bull, "Major Bull Sweep", shape.triangledown,
           location.abovebar, color.red, size=size.large)
-plotshape(show_liquidity_sweep and major_sweep_bear, "Major Bear Sweep", shape.triangleup, 
+plotshape(show_liquidity_sweep and major_sweep_bear, "Major Bear Sweep", shape.triangleup,
           location.belowbar, color.red, size=size.large)
 
 // False moves
@@ -242,4 +242,4 @@ plot(hunt_confirmed_bear ? 1 : 0, "Hunt_Confirmed_Bear", display=display.data_wi
 
 // Liquidity levels for integration
 liquidity_levels = array.size(liquidity_highs) + array.size(liquidity_lows)
-plot(liquidity_levels, "Liquidity_Levels", display=display.data_window) 
+plot(liquidity_levels, "Liquidity_Levels", display=display.data_window)

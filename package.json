@@ -30,7 +30,20 @@
     "git-info": "node automation/git-manager.js info",
     "release": "node automation/git-manager.js release",
     "sync": "npm run git-commit && npm run git-push",
-    "status": "echo '📊 BTMM System Status:' && npm run count-scripts && npm run git-status"
+    "status": "echo '📊 BTMM System Status:' && npm run count-scripts && npm run git-status",
+    
+    "validate": "node automation/pine-script-validator.js",
+    "validate:script": "node automation/pine-script-validator.js",
+    "autofix": "node automation/auto-commit-system.js autofix",
+    "autofix:all": "node automation/auto-commit-system.js autofix",
+    "commit:auto": "node automation/auto-commit-system.js commit",
+    "commit:validated": "node automation/auto-commit-system.js commit",
+    "commit:skip-validation": "node automation/auto-commit-system.js commit --skip-validation",
+    "watch:autocommit": "node automation/auto-commit-system.js watch",
+    "quality:check": "node automation/pine-script-validator.js && node automation/integration-health-check.js",
+    "quality:fix": "node automation/auto-commit-system.js autofix && npm run validate",
+    "full-validation": "npm run validate && npm run integration-health && npm run count-scripts",
+    "commit-with-quality": "npm run quality:check && npm run commit:auto"
   },
   "keywords": [
     "trading",

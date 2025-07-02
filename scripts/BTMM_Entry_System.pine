@@ -146,28 +146,28 @@ current_rr = risk_amount > 0 ? math.abs(take_profit - (long_entry != na ? long_e
 // ============================================================================
 
 // Entry signals
-plotshape(show_entry_signals and qualified_long, "Long Entry", 
+plotshape(show_entry_signals and qualified_long, "Long Entry",
           shape.triangleup, location.belowbar, color.lime, size=size.normal)
-plotshape(show_entry_signals and qualified_short, "Short Entry", 
+plotshape(show_entry_signals and qualified_short, "Short Entry",
           shape.triangledown, location.abovebar, color.red, size=size.normal)
 
 // Confluence zones
-bgcolor(show_confluence_zones and confluence_count >= min_confluence ? 
-        (structure_bullish ? color.new(color.green, 95) : 
+bgcolor(show_confluence_zones and confluence_count >= min_confluence ?
+        (structure_bullish ? color.new(color.green, 95) :
          structure_bearish ? color.new(color.red, 95) : na) : na)
 
 // Entry levels
-plot(show_invalidation_levels and long_entry != na ? long_entry : na, 
+plot(show_invalidation_levels and long_entry != na ? long_entry : na,
      "Long Entry", color=color.green, linewidth=2, style=plot.style_circles)
-plot(show_invalidation_levels and short_entry != na ? short_entry : na, 
+plot(show_invalidation_levels and short_entry != na ? short_entry : na,
      "Short Entry", color=color.red, linewidth=2, style=plot.style_circles)
 
 // Stop loss levels
-plot(show_invalidation_levels and stop_loss != na ? stop_loss : na, 
+plot(show_invalidation_levels and stop_loss != na ? stop_loss : na,
      "Stop Loss", color=color.orange, linewidth=1, style=plot.style_cross)
 
 // Take profit levels
-plot(show_invalidation_levels and take_profit != na ? take_profit : na, 
+plot(show_invalidation_levels and take_profit != na ? take_profit : na,
      "Take Profit", color=color.blue, linewidth=1, style=plot.style_cross)
 
 // ============================================================================
@@ -187,4 +187,4 @@ plot(current_rr, "Risk_Reward", display=display.data_window)
 
 // Legacy compatibility outputs
 plot(qualified_long or qualified_short ? 1 : 0, "Entry_Signal", display=display.data_window)
-plot(final_signal_quality, "Signal_Strength", display=display.data_window) 
+plot(final_signal_quality, "Signal_Strength", display=display.data_window)

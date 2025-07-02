@@ -100,5 +100,35 @@
     "command": "workbench.action.tasks.runTask",
     "args": "BTMM: Create Release",
     "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+alt+v",
+    "command": "workbench.action.tasks.runTask",
+    "args": "BTMM: Validate Pine Scripts",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+alt+f",
+    "command": "workbench.action.tasks.runTask", 
+    "args": "BTMM: Auto-Fix Scripts",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+alt+q",
+    "command": "workbench.action.tasks.runTask",
+    "args": "BTMM: Quality Check",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+alt+c",
+    "command": "workbench.action.tasks.runTask",
+    "args": "BTMM: Commit with Validation",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+alt+t",
+    "command": "workbench.action.tasks.runTask",
+    "args": "BTMM: Full Validation Suite",
+    "when": "editorTextFocus"
   }
 ] 
