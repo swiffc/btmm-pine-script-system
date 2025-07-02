@@ -4,7 +4,9 @@
     "*.pine": "pinescript",
     "*.psc": "pinescript",
     "BTMM*.pine": "pinescript",
-    "BTMMFoundation.pine": "pinescript"
+    "BTMMFoundation.pine": "pinescript",
+    "**/scripts/**/*.pine": "pinescript",
+    "**/btmm*.pine": "pinescript"
   },
   
   // Pine Script language configuration
@@ -18,20 +20,37 @@
     "editor.defaultFormatter": null,
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
-    "editor.wordWrap": "on",
-    "editor.autoIndent": "advanced"
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 120,
+    "editor.autoIndent": "full",
+    "editor.suggestSelection": "first",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": false
+    },
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": true,
+    "editor.guides.bracketPairsHorizontal": true
   },
   
   // Editor settings optimized for Pine Script
   "editor.tabSize": 4,
   "editor.insertSpaces": true,
-  "editor.wordWrap": "on",
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.wordWrapColumn": 120,
   "editor.lineNumbers": "on",
   "editor.rulers": [80, 120],
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 120,
   
   // Cursor AI settings
   "cursor.ai.enabled": true,
-  "cursor.ai.model": "gpt-4",
+  "cursor.ai.model": "claude-3.5-sonnet",
+  "cursor.ai.contextLength": 16000,
+  "cursor.indexing.enabled": true,
+  "cursor.ai.useCodebaseContext": true,
+  "cursor.ai.enableRulesSuggestions": true,
   
   // File explorer settings
   "explorer.fileNesting.enabled": true,
@@ -55,7 +74,10 @@
     "**/node_modules/**": true,
     "**/.git/**": true,
     "**/backups/**": true,
-    "**/*.blocked": true
+    "**/*.blocked": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/exports/**": true
   },
   
   "pine.btmm.autoCheck": {
@@ -70,7 +92,9 @@
     "**/node_modules": true,
     "**/dist": true,
     "**/backups": true,
-    "**/.git": true
+    "**/.git": true,
+    "**/exports": true,
+    "**/versions": true
   },
   
   "files.autoSave": "onFocusChange",
@@ -78,9 +102,15 @@
   "files.insertFinalNewline": true,
   
   "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll": true
+    "source.fixAll": true,
+    "source.organizeImports": false
   },
+  "editor.semanticHighlighting.enabled": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
 
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
@@ -132,5 +162,74 @@
   
   "breadcrumbs.enabled": true,
   "breadcrumbs.showFiles": true,
-  "breadcrumbs.showSymbols": true
+  "breadcrumbs.showSymbols": true,
+
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/backups": true,
+    "**/exports": true
+  },
+
+  "extensions.ignoreRecommendations": false,
+  
+  "cursor.rules.enabled": true,
+  "cursor.rules.directory": ".cursor/rules",
+  "cursor.rules.autoApply": true,
+  "cursor.rules.validateOnSave": true,
+  
+  "cursor.ai.chat.enableContext": true,
+  "cursor.ai.chat.maxTokens": 16000,
+  "cursor.ai.suggestions.enabled": true,
+  "cursor.ai.suggestions.delay": 100,
+  
+  "btmm.mergeOnlyMode": true,
+  "btmm.validateIntegration": true,
+  "btmm.autoBackup": true,
+  
+  "editor.lightbulb.enabled": true,
+  "editor.parameterHints.enabled": true,
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.snippetSuggestions": "top",
+  
+  "problems.decorations.enabled": true,
+  "problems.showCurrentInStatus": true,
+  
+  "debug.allowBreakpointsEverywhere": true,
+  "debug.openDebug": "openOnDebugBreak",
+  
+  "terminal.integrated.env.windows": {
+    "BTMM_PROJECT_ROOT": "${workspaceFolder}",
+    "BTMM_SCRIPT_LIMIT": "10"
+  },
+  
+  "pinescript.languageServer.enabled": true,
+  "pinescript.validation.enabled": true,
+  "pinescript.completion.enabled": true,
+  "pinescript.hover.enabled": true,
+  "pinescript.signature.enabled": true,
+  
+  "security.workspace.trust.untrustedFiles": "open",
+  "security.workspace.trust.enabled": false,
+  
+  "workbench.experimental.cloudChanges": false,
+  "editor.experimental.asyncTokenization": true,
+  
+  "typescript.validate.enable": false,
+  "javascript.validate.enable": false,
+  
+  "pinescript.snippets.enabled": true,
+  "pinescript.snippets.path": ".vscode/snippets",
+  
+  "btmm.foundation.autoImport": true,
+  "btmm.dataWindow.validate": true,
+  "btmm.crossScript.monitor": true,
+  "btmm.performance.track": true,
+  
+  "btmm.quality.enforceStandards": true,
+  "btmm.quality.antiRepainting": true,
+  "btmm.quality.performanceCheck": true,
+  "btmm.quality.integrationTest": true
 } 

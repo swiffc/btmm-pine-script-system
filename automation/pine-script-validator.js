@@ -13,6 +13,91 @@ class PineScriptValidator {
       calculations: 0,
       builtInUsage: 0
     };
+    
+    // Enhanced validation rules based on Cursor rules
+    this.validationRules = {
+      version: /^\s*\/\/\s*@version\s*=\s*5/,
+      repainting: [
+        /lookahead\s*=\s*barmerge\.lookahead_on/,
+        /(?<!barstate\.isconfirmed\s+and\s+)request\.security/,
+        /ta\.valuewhen.*(?<!barstate\.isconfirmed)/,
+        /ta\.barssince.*(?<!barstate\.isconfirmed)/
+      ],
+      performance: {
+        maxCalculationsPerBar: 500,
+        expensiveOperations: [
+          /for\s+\w+\s*=.*to.*\d{3,}/,  // Large loops
+          /while\s+.*(?!break)/,         // While loops without break
+          /array\.new.*\d{4,}/,          // Large arrays
+          /request\.security.*request\.security/, // Nested security calls
+          /(?<!var\s)(?<!varip\s)ta\.\w+.*ta\.\w+.*ta\.\w+/ // Triple TA calls
+        ]
+      },
+      codeQuality: {
+        naming: {
+          variables: /^[a-z][a-zA-Z0-9]*$/,  // camelCase
+          constants: /^[A-Z][A-Z0-9_]*$/,     // UPPER_SNAKE_CASE
+          functions: /^[a-z][a-zA-Z0-9]*$/    // camelCase
+        },
+        forbidden: ['flag1', 'temp', 'x', 'y', 'data', 'val', 'num'],
+        required: [
+          /\/\/\s*@version\s*=\s*5/,         // Version declaration
+          /indicator\(|strategy\(/,           // Script type
+          /\/\/\s*=+/                        // Documentation header
+        ]
+      },
+      btmmIntegration: {
+        requiredOutputs: [
+          'Bull_Stack', 'Bear_Stack', 'Stack_Strength',
+          'HTF_Bias', 'Bullish_Setup', 'Bearish_Setup',
+          'Asian_Range', 'Session_Active',
+          'Pattern_Detected', 'Pattern_Type',
+          'Entry_Signal', 'Signal_Strength'
+        ],
+        protectedFunctions: [
+          'session_and_cycle', 'timeframe_classification',
+          'ema_stack_analysis', 'volume_analysis'
+        ]
+      }
+    };
+    
+    // Load Cursor rules for enhanced validation
+    this.loadCursorRules();
+  }
+  
+  loadCursorRules() {
+    try {
+      const rulesDir = path.join(process.cwd(), '.cursor', 'rules');
+      if (fs.existsSync(rulesDir)) {
+        const ruleFiles = fs.readdirSync(rulesDir).filter(f => f.endsWith('.mdc'));
+        this.cursorRules = ruleFiles.map(file => {
+          const content = fs.readFileSync(path.join(rulesDir, file), 'utf8');
+          return this.parseCursorRule(content);
+        }).filter(rule => rule !== null);
+        console.log(`📋 Loaded ${this.cursorRules.length} Cursor rules for validation`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load Cursor rules:', error.message);
+      this.cursorRules = [];
+    }
+  }
+  
+  parseCursorRule(content) {
+    const frontMatterMatch = content.match(/^---\s*\n(.*?)\n---/s);
+    if (frontMatterMatch) {
+      const frontMatter = frontMatterMatch[1];
+      const title = frontMatter.match(/title:\s*(.+)/)?.[1] || 'Unknown Rule';
+      const scope = frontMatter.match(/scope:\s*"(.+)"/)?.[1] || '**/*';
+      const priority = frontMatter.match(/priority:\s*(\w+)/)?.[1] || 'medium';
+      
+      return {
+        title,
+        scope,
+        priority,
+        content: content.replace(frontMatterMatch[0], '').trim()
+      };
+    }
+    return null;
   }
 
   // Main validation function
@@ -42,6 +127,12 @@ class PineScriptValidator {
     this.checkLineLength(lines);
     this.checkIndentation(lines);
     this.analyzeComplexity(content);
+    this.validateWithCursorRules(content, filePath);
+    this.checkBTMMIntegration(content, filePath);
+    this.checkAdvancedAntiRepainting(content);
+    this.validateWithCursorRules(content, filePath);
+    this.checkBTMMIntegration(content, filePath);
+    this.checkAdvancedAntiRepainting(content);
     
     return this.getValidationResult();
   }
@@ -592,6 +683,203 @@ class PineScriptValidator {
       results: results,
       allValid: validCount === scriptsToValidate.length
     };
+  }
+
+  // Validate with Cursor rules integration
+  validateWithCursorRules(content, filePath) {
+    if (!this.cursorRules || this.cursorRules.length === 0) return;
+    
+    this.cursorRules.forEach(rule => {
+      if (this.matchesScope(filePath, rule.scope)) {
+        this.applyCursorRule(content, rule);
+      }
+    });
+  }
+  
+  matchesScope(filePath, scope) {
+    // Simple glob pattern matching for scope
+    const normalizedPath = filePath.replace(/\\/g, '/');
+    const pattern = scope.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
+    return new RegExp(pattern).test(normalizedPath);
+  }
+  
+  applyCursorRule(content, rule) {
+    const { title, priority, content: ruleContent } = rule;
+    
+    // Apply specific rule validations based on title
+    if (title.includes('Pine Script Development Standards')) {
+      this.validatePineScriptStandards(content, ruleContent);
+    } else if (title.includes('Modular Architecture')) {
+      this.validateModularArchitecture(content, ruleContent);
+    } else if (title.includes('Testing')) {
+      this.validateTestingPatterns(content, ruleContent);
+    }
+  }
+  
+  validatePineScriptStandards(content, ruleContent) {
+    // Check for comprehensive input validation
+    if (content.includes('input.') && !content.includes('runtime.error')) {
+      this.suggestions.push('Consider adding input validation with runtime.error for better error handling');
+    }
+    
+    // Check for forbidden variable names
+    this.validationRules.codeQuality.forbidden.forEach(name => {
+      if (content.includes(`${name} =`) || content.includes(`${name}:=`)) {
+        this.errors.push(`Forbidden variable name '${name}' detected - use descriptive names`);
+      }
+    });
+    
+    // Check for proper color usage
+    if (content.includes('color.') && !content.includes('color.new(')) {
+      this.suggestions.push('Use color.new() for better color management and transparency control');
+    }
+    
+    // Check for alert frequency
+    if (content.includes('alert(') && !content.includes('alert.freq_once_per_bar')) {
+      this.suggestions.push('Use alert.freq_once_per_bar to prevent alert spam');
+    }
+  }
+  
+  validateModularArchitecture(content, ruleContent) {
+    // Check for proper type definitions
+    if (content.includes('type ') && !content.includes('export type')) {
+      this.suggestions.push('Consider using export type for better modularity');
+    }
+    
+    // Check for proper method definitions
+    if (content.includes('method ') && !content.includes('export method')) {
+      this.suggestions.push('Consider using export method for reusable components');
+    }
+    
+    // Check for version compatibility
+    if (content.includes('CURRENT_VERSION') || content.includes('MIN_COMPATIBLE_VERSION')) {
+      this.suggestions.push('Good practice: Version management detected');
+    }
+  }
+  
+  validateTestingPatterns(content, ruleContent) {
+    // Check for test functions
+    const hasTestFunctions = /test[A-Z]\w*\(/.test(content) || /\wTest\(/.test(content);
+    if (hasTestFunctions) {
+      this.suggestions.push('Testing patterns detected - excellent for code quality');
+    }
+    
+    // Check for performance benchmarking
+    if (content.includes('benchmarkFunction') || content.includes('performanceMetrics')) {
+      this.suggestions.push('Performance testing patterns detected - great for optimization');
+    }
+  }
+  
+  // Check BTMM system integration compliance
+  checkBTMMIntegration(content, filePath) {
+    const scriptName = path.basename(filePath, '.pine');
+    
+    // Check for required data window outputs based on script type
+    this.checkRequiredOutputs(content, scriptName);
+    
+    // Check for protected function modifications
+    this.checkProtectedFunctions(content);
+    
+    // Check for proper BTMM Foundation integration
+    this.checkFoundationIntegration(content);
+    
+    // Validate 10-script architecture compliance
+    this.validateScriptArchitecture(scriptName);
+  }
+  
+  checkRequiredOutputs(content, scriptName) {
+    const outputMappings = {
+      'BTMM_EMA_System': ['Bull_Stack', 'Bear_Stack', 'Stack_Strength'],
+      'BTMM_HTF_Bias': ['HTF_Bias', 'Bullish_Setup', 'Bearish_Setup'],
+      'BTMM_Asian_Range': ['Asian_Range', 'Session_Active'],
+      'BTMM_Pattern_Detection': ['Pattern_Detected', 'Pattern_Type'],
+      'BTMM_Entry_System': ['Entry_Signal', 'Signal_Strength']
+    };
+    
+    const requiredOutputs = outputMappings[scriptName];
+    if (requiredOutputs) {
+      requiredOutputs.forEach(output => {
+        if (!content.includes(`"${output}"`)) {
+          this.errors.push(`Missing required data window output: ${output}`);
+        }
+      });
+    }
+  }
+  
+  checkProtectedFunctions(content) {
+    this.validationRules.btmmIntegration.protectedFunctions.forEach(func => {
+      if (content.includes(`${func}(`)) {
+        // Check if it's being modified vs used
+        const modificationPattern = new RegExp(`${func}\\s*\\([^)]*\\)\\s*=>`);
+        if (modificationPattern.test(content)) {
+          this.warnings.push(`Protected function '${func}' is being modified - ensure system-wide compatibility`);
+        }
+      }
+    });
+  }
+  
+  checkFoundationIntegration(content) {
+    // Check for BTMMFoundation imports or usage
+    if (content.includes('BTMMFoundation') || content.includes('foundation.')) {
+      this.suggestions.push('Good practice: BTMMFoundation integration detected');
+    } else if (!content.includes('BTMMFoundation.pine')) {
+      this.suggestions.push('Consider integrating with BTMMFoundation.pine for shared functionality');
+    }
+  }
+  
+  validateScriptArchitecture(scriptName) {
+    const allowedScripts = [
+      'BTMMFoundation', 'BTMM_EMA_System', 'BTMM_Asian_Range',
+      'BTMM_HTF_Bias', 'BTMM_Pattern_Detection', 'BTMM_Entry_System',
+      'BTMM_Risk_Management', 'BTMM_Stop_Hunt_Detection',
+      'BTMM_Master_Dashboard', 'BTMM_Alert_System'
+    ];
+    
+    if (!allowedScripts.some(allowed => scriptName.includes(allowed))) {
+      this.errors.push(`Script '${scriptName}' is not part of the approved 10-script architecture`);
+    }
+  }
+  
+  // Advanced anti-repainting validation
+  checkAdvancedAntiRepainting(content) {
+    // Check for proper barstate usage in calculations
+    if (content.includes('ta.') && !content.includes('barstate.isconfirmed')) {
+      this.warnings.push('Consider using barstate.isconfirmed for historical accuracy with technical analysis functions');
+    }
+    
+    // Check for security function calls without proper confirmation
+    const securityCalls = content.match(/request\.security\([^)]+\)/g) || [];
+    securityCalls.forEach(call => {
+      if (!call.includes('lookahead=barmerge.lookahead_off')) {
+        this.warnings.push('Security call detected without explicit lookahead=barmerge.lookahead_off');
+      }
+    });
+    
+    // Check for historical reference validation
+    const historicalRefs = content.match(/\[[0-9]+\]/g) || [];
+    if (historicalRefs.length > 0 && !content.includes('bar_index >')) {
+      this.suggestions.push('Consider validating sufficient historical data before using historical references');
+    }
+    
+    // Check for proper series variable usage
+    if (content.includes('var ') && content.includes('request.security')) {
+      this.suggestions.push('Ensure var declarations are properly handled with security functions');
+    }
+    
+    // Advanced repainting pattern detection
+    const advancedPatterns = [
+      /ta\.highest\([^)]*\)\s*(?!\[)/,  // Highest without confirmation
+      /ta\.lowest\([^)]*\)\s*(?!\[)/,   // Lowest without confirmation
+      /ta\.crossover\([^)]*\)\s*and\s*(?!barstate)/,  // Crossover without barstate
+      /ta\.crossunder\([^)]*\)\s*and\s*(?!barstate)/  // Crossunder without barstate
+    ];
+    
+    advancedPatterns.forEach((pattern, index) => {
+      if (pattern.test(content)) {
+        const patternNames = ['ta.highest', 'ta.lowest', 'ta.crossover', 'ta.crossunder'];
+        this.warnings.push(`Potential repainting issue with ${patternNames[index]} - consider barstate validation`);
+      }
+    });
   }
 }
 
