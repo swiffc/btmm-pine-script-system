@@ -1,0 +1,106 @@
+# 🚀 Release Configuration
+# Configures automatic release notes generation
+
+changelog:
+  exclude:
+    labels:
+      - 'automated'
+      - 'dependencies'
+      - 'skip-changelog'
+      - 'internal'
+    authors:
+      - 'dependabot'
+      - 'dependabot[bot]'
+      - 'github-actions[bot]'
+  
+  categories:
+    # 🎯 BTMM Trading Features
+    - title: '🎯 Trading System Enhancements'
+      labels:
+        - 'component: EMA System'
+        - 'component: Pattern Detection'
+        - 'component: Entry System'
+        - 'component: Risk Management'
+        - 'methodology: steve-mauro'
+        - 'methodology: institutional'
+    
+    # 📊 Analysis & Detection
+    - title: '📊 Analysis & Detection Improvements'
+      labels:
+        - 'component: Asian Range'
+        - 'component: HTF Bias'
+        - 'component: Stop Hunt'
+        - 'methodology: session-analysis'
+    
+    # 📱 User Interface
+    - title: '📱 Dashboard & Visualization'
+      labels:
+        - 'component: Dashboard'
+        - 'component: Alerts'
+        - 'area: visualization'
+    
+    # 🔧 Infrastructure & Automation
+    - title: '🔧 Infrastructure & Automation'
+      labels:
+        - 'area: automation'
+        - 'area: devops'
+        - 'area: git'
+        - 'type: ci/cd'
+    
+    # 🐛 Bug Fixes
+    - title: '🐛 Bug Fixes'
+      labels:
+        - 'type: bugfix'
+        - 'priority: critical'
+        - 'priority: high'
+    
+    # 🔒 Security & Compliance
+    - title: '🔒 Security & Compliance'
+      labels:
+        - 'area: security'
+        - 'vulnerability'
+        - 'compliance'
+    
+    # ⚡ Performance
+    - title: '⚡ Performance Improvements'
+      labels:
+        - 'performance'
+        - 'optimization'
+        - 'type: refactor'
+    
+    # 📚 Documentation
+    - title: '📚 Documentation'
+      labels:
+        - 'area: documentation'
+        - 'area: api-docs'
+        - 'type: docs'
+    
+    # 🔄 Breaking Changes
+    - title: '💥 Breaking Changes'
+      labels:
+        - 'impact: breaking'
+        - 'breaking-change'
+    
+    # 📦 Dependencies
+    - title: '📦 Dependencies'
+      labels:
+        - 'area: dependencies'
+        - 'dependencies'
+    
+    # 🧪 Testing & Validation
+    - title: '🧪 Testing & Validation'
+      labels:
+        - 'area: testing'
+        - 'area: validation'
+    
+    # 🎨 Code Quality
+    - title: '🎨 Code Quality'
+      labels:
+        - 'code-quality'
+        - 'refactor'
+        - 'cleanup'
+    
+    # 🔄 Miscellaneous
+    - title: '🔄 Other Changes'
+      labels:
+        - '*' 

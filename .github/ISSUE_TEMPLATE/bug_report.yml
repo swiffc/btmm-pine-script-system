@@ -1,0 +1,119 @@
+name: 🐛 Bug Report
+description: Report a bug in the BTMM Trading System
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees: ""
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 Bug Report for BTMM Trading System
+        Thank you for reporting a bug! Please provide detailed information to help us resolve this quickly.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have tested with the latest version (v2.0.0+)
+          required: true
+        - label: I have checked the documentation
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: BTMM Component
+      description: Which component is affected?
+      options:
+        - BTMMFoundation.pine (Core Library)
+        - BTMM_EMA_System.pine (EMA Analysis)
+        - BTMM_Asian_Range.pine (Session Detection)
+        - BTMM_Pattern_Detection.pine (Pattern Recognition)
+        - BTMM_Entry_System.pine (Entry Signals)
+        - BTMM_Risk_Management.pine (Risk Calculations)
+        - BTMM_HTF_Bias.pine (Higher Timeframe)
+        - BTMM_Stop_Hunt_Detection.pine (Liquidity Detection)
+        - BTMM_Master_Dashboard.pine (Dashboard)
+        - BTMM_Alert_System.pine (Alerts)
+        - Automation Scripts
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Bug Severity
+      description: How severe is this bug?
+      options:
+        - Critical (System unusable/Trading halted)
+        - High (Major functionality broken)
+        - Medium (Feature impaired)
+        - Low (Minor issue)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clearly describe what the bug is
+      placeholder: The EMA stack calculation is showing incorrect bias values...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Load BTMM_EMA_System.pine on EURUSD 15M
+        2. Check EMA stack during London session
+        3. Notice bias calculation is incorrect
+        4. Expected: Bullish bias (+6), Actual: Bearish bias (-2)
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+      placeholder: EMA stack should show bullish bias when 5 > 13 > 50 > 200 > 800
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Your trading environment details
+      placeholder: |
+        - TradingView Plan: Pro/Pro+/Premium
+        - Timeframe: 15M, 1H, 4H
+        - Symbol: EURUSD, GBPUSD, etc.
+        - Session: London, New York, Asian
+        - BTMM Version: v2.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots/Logs
+      description: If applicable, add screenshots or error logs
+      placeholder: Drag and drop screenshots here or paste error messages
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: This started happening after the latest update... 

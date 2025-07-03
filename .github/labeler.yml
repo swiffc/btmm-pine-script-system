@@ -1,0 +1,206 @@
+# 🏷️ Automatic Label Assignment
+# This file configures automatic labeling based on file changes
+
+# 📊 Pine Script Components
+'component: EMA System':
+  - 'scripts/core/BTMM_EMA_System.pine'
+  - 'scripts/**/EMA*'
+
+'component: Asian Range':
+  - 'scripts/core/BTMM_Asian_Range.pine'
+  - 'scripts/**/Asian*'
+
+'component: Pattern Detection':
+  - 'scripts/core/BTMM_Pattern_Detection.pine'
+  - 'scripts/**/Pattern*'
+
+'component: Entry System':
+  - 'scripts/core/BTMM_Entry_System.pine'
+  - 'scripts/**/Entry*'
+
+'component: Risk Management':
+  - 'scripts/core/BTMM_Risk_Management.pine'
+  - 'scripts/**/Risk*'
+
+'component: HTF Bias':
+  - 'scripts/core/BTMM_HTF_Bias.pine'
+  - 'scripts/**/HTF*'
+
+'component: Stop Hunt':
+  - 'scripts/core/BTMM_Stop_Hunt_Detection.pine'
+  - 'scripts/**/Stop*Hunt*'
+
+'component: Dashboard':
+  - 'scripts/dashboard/BTMM_Master_Dashboard.pine'
+  - 'scripts/**/Dashboard*'
+
+'component: Alerts':
+  - 'scripts/alerts/BTMM_Alert_System.pine'
+  - 'scripts/**/Alert*'
+
+'component: Foundation':
+  - 'scripts/foundation/BTMMFoundation.pine'
+  - 'scripts/**/Foundation*'
+
+# 🔧 Infrastructure & Automation
+'area: automation':
+  - 'automation/**/*'
+  - 'scripts/automation/**/*'
+
+'area: devops':
+  - '.github/**/*'
+  - 'automation/devops/**/*'
+  - 'automation/deployment/**/*'
+
+'area: git':
+  - 'automation/git/**/*'
+  - '.gitignore'
+  - '.git*'
+
+'area: validation':
+  - 'automation/validation/**/*'
+  - 'tests/**/*'
+
+'area: backup':
+  - 'automation/backup/**/*'
+  - 'backups/**/*'
+
+# 📚 Documentation
+'area: documentation':
+  - 'docs/**/*'
+  - '*.md'
+  - 'README*'
+  - 'CHANGELOG*'
+
+'area: api-docs':
+  - 'docs/api-reference/**/*'
+
+# ⚙️ Configuration
+'area: configuration':
+  - 'configs/**/*'
+  - 'package.json'
+  - 'package-lock.json'
+  - '.*.json'
+  - '.*.yml'
+
+# 🔒 Security & Compliance
+'area: security':
+  - '.github/SECURITY.md'
+  - '.github/workflows/security*.yml'
+  - 'automation/**/security*'
+
+'area: dependencies':
+  - 'package.json'
+  - 'package-lock.json'
+  - '.github/dependabot.yml'
+
+# 🧪 Testing
+'area: testing':
+  - 'tests/**/*'
+  - '**/*.test.*'
+  - '**/*.spec.*'
+
+# 📦 Releases & Exports
+'area: release':
+  - 'exports/**/*'
+  - 'CHANGELOG*'
+  - 'package.json' # for version changes
+
+# 🎯 Change Types (Based on File Patterns)
+'type: feature':
+  - 'scripts/core/**/*'
+  - 'scripts/dashboard/**/*'
+  - 'scripts/alerts/**/*'
+
+'type: bugfix':
+  - any: ['**/fix*', '**/bug*', '**/patch*']
+
+'type: refactor':
+  - any: ['**/refactor*', '**/optimize*', '**/improve*']
+
+'type: docs':
+  - '*.md'
+  - 'docs/**/*'
+
+'type: ci/cd':
+  - '.github/workflows/**/*'
+  - 'automation/deployment/**/*'
+
+# 🚨 Priority Labels (Based on Critical Components)
+'priority: critical':
+  - 'scripts/foundation/BTMMFoundation.pine'
+  - 'configs/settings.json'
+  - '.github/workflows/**/*'
+
+'priority: high':
+  - 'scripts/core/**/*'
+  - 'automation/git/**/*'
+  - 'automation/validation/**/*'
+
+'priority: medium':
+  - 'scripts/dashboard/**/*'
+  - 'scripts/alerts/**/*'
+  - 'docs/**/*'
+
+# 🔄 Impact Assessment
+'impact: breaking':
+  - 'scripts/foundation/BTMMFoundation.pine'
+  - 'configs/**/*'
+
+'impact: major':
+  - 'scripts/core/**/*'
+  - 'automation/**/*'
+
+'impact: minor':
+  - 'docs/**/*'
+  - 'README*'
+  - '*.md'
+
+# 🎯 BTMM Methodology Tags
+'methodology: steve-mauro':
+  - 'scripts/**/*EMA*'
+  - 'scripts/**/*Asian*'
+  - 'scripts/**/*Pattern*'
+
+'methodology: institutional':
+  - 'scripts/**/*HTF*'
+  - 'scripts/**/*Stop*Hunt*'
+  - 'scripts/**/*Liquidity*'
+
+'methodology: session-analysis':
+  - 'scripts/**/*Asian*'
+  - 'scripts/**/*Session*'
+  - 'scripts/**/*Time*'
+
+# 🔧 Technical Labels
+'tech: pine-script':
+  - '**/*.pine'
+
+'tech: javascript':
+  - '**/*.js'
+
+'tech: github-actions':
+  - '.github/workflows/**/*'
+
+'tech: yaml':
+  - '**/*.yml'
+  - '**/*.yaml'
+
+'tech: json':
+  - '**/*.json'
+
+# 📊 Size Indicators
+'size: XS':
+  - changed-files: '1-2'
+
+'size: S':
+  - changed-files: '3-5'
+
+'size: M':
+  - changed-files: '6-10'
+
+'size: L':
+  - changed-files: '11-20'
+
+'size: XL':
+  - changed-files: '21+' 

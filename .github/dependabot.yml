@@ -1,0 +1,71 @@
+version: 2
+updates:
+  # NPM Dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    target-branch: "develop"
+    reviewers:
+      - "swiffc"
+    assignees:
+      - "swiffc"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    ignore:
+      # Ignore major version updates for critical dependencies
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group development dependencies
+      development-dependencies:
+        patterns:
+          - "@types/*"
+          - "eslint*"
+          - "prettier*"
+          - "husky*"
+          - "lint-staged*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group automation dependencies
+      automation-dependencies:
+        patterns:
+          - "fs-extra"
+          - "chalk"
+          - "inquirer"
+          - "commander"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "first-monday"
+      time: "10:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    target-branch: "develop"
+    reviewers:
+      - "swiffc"
+    assignees:
+      - "swiffc"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "ci/cd"
+      - "github-actions"
+      - "automated" 

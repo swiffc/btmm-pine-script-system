@@ -1,0 +1,144 @@
+name: ✨ Feature Request
+description: Propose a new feature for the BTMM Trading System
+title: "[FEATURE] "
+labels: ["enhancement", "needs-review"]
+assignees: ""
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Feature Request for BTMM Trading System
+        Thank you for suggesting an enhancement! Help us understand your trading needs.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: This feature aligns with Steve Mauro's BTMM methodology
+          required: true
+        - label: I understand the 10-script limit constraint
+          required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of enhancement is this?
+      options:
+        - Pine Script Enhancement (Trading Logic)
+        - Automation Improvement (DevOps)
+        - Dashboard/Visualization
+        - Alert System Enhancement
+        - Risk Management Feature
+        - Session Analysis Improvement
+        - Pattern Detection Enhancement
+        - Performance Optimization
+        - Documentation Improvement
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature?
+      options:
+        - Critical (Essential for trading)
+        - High (Significantly improves trading)
+        - Medium (Nice to have improvement)
+        - Low (Minor enhancement)
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What trading problem does this solve?
+      placeholder: As a BTMM trader, I struggle with identifying V2/A2 setups during extended sessions because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution
+      placeholder: |
+        Add a new feature to BTMM_Pattern_Detection.pine that:
+        1. Detects extended session patterns
+        2. Identifies V2/A2 setup confirmations
+        3. Provides confluence scoring
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Target Component
+      description: Which component should be enhanced?
+      options:
+        - BTMMFoundation.pine (Core Library)
+        - BTMM_EMA_System.pine (EMA Analysis)
+        - BTMM_Asian_Range.pine (Session Detection)
+        - BTMM_Pattern_Detection.pine (Pattern Recognition)
+        - BTMM_Entry_System.pine (Entry Signals)
+        - BTMM_Risk_Management.pine (Risk Calculations)
+        - BTMM_HTF_Bias.pine (Higher Timeframe)
+        - BTMM_Stop_Hunt_Detection.pine (Liquidity Detection)
+        - BTMM_Master_Dashboard.pine (Dashboard)
+        - BTMM_Alert_System.pine (Alerts)
+        - Automation System
+        - New Component (Requires Merge Strategy)
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: What other approaches have you considered?
+      placeholder: Could be implemented as part of the entry system instead...
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Trading Benefits
+      description: How will this improve trading performance?
+      placeholder: |
+        - Increased setup accuracy by 15%
+        - Faster pattern recognition
+        - Better risk management
+        - Clearer entry signals
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Implementation Constraints
+      description: What constraints should be considered?
+      options:
+        - label: Must maintain 10-script limit (requires smart merging)
+        - label: Must follow Steve Mauro methodology
+        - label: Must integrate with existing data window outputs
+        - label: Should not impact performance significantly
+        - label: Must work across all major timeframes (15M+)
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Mockup/Examples
+      description: Provide examples, mockups, or references
+      placeholder: Attach screenshots, drawings, or similar features from other systems
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: This feature would complement the existing pattern detection... 

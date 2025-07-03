@@ -1,0 +1,88 @@
+# 👥 BTMM Trading System Code Ownership
+# This file defines who must review changes to different parts of the codebase
+# GitHub will automatically request reviews from relevant owners
+
+# 🌐 Global Ownership
+# All changes require review from project maintainer
+* @swiffc
+
+# 📊 Pine Scripts - Trading Logic (Critical Path)
+# All Pine Script changes require BTMM methodology expert review
+/scripts/ @swiffc
+/scripts/core/ @swiffc
+/scripts/foundation/ @swiffc
+/scripts/dashboard/ @swiffc
+/scripts/alerts/ @swiffc
+/scripts/templates/ @swiffc
+
+# 🔧 Automation & DevOps Infrastructure
+# DevOps changes require infrastructure expert review
+/automation/ @swiffc
+/automation/deployment/ @swiffc
+/automation/git/ @swiffc
+/automation/validation/ @swiffc
+/.github/ @swiffc
+/.github/workflows/ @swiffc
+
+# 📋 Configuration & Settings
+# Configuration changes require admin approval
+/configs/ @swiffc
+/configs/parameters.json @swiffc
+/configs/settings.json @swiffc
+package.json @swiffc
+package-lock.json @swiffc
+.gitignore @swiffc
+
+# 📚 Documentation
+# Documentation changes require technical writer review
+/docs/ @swiffc
+/docs/api-reference/ @swiffc
+README.md @swiffc
+CHANGELOG.md @swiffc
+
+# 🧪 Testing & Validation
+# Test changes require QA team review
+/tests/ @swiffc
+/tests/validation-scripts/ @swiffc
+
+# 🔄 Exports & Releases
+# Export and release artifacts require release manager approval
+/exports/ @swiffc
+/exports/tradingview-ready/ @swiffc
+
+# 📦 Backup Systems
+# Backup configurations require admin approval
+/backups/ @swiffc
+/automation/backup/ @swiffc
+
+# 🎯 Specialized Components (Require Domain Expertise)
+
+# EMA System - Steve Mauro methodology expert required
+/scripts/core/BTMM_EMA_System.pine @swiffc
+
+# Risk Management - Risk specialist required  
+/scripts/core/BTMM_Risk_Management.pine @swiffc
+
+# Pattern Detection - Pattern analysis expert required
+/scripts/core/BTMM_Pattern_Detection.pine @swiffc
+
+# Entry System - Signal generation expert required
+/scripts/core/BTMM_Entry_System.pine @swiffc
+
+# Asian Range - Session analysis expert required
+/scripts/core/BTMM_Asian_Range.pine @swiffc
+
+# HTF Bias - Multi-timeframe analysis expert required
+/scripts/core/BTMM_HTF_Bias.pine @swiffc
+
+# Stop Hunt Detection - Liquidity analysis expert required
+/scripts/core/BTMM_Stop_Hunt_Detection.pine @swiffc
+
+# Master Dashboard - UI/UX expert required
+/scripts/dashboard/BTMM_Master_Dashboard.pine @swiffc
+
+# Alert System - Notification specialist required
+/scripts/alerts/BTMM_Alert_System.pine @swiffc
+
+# Foundation Library - Core library architect required
+/scripts/foundation/BTMMFoundation.pine @swiffc 
