@@ -84,8 +84,9 @@
       "config": {
         "baseUrl": "file://scripts/",
         "limit": 10,
-        "current": 13,
-        "status": "OVER_LIMIT",
+        "current": 10,
+        "status": "PERFECT_COMPLIANCE",
+        "githubRepository": "https://github.com/swiffc/btmm-pine-script-system.git",
         "scripts": {
           "BTMMFoundation.pine": {
             "location": "foundation/",
