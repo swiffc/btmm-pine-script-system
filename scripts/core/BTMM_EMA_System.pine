@@ -1,153 +1,216 @@
 //@version=5
 
 // =============================================================================
-// BTMM EMA SYSTEM
+// BTMM EMA SYSTEM - STEVE MAURO METHODOLOGY
 // =============================================================================
-// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
-// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
-// Author: BTMM Development Team
-// Version: 1.0
+// Purpose: Complete EMA bias system with food names and perfect stack detection
+// Method: Steve Mauro's BTMM EMA food naming system with institutional bias scoring
+// Author: BTMM Development Team  
+// Version: 2.0 - Enhanced from Master System
 // Date: 2025-07-02
 // =============================================================================
 
-indicator("BTMM EMA System", "BTMM EMA", overlay=true, shorttitle="BTMM EMA System")
+indicator("BTMM EMA System", "BTMM EMA", overlay=true, shorttitle="BTMM EMA Sys...",
+         max_lines_count=50, max_labels_count=100)
 
 // ============================================================================
-// BTMM EMA SYSTEM - COMPREHENSIVE EMA ANALYSIS & STACK MONITORING
-// ============================================================================
-// This script consolidates all EMA-related functionality including:
-// - EMA stack analysis and strength calculation
-// - Multi-timeframe EMA monitoring
-// - EMA-based trend determination
-// - Stack strength scoring
+// 🥪 BTMM EMA CONFIGURATION (STEVE MAURO FOOD NAMES)
 // ============================================================================
 
-// Import Foundation Library
-import BTMMFoundation/BTMMFoundationLib/1 as btmm
+// === BTMM EMA SETTINGS (Steve Mauro Method) ===
+ema_group = "🥪 BTMM EMA Configuration (Steve Mauro)"
+ema_5_length = input.int(5, "5 EMA (Mustard) - Signal Line", minval=1, maxval=20, group=ema_group, tooltip="Fast signal line for momentum")
+ema_13_length = input.int(13, "13 EMA (Ketchup) - Confirmation Line", minval=1, maxval=50, group=ema_group, tooltip="Critical confirmation line - must break for valid signals")
+ema_50_length = input.int(50, "50 EMA (Water) - Intraday Trend", minval=1, maxval=100, group=ema_group, tooltip="1HR timeframe trend line")
+ema_200_length = input.int(200, "200 EMA (Mayo) - Long Term Trend", minval=1, maxval=500, group=ema_group, tooltip="4HR timeframe trend line")
+ema_800_length = input.int(800, "800 EMA (Blueberry Pie)", minval=1, maxval=1000, group=ema_group, tooltip="Higher timeframe reference")
+show_emas = input.bool(true, "Show EMA Lines", group=ema_group)
+show_ema_labels = input.bool(true, "Show EMA Food Labels", group=ema_group)
+
+// === BTMM BIAS SETTINGS (15M+ Only) ===
+bias_group = "🎯 BTMM Bias Analysis (15M+ Timeframes)"
+auto_bias = input.bool(true, "Auto BTMM Bias Detection", group=bias_group)
+manual_bias = input.string("AUTO", "Manual Bias Override", options=["AUTO", "BULLISH", "BEARISH", "NEUTRAL"], group=bias_group)
+enable_15m_bias_only = input.bool(true, "Enforce 15M+ Bias Rule (Steve Mauro)", group=bias_group)
+show_bias_warning = input.bool(true, "Show Lower TF Warning", group=bias_group)
+btmm_bias_score_threshold = input.float(2.0, "BTMM Bias Score Threshold", minval=1.0, maxval=5.0, step=0.5, group=bias_group, tooltip="Score needed for strong bias (±2.0 recommended)")
+
+// === VISUAL SETTINGS ===
+visual_group = "🎨 Visual Configuration"
+line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
+label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
 
 // ============================================================================
-// SETTINGS & INPUTS
+// 🥪 BTMM EMA CALCULATIONS (STEVE MAURO FOOD NAMES)
 // ============================================================================
 
-var g_ema_settings = "EMA System Settings"
-ema5_length = input.int(5, "EMA 5 Length", minval=1, group=g_ema_settings)
-// TODO: Add input validation for ema5_length (e.g., if ema5_length < 1 runtime.error("ema5_length must be positive"))
-ema13_length = input.int(13, "EMA 13 Length", minval=1, group=g_ema_settings)
-ema50_length = input.int(50, "EMA 50 Length", minval=1, group=g_ema_settings)
-ema200_length = input.int(200, "EMA 200 Length", minval=1, group=g_ema_settings)
-ema800_length = input.int(800, "EMA 800 Length", minval=1, group=g_ema_settings)
+ema_5 = ta.ema(close, ema_5_length)      // Mustard (Signal Line)
+ema_13 = ta.ema(close, ema_13_length)    // Ketchup (Confirmation Line) - CRITICAL
+ema_50 = ta.ema(close, ema_50_length)    // Water (Intraday Trend)
+ema_200 = ta.ema(close, ema_200_length)  // Mayo (Long Term Trend)
+ema_800 = ta.ema(close, ema_800_length)  // Blueberry Pie (HTF Reference)
 
-var g_display = "Display Settings"
-show_emas = input.bool(true, "Show EMAs", group=g_display)
-show_stack_areas = input.bool(true, "Show Stack Areas", group=g_display)
-show_signals = input.bool(true, "Show Stack Signals", group=g_display)
+// BTMM Color Scheme (Steve Mauro Standard)
+ema_5_color = close > ema_5 ? color.new(color.yellow, 0) : color.new(color.orange, 0)
+ema_13_color = close > ema_13 ? color.new(color.red, 0) : color.new(color.maroon, 0)
+ema_50_color = close > ema_50 ? color.new(color.aqua, 0) : color.new(color.blue, 0)
+ema_200_color = close > ema_200 ? color.new(color.lime, 0) : color.new(color.gray, 0)
+ema_800_color = close > ema_800 ? color.new(color.purple, 0) : color.new(color.navy, 0)
 
-// ============================================================================
-// EMA CALCULATIONS
-// ============================================================================
+// Plot EMAs with BTMM styling
+plot(show_emas ? ema_5 : na, "5 EMA (Mustard)", color=ema_5_color, linewidth=1)
+plot(show_emas ? ema_13 : na, "13 EMA (Ketchup)", color=ema_13_color, linewidth=line_width)
+plot(show_emas ? ema_50 : na, "50 EMA (Water)", color=ema_50_color, linewidth=line_width)
+plot(show_emas ? ema_200 : na, "200 EMA (Mayo)", color=ema_200_color, linewidth=line_width + 1)
+plot(show_emas ? ema_800 : na, "800 EMA (Blueberry)", color=ema_800_color, linewidth=line_width + 1)
 
-// Calculate EMAs
-ema5 = ta.ema(close, ema5_length)
-ema13 = ta.ema(close, ema13_length)
-ema50 = ta.ema(close, ema50_length)
-ema200 = ta.ema(close, ema200_length)
-ema800 = ta.ema(close, ema800_length)
+// EMA Food Labels
+label_text_size = switch label_size
+    "tiny" => size.tiny
+    "small" => size.small
+    "normal" => size.normal
+    "large" => size.large
+    "huge" => size.huge
+    => size.normal
 
-// ============================================================================
-// EMA STACK ANALYSIS
-// ============================================================================
-
-// Bull stack: 5 > 13 > 50 > 200 > 800
-bull_stack = ema5 > ema13 and ema13 > ema50 and ema50 > ema200 and ema200 > ema800
-
-// Bear stack: 5 < 13 < 50 < 200 < 800
-bear_stack = ema5 < ema13 and ema13 < ema50 and ema50 < ema200 and ema200 < ema800
-
-// Mixed stack (partial alignment)
-mixed_stack = not bull_stack and not bear_stack
-
-// Stack strength calculation (0-100)
-stack_alignment_bull = (ema5 > ema13 ? 20 : 0) +
-                      (ema13 > ema50 ? 20 : 0) +
-                      (ema50 > ema200 ? 20 : 0) +
-                      (ema200 > ema800 ? 20 : 0) +
-                      (close > ema5 ? 20 : 0)
-
-stack_alignment_bear = (ema5 < ema13 ? 20 : 0) +
-                      (ema13 < ema50 ? 20 : 0) +
-                      (ema50 < ema200 ? 20 : 0) +
-                      (ema200 < ema800 ? 20 : 0) +
-                      (close < ema5 ? 20 : 0)
-
-stack_strength = math.max(stack_alignment_bull, stack_alignment_bear)
-
-// Stack status
-stack_status = bull_stack ? "BULL" : bear_stack ? "BEAR" : "MIXED"
+if show_ema_labels and barstate.islast
+    label.new(bar_index + 2, ema_5, "🟡 Mustard", style=label.style_label_left, color=color.yellow, textcolor=color.black, size=label_text_size)
+    label.new(bar_index + 2, ema_13, "🔴 Ketchup", style=label.style_label_left, color=color.red, textcolor=color.white, size=label_text_size)
+    label.new(bar_index + 2, ema_50, "💧 Water", style=label.style_label_left, color=color.aqua, textcolor=color.black, size=label_text_size)
+    label.new(bar_index + 2, ema_200, "🟢 Mayo", style=label.style_label_left, color=color.lime, textcolor=color.black, size=label_text_size)
+    label.new(bar_index + 2, ema_800, "🫐 Blueberry", style=label.style_label_left, color=color.purple, textcolor=color.white, size=label_text_size)
 
 // ============================================================================
-// TREND ANALYSIS
+// 🎯 BTMM BIAS CALCULATION SYSTEM (15M+ TIMEFRAMES ONLY)
 // ============================================================================
 
-// Short-term trend (5/13 EMA)
-short_term_bull = ema5 > ema13 and close > ema5
-short_term_bear = ema5 < ema13 and close < ema5
+// Check if current timeframe is 15M or higher
+is_15m_or_higher = timeframe.in_seconds() >= 900
 
-// Medium-term trend (13/50 EMA)
-medium_term_bull = ema13 > ema50 and close > ema13
-medium_term_bear = ema13 < ema50 and close < ema13
+// BTMM Bias Scoring Algorithm (Steve Mauro Verified Method)
+calculate_btmm_bias_score() =>
+    // Price position relative to each EMA (5 EMAs = 5 points max)
+    score_5 = close > ema_5 ? 1.0 : -1.0
+    score_13 = close > ema_13 ? 1.0 : -1.0
+    score_50 = close > ema_50 ? 1.0 : -1.0
+    score_200 = close > ema_200 ? 1.0 : -1.0
+    score_800 = close > ema_800 ? 1.0 : -1.0
+    
+    // EMA Alignment Scoring (Perfect Stack Bonus)
+    bullish_alignment = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
+    bearish_alignment = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
+    alignment_bonus = bullish_alignment ? 2.0 : bearish_alignment ? -2.0 : 0.0
+    
+    // 50/200 Relationship (Critical BTMM Rule)
+    trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
+    
+    // Total BTMM Bias Score (-8 to +8 range)
+    total_score = score_5 + score_13 + score_50 + score_200 + score_800 + alignment_bonus + trend_score
+    total_score
 
-// Long-term trend (50/200 EMA)
-long_term_bull = ema50 > ema200
-long_term_bear = ema50 < ema200
+// Determine Market Bias
+determine_btmm_market_bias() =>
+    var string current_bias = "NEUTRAL"
+    
+    if not is_15m_or_higher and enable_15m_bias_only
+        current_bias := "LOWER_TF_WARNING"
+    else
+        bias_score = calculate_btmm_bias_score()
+        
+        if bias_score >= btmm_bias_score_threshold
+            current_bias := "BULLISH"
+        else if bias_score <= -btmm_bias_score_threshold
+            current_bias := "BEARISH"
+        else
+            current_bias := "NEUTRAL"
+    
+    if manual_bias != "AUTO"
+        current_bias := manual_bias
+    
+    current_bias
 
-// Overall trend score
-trend_score = (short_term_bull ? 1 : short_term_bear ? -1 : 0) +
-              (medium_term_bull ? 2 : medium_term_bear ? -2 : 0) +
-              (long_term_bull ? 3 : long_term_bear ? -3 : 0)
+// Get current bias
+btmm_market_bias = determine_btmm_market_bias()
+btmm_bias_score = calculate_btmm_bias_score()
+
+// Perfect Stack Detection
+btmm_perfect_bull_stack = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
+btmm_perfect_bear_stack = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
+btmm_perfect_stack = btmm_perfect_bull_stack or btmm_perfect_bear_stack
+
+// Trend Relationships
+btmm_trend_bullish = ema_50 > ema_200
+btmm_trend_bearish = ema_50 < ema_200
+
+// EMA Strength Analysis
+ema_separation = math.abs((ema_5 - ema_800) / ema_800) * 100
+ema_stack_strength = btmm_perfect_stack ? math.min(ema_separation * 10, 100) : 0
 
 // ============================================================================
-// VISUAL ELEMENTS
+// 🎓 ENHANCED BIAS DISPLAY & EDUCATION
 // ============================================================================
 
-// Plot EMAs
-plot(show_emas ? ema5 : na, "EMA 5", color=color.yellow, linewidth=1)
-plot(show_emas ? ema13 : na, "EMA 13", color=color.orange, linewidth=2)
-plot(show_emas ? ema50 : na, "EMA 50", color=color.blue, linewidth=2)
-plot(show_emas ? ema200 : na, "EMA 200", color=color.purple, linewidth=3)
-plot(show_emas ? ema800 : na, "EMA 800", color=color.red, linewidth=3)
+// Enhanced bias display
+if barstate.islast and auto_bias
+    // Timeframe warning
+    timeframe_warning = not is_15m_or_higher and enable_15m_bias_only ? 
+                       "\n⚠️ USE 15M+ FOR BIAS\nCurrent: " + timeframe.period : ""
+    
+    // BTMM EMA status
+    ema_status = "🥪 BTMM EMAs:\n" + 
+                (close > ema_5 ? "🟡 Mustard ✅ " : "🟡 Mustard ❌ ") +
+                (close > ema_13 ? "🔴 Ketchup ✅ " : "🔴 Ketchup ❌ ") +
+                (close > ema_50 ? "💧 Water ✅\n" : "💧 Water ❌\n") +
+                (close > ema_200 ? "🟢 Mayo ✅ " : "🟢 Mayo ❌ ") +
+                (close > ema_800 ? "🫐 Blueberry ✅" : "🫐 Blueberry ❌")
+    
+    // Additional information
+    bias_score_text = "\n📊 Bias Score: " + str.tostring(btmm_bias_score, "#.#")
+    stack_status = btmm_perfect_stack ? "\n🔥 PERFECT BTMM STACK" : ""
+    trend_relationship = "\n📈 50/200: " + (btmm_trend_bullish ? "BULLISH" : btmm_trend_bearish ? "BEARISH" : "NEUTRAL")
+    strength_text = "\n💪 Strength: " + str.tostring(ema_stack_strength, "#") + "%"
+    
+    bias_label = label.new(
+        bar_index + 5, 
+        high + ta.atr(14) * 3.0, 
+        (btmm_market_bias == "LOWER_TF_WARNING" ? "⚠️ LOWER TIMEFRAME" : btmm_market_bias + " BIAS") + "\n" + 
+        (btmm_market_bias == "BULLISH" ? "✅ W Patterns Only" : 
+         btmm_market_bias == "BEARISH" ? "✅ M Patterns Only" : 
+         btmm_market_bias == "LOWER_TF_WARNING" ? "Switch to 15M+" : "❌ No Patterns") + 
+        timeframe_warning + "\n" +
+        ema_status + bias_score_text + stack_status + trend_relationship + strength_text,
+        style=label.style_label_down,
+        color=switch btmm_market_bias
+            "BULLISH" => color.green
+            "BEARISH" => color.red
+            "LOWER_TF_WARNING" => color.orange
+            => color.gray,
+        textcolor=color.white,
+        size=size.normal
+    )
 
-// Stack area fills
-ema5_plot = plot(ema5, color=color.new(color.yellow, 100))
-ema13_plot = plot(ema13, color=color.new(color.orange, 100))
-ema50_plot = plot(ema50, color=color.new(color.blue, 100))
-
-fill(ema5_plot, ema13_plot,
-     color=show_stack_areas ? (bull_stack ? color.new(color.green, 90) :
-                               bear_stack ? color.new(color.red, 90) :
-                               color.new(color.gray, 95)) : na)
-
-// Stack signals
-plotshape(show_signals and bull_stack and not bull_stack[1],
-          "Bull Stack", shape.triangleup, location.belowbar,
-          color.green, size=size.small)
-
-plotshape(show_signals and bear_stack and not bear_stack[1],
-          "Bear Stack", shape.triangledown, location.abovebar,
-          color.red, size=size.small)
+// Lower timeframe warning
+if show_bias_warning and not is_15m_or_higher and enable_15m_bias_only
+    label.new(bar_index, high + ta.atr(14) * 5.0,
+             "⚠️ BTMM BIAS CALCULATION\nRequires 15M+ Timeframe\nCurrent: " + timeframe.period + 
+             "\n(Steve Mauro Verified Rule)",
+             style=label.style_label_down, color=color.orange, textcolor=color.white, size=size.large)
 
 // ============================================================================
-// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// 📊 DATA WINDOW OUTPUTS (FOR INTEGRATION)
 // ============================================================================
 
-plot(bull_stack ? 1 : 0, "Bull_Stack", display=display.data_window)
-plot(bear_stack ? 1 : 0, "Bear_Stack", display=display.data_window)
-plot(stack_strength, "Stack_Strength", display=display.data_window)
-plot(ema5, "EMA_5", display=display.data_window)
-plot(ema13, "EMA_13", display=display.data_window)
-plot(ema50, "EMA_50", display=display.data_window)
-plot(ema200, "EMA_200", display=display.data_window)
-plot(ema800, "EMA_800", display=display.data_window)
-plot(trend_score, "Trend_Score", display=display.data_window)
-plot(short_term_bull ? 1 : 0, "Short_Term_Bull", display=display.data_window)
-plot(medium_term_bull ? 1 : 0, "Medium_Term_Bull", display=display.data_window)
-plot(long_term_bull ? 1 : 0, "Long_Term_Bull", display=display.data_window)
+plot(btmm_bias_score, "BTMM_Bias_Score", display=display.data_window)
+plot(btmm_perfect_bull_stack ? 1 : 0, "Bull_Stack", display=display.data_window)
+plot(btmm_perfect_bear_stack ? 1 : 0, "Bear_Stack", display=display.data_window) 
+plot(ema_stack_strength, "Stack_Strength", display=display.data_window)
+plot(btmm_trend_bullish ? 1 : btmm_trend_bearish ? -1 : 0, "Trend_Direction", display=display.data_window)
+plot(close > ema_13 ? 1 : 0, "Above_Ketchup", display=display.data_window)
+plot(ema_5, "EMA_5_Mustard", display=display.data_window)
+plot(ema_13, "EMA_13_Ketchup", display=display.data_window)
+plot(ema_50, "EMA_50_Water", display=display.data_window)
+plot(ema_200, "EMA_200_Mayo", display=display.data_window)
+plot(ema_800, "EMA_800_Blueberry", display=display.data_window)
+
+// System status
+plot(is_15m_or_higher ? 1 : 0, "Valid_Timeframe", display=display.data_window)

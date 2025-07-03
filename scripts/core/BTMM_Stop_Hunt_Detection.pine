@@ -23,7 +23,7 @@ indicator("BTMM Stop Hunt Detection", "BTMM Hunt", overlay=true, shorttitle="BTM
 // ============================================================================
 
 // Import Foundation Library
-import BTMMFoundation/BTMMFoundationLib/1 as btmm
+// import BTMMFoundation as btmm  // Commented for standalone operation
 
 // ============================================================================
 // SETTINGS & INPUTS

@@ -197,4 +197,45 @@ export pivot_arrays(phLen, plLen, maxSize) =>
 // ATR HELPER (14-period by default)
 // ---------------------------------------------------------------------------
 export atr14() => ta.atr(14)
-// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)
+
+// ---------------------------------------------------------------------------
+// SUPPORT & RESISTANCE WITH TREND (missing function that scripts call)
+// ---------------------------------------------------------------------------
+export support_resistance_and_trend() =>
+    // Simple support/resistance based on pivot points
+    pivot_high = ta.pivothigh(high, 5, 5)
+    pivot_low = ta.pivotlow(low, 5, 5)
+    
+    var float support_level = na
+    var float resistance_level = na
+    
+    if not na(pivot_low)
+        support_level := pivot_low
+    if not na(pivot_high)
+        resistance_level := pivot_high
+        
+    // Trend direction based on EMA
+    ema20 = ta.ema(close, 20)
+    ema50 = ta.ema(close, 50)
+    trend_direction = ema20 > ema50 ? 1 : ema20 < ema50 ? -1 : 0
+    trend_strength = math.abs((ema20 - ema50) / ema50) * 100
+    
+    [support_level, resistance_level, trend_direction, trend_strength]
+
+// ---------------------------------------------------------------------------
+// MARKET STRUCTURE & LIQUIDITY (missing function that scripts call)
+// ---------------------------------------------------------------------------
+export market_structure_and_liquidity() =>
+    // Enhanced market structure with liquidity detection
+    [bull_structure, bear_structure, sideways_structure, atr_val] = market_structure()
+    
+    // Liquidity sweep detection
+    high_break = high > ta.highest(high[1], 10)
+    low_break = low < ta.lowest(low[1], 10)
+    
+    structure_break = (bull_structure and high_break) or (bear_structure and low_break)
+    liquidity_sweep = high_break or low_break
+    
+    [bull_structure, bear_structure, structure_break, liquidity_sweep]
+
+// Division by zero protection should be handled in calculations using this ATR value

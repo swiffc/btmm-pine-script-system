@@ -1,336 +1,346 @@
 //@version=5
 
 // =============================================================================
-// BTMM ASIAN RANGE
+// BTMM ASIAN RANGE SYSTEM - INSTITUTIONAL LEVEL DETECTION
 // =============================================================================
-// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
-// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Purpose: Complete Asian session analysis with level quality assessment
+// Method: Professional Asian box detection with institutional context analysis
 // Author: BTMM Development Team
-// Version: 1.0
+// Version: 2.0 - Enhanced from Master System
 // Date: 2025-07-02
 // =============================================================================
 
-indicator("BTMM Asian Range System", "BTMM Asian", overlay=true, shorttitle="BTMM Asian R...")
+indicator("BTMM Asian Range", "BTMM Asian", overlay=true, shorttitle="BTMM Asian",
+         max_boxes_count=50, max_lines_count=100, max_labels_count=100)
 
 // ============================================================================
-// BTMM ASIAN RANGE SYSTEM - COMPREHENSIVE ASIAN SESSION ANALYSIS & EMA SYSTEM
-// ============================================================================
-// This script consolidates all Asian session functionality including:
-// - Asian session range detection and breakout analysis
-// - Session-based time filtering
-// - Range statistics and momentum analysis
-// - EMA integration within Asian context
-// - Advanced EMA stack analysis and trend detection
-// - Steve Mauro EMA methodology implementation
+// 🌏 ASIAN SESSION CONFIGURATION
 // ============================================================================
 
-// Import Foundation Library
-import BTMMFoundation/BTMMFoundationLib/1 as btmm
+// === SESSION TIMING SETTINGS ===
+session_group = "⏰ Session Timing (Market Maker Cycle)"
+asian_session_time = input.session("1700-0500", "Asian Session (Accumulation)", group=session_group, tooltip="17:00-05:00 EST - Analysis only")
+london_session_time = input.session("0200-0900", "London Session (Manipulation)", group=session_group, tooltip="02:00-09:00 EST - Prime trading")
+ny_session_time = input.session("0930-1700", "NY Session (Distribution)", group=session_group, tooltip="09:30-17:00 EST - Prime trading")
+show_session_boxes = input.bool(true, "Show Session Background", group=session_group)
+enable_stop_hunt_warnings = input.bool(true, "Enable Stop Hunt Warnings", group=session_group)
+
+// === ASIAN LEVEL SETTINGS ===
+asian_group = "🌏 Asian Level Analysis"
+show_asian_levels = input.bool(true, "Show Asian Levels", group=asian_group)
+show_asian_box = input.bool(true, "Show Asian Box", group=asian_group)
+show_level_labels = input.bool(true, "Show Level Labels", group=asian_group)
+show_quality_assessment = input.bool(true, "Show Quality Assessment", group=asian_group)
+extend_levels = input.int(50, "Extend Levels (bars)", minval=10, maxval=200, group=asian_group)
+
+// === VISUAL SETTINGS ===
+visual_group = "🎨 Visual Configuration"
+line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
+label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
+transparency = input.int(85, "Box Transparency", minval=50, maxval=95, group=visual_group)
 
 // ============================================================================
-// SETTINGS & INPUTS - EMAS
-// ============================================================================
-var g_EMA = "Steve Mauro EMAs"
-show_signal_emas = input.bool(true, "Signal EMAs (5,13)
-// TODO: Add input validation for show_signal_emas (e.g., if show_signal_emas < 1 runtime.error("show_signal_emas must be positive"))", group=g_EMA)
-show_balance_ema = input.bool(true, "Balance EMA (50)", group=g_EMA)
-show_home_ema    = input.bool(true, "Home Base EMA (200)", group=g_EMA)
-show_trend_ema   = input.bool(true, "Trend EMA (800)", group=g_EMA)
-
-var g_EMA_ANALYSIS = "EMA Analysis"
-show_ema_stack   = input.bool(true,  "Show EMA Stack Status", group=g_EMA_ANALYSIS)
-show_ema_touches = input.bool(true,  "Mark EMA Touches",      group=g_EMA_ANALYSIS)
-touch_threshold  = input.float(0.5,  "Touch Threshold (ATR)", minval=0.1, maxval=2.0, group=g_EMA_ANALYSIS)
-show_crossovers  = input.bool(true,  "Show Key Crossovers",   group=g_EMA_ANALYSIS)
-
-// EMA Visuals
-var g_EMA_STYLE = "EMA Visual Settings"
-ema5_color   = input.color(color.yellow, "EMA 5 Color",   group=g_EMA_STYLE)
-ema13_color  = input.color(color.red,    "EMA 13 Color",  group=g_EMA_STYLE)
-ema50_color  = input.color(color.aqua,   "EMA 50 Color",  group=g_EMA_STYLE)
-ema200_color = input.color(color.white,  "EMA 200 Color", group=g_EMA_STYLE)
-ema800_color = input.color(color.blue,   "EMA 800 Color", group=g_EMA_STYLE)
-
-// ============================================================================
-// SETTINGS & INPUTS - ASIAN RANGE
-// ============================================================================
-var g_RANGE = "Asian Range Settings"
-show_asian_range = input.bool(true, "Show Asian Range",  group=g_RANGE)
-extend_lines     = input.bool(true, "Extend Range Lines", group=g_RANGE)
-show_breakouts   = input.bool(true, "Show Breakout Signals", group=g_RANGE)
-max_ranges       = input.int(3, "Max Ranges to Display", minval=1, maxval=10, group=g_RANGE)
-
-var g_RANGE_VALIDATION = "Range Validation"
-min_range_pips      = input.float(10.0, "Minimum Range Size (pips)", minval=5.0, maxval=100.0, group=g_RANGE_VALIDATION)
-require_clean_range = input.bool(true,  "Require Clean Range (No Major Wicks)", group=g_RANGE_VALIDATION)
-wick_tolerance      = input.float(0.3,  "Wick Tolerance (ATR)", minval=0.1, maxval=1.0, group=g_RANGE_VALIDATION)
-
-var g_BREAKOUT = "Breakout Detection"
-breakout_confirmation = input.bool(true, "Require Breakout Confirmation", group=g_BREAKOUT)
-confirmation_pips     = input.float(5.0, "Confirmation Distance (pips)",  minval=1.0, maxval=20.0, group=g_BREAKOUT)
-volume_confirmation   = input.bool(true, "Require Volume Spike",         group=g_BREAKOUT)
-volume_threshold      = input.float(1.5, "Volume Spike Threshold", minval=1.1, maxval=3.0, group=g_BREAKOUT)
-
-// Range Visuals
-var g_RANGE_STYLE = "Range Visual Settings"
-range_line_color    = input.color(color.yellow,                    "Range Line Color",      group=g_RANGE_STYLE)
-range_line_width    = input.int(2,   "Range Line Width",  minval=1, maxval=5, group=g_RANGE_STYLE)
-bull_breakout_color = input.color(color.lime,                      "Bullish Breakout Color", group=g_RANGE_STYLE)
-bear_breakout_color = input.color(color.red,                       "Bearish Breakout Color", group=g_RANGE_STYLE)
-range_box_color     = input.color(color.new(color.yellow, 95),     "Range Box Color",       group=g_RANGE_STYLE)
-
-// ============================================================================
-// DISPLAY CONTROL
-// ============================================================================
-var g_DISPLAY = "Display Control"
-auto_hide  = input.bool(true,  "Auto-Hide History ≤5M", group=g_DISPLAY)
-manual_hide = input.bool(false, "Manual Hide History",   group=g_DISPLAY)
-show_range_box = input.bool(true, "Show Range Box", group=g_DISPLAY)
-show_breakout_levels = input.bool(true, "Show Breakout Levels", group=g_DISPLAY)
-show_statistics = input.bool(true, "Show Statistics", group=g_DISPLAY)
-
-// ============================================================================
-// CONTEXT & SESSION DETECTION
+// ⏰ SESSION TIMING & MARKET MAKER CYCLE
 // ============================================================================
 
-// Context from foundation
-[should_hide, is_current_day] = btmm.current_day_filter(auto_hide, manual_hide)
-[asian_session, london_session, ny_session, current_session, cycle_day] = btmm.session_and_cycle()
+// Session detection
+in_asian = time(timeframe.period, asian_session_time)
+in_london = time(timeframe.period, london_session_time)
+in_ny = time(timeframe.period, ny_session_time)
 
-// Session active states
-asian_active = asian_session
-london_active = london_session
-ny_active = ny_session
+is_asian = not na(in_asian)
+is_london = not na(in_london)
+is_ny = not na(in_ny)
 
-// Market data
-atr = ta.atr(14)
-avg_volume = ta.sma(volume, 20)
+// Market Maker Phase
+get_market_maker_phase() =>
+    phase = is_asian ? "ACCUMULATION" : 
+            is_london ? "MANIPULATION" : 
+            is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
+    phase
 
-// ============================================================================
-// EMA CALCULATIONS
-// ============================================================================
-ema5   = ta.ema(close, 5)
-ema13  = ta.ema(close, 13)
-ema50  = ta.ema(close, 50)
-ema200 = ta.ema(close, 200)
-ema800 = ta.ema(close, 800)
+current_mm_phase = get_market_maker_phase()
 
-// EMA stack analysis using foundation utility
-[bull_stack, bear_stack, mixed_stack, stack_strength, stack_status] = btmm.ema_stack_analysis(ema5, ema13, ema50, ema200, ema800)
+// Stop hunt detection
+current_hour = hour(time)
+current_minute = minute(time)
 
-// EMA Touch Detection
-ema13_touch = math.abs(close - ema13) <= (atr * touch_threshold)
-ema50_touch = math.abs(close - ema50) <= (atr * touch_threshold)
-ema200_touch = math.abs(close - ema200) <= (atr * touch_threshold)
-ema800_touch = math.abs(close - ema800) <= (atr * touch_threshold)
+pre_london_stop_hunt = (current_hour == 1 and current_minute >= 45) or (current_hour == 2 and current_minute <= 15)
+pre_ny_stop_hunt = (current_hour == 9 and current_minute >= 15 and current_minute <= 45)
 
-// Key Crossovers
-ema5_cross_13_bull  = ta.crossover(ema5,  ema13)
-ema5_cross_13_bear  = ta.crossunder(ema5, ema13)
-price_cross_13_bull = ta.crossover(close, ema13)
-price_cross_13_bear = ta.crossunder(close, ema13)
-price_cross_50_bull = ta.crossover(close, ema50)
-price_cross_50_bear = ta.crossunder(close, ema50)
-price_cross_200_bull= ta.crossover(close, ema200)
-price_cross_200_bear= ta.crossunder(close, ema200)
+trading_allowed = (is_london or is_ny) and not pre_london_stop_hunt and not pre_ny_stop_hunt
+analysis_only = is_asian
 
-// EMA Cloud (area between EMA13 and EMA50)
-ema_cloud_color = bull_stack ? color.new(color.green, 90) : bear_stack ? color.new(color.red, 90) : color.new(color.gray, 95)
+// Session backgrounds
+if show_session_boxes
+    bgcolor(is_asian ? color.new(color.yellow, 95) : na, title="Asian Session")
+    bgcolor(is_london and trading_allowed ? color.new(color.blue, 98) : na, title="London Session")
+    bgcolor(is_ny and trading_allowed ? color.new(color.purple, 98) : na, title="NY Session")
+    bgcolor(pre_london_stop_hunt or pre_ny_stop_hunt ? color.new(color.red, 90) : na, title="Stop Hunt Window")
 
 // ============================================================================
-// ASIAN RANGE TRACKING ARRAYS
+// 🌏 ASIAN LEVEL CALCULATIONS
 // ============================================================================
-var array<float> asian_highs       = array.new<float>()
-var array<float> asian_lows        = array.new<float>()
-var array<int>   range_start_times = array.new<int>()
-var array<int>   range_end_times   = array.new<int>()
-var array<line>  high_lines        = array.new<line>()
-var array<line>  low_lines         = array.new<line>()
-var array<box>   range_boxes       = array.new<box>()
 
-var float current_asian_high = na
-var float current_asian_low  = na
-var int   asian_start_bar    = na
-var bool  range_broken_up    = false
-var bool  range_broken_down  = false
+var float asian_high = na
+var float asian_low = na
+var float asian_open = na
+var float asian_close = na
+var float asian_50_level = na
+var float asian_range = na
+var int asian_start_bar = na
+var int asian_end_bar = na
 
-// ============================================================================
-// ASIAN SESSION RANGE BUILDING
-// ============================================================================
-if asian_session and not asian_session[1]
-    current_asian_high := high
-    current_asian_low  := low
-    asian_start_bar    := bar_index
-    range_broken_up    := false
-    range_broken_down  := false
+new_asian_session = is_asian and not is_asian[1]
+asian_session_ending = not is_asian and is_asian[1]
 
-if asian_session
-    current_asian_high := math.max(nz(current_asian_high), high)
-    current_asian_low  := math.min(nz(current_asian_low), low)
+if is_asian
+    if new_asian_session
+        asian_open := open
+        asian_high := high
+        asian_low := low
+        asian_start_bar := bar_index
+    else
+        asian_high := math.max(asian_high, high)
+        asian_low := math.min(asian_low, low)
 
-// ============================================================================
-// ASIAN SESSION RANGE COMPLETION
-// ============================================================================
-if not asian_session and asian_session[1] and not na(current_asian_high) and not na(current_asian_low)
-    range_size_pips = (current_asian_high - current_asian_low) * 10000
-    // Validate range size
-    valid_range = range_size_pips >= min_range_pips
-    // Clean range validation
-    if require_clean_range and valid_range
-        clean = true
-        for i = 1 to bar_index - asian_start_bar
-            if high[i] > current_asian_high + (atr * wick_tolerance) or low[i] < current_asian_low - (atr * wick_tolerance)
-                clean := false
-                break
-        valid_range := valid_range and clean
+if asian_session_ending
+    asian_close := close[1]
+    asian_end_bar := bar_index - 1
 
-    if valid_range and show_asian_range and is_current_day
-        // Maintain max_ranges
-        while array.size(asian_highs) >= max_ranges
-            line.delete(array.shift(high_lines))
-            line.delete(array.shift(low_lines))
-            box.delete(array.shift(range_boxes))
-            array.shift(asian_highs)
-            array.shift(asian_lows)
-            array.shift(range_start_times)
-            array.shift(range_end_times)
-
-        // Store new range
-        array.push(asian_highs, current_asian_high)
-        array.push(asian_lows, current_asian_low)
-        array.push(range_start_times, asian_start_bar)
-        array.push(range_end_times, bar_index)
-
-        // Draw lines
-        high_line = line.new(asian_start_bar, current_asian_high, extend_lines ? bar_index + 100 : bar_index + 50,
-                             current_asian_high, color=range_line_color, width=range_line_width,
-                             extend=extend_lines ? extend.right : extend.none)
-        low_line  = line.new(asian_start_bar, current_asian_low, extend_lines ? bar_index + 100 : bar_index + 50,
-                             current_asian_low, color=range_line_color, width=range_line_width,
-                             extend=extend_lines ? extend.right : extend.none)
-
-        array.push(high_lines, high_line)
-        array.push(low_lines,  low_line)
-
-        // Draw box
-        range_box = box.new(asian_start_bar, current_asian_high, bar_index, current_asian_low,
-                            bgcolor=range_box_color, border_color=range_line_color, border_width=1)
-        array.push(range_boxes, range_box)
-
-        // Info label
-        label.new(bar_index, current_asian_high + atr * 0.5,
-                  "ASIAN RANGE\n" + str.tostring(range_size_pips, "#.#") + " pips\nDAY " + str.tostring(cycle_day),
-                  style=label.style_label_down, color=color.yellow, textcolor=color.black, size=size.small)
-
-// Range size in pips for current range
-range_pips = not na(current_asian_high) and not na(current_asian_low) ? (current_asian_high - current_asian_low) * 10000 : 0
+if not na(asian_high) and not na(asian_low)
+    asian_range := asian_high - asian_low
+    asian_50_level := (asian_high + asian_low) / 2
 
 // ============================================================================
-// BREAKOUT DETECTION
+// 🎯 ASIAN BOX QUALITY ASSESSMENT
 // ============================================================================
-detect_breakout() =>
-    breakout_bull  = false
-    breakout_bear  = false
-    confirmed_bull = false
-    confirmed_bear = false
 
-    if array.size(asian_highs) > 0 and not asian_session
-        latest_high = array.get(asian_highs, array.size(asian_highs) - 1)
-        latest_low  = array.get(asian_lows,  array.size(asian_lows) - 1)
-
-        // Initial breakout
-        if high > latest_high and not range_broken_up
-            breakout_bull := true
-            range_broken_up := true
-        if low < latest_low and not range_broken_down
-            breakout_bear := true
-            range_broken_down := true
-
-        // Confirmation
-        confirm_distance = confirmation_pips * 0.0001
-        if breakout_confirmation
-            confirmed_bull := breakout_bull and close > latest_high + confirm_distance
-            confirmed_bear := breakout_bear and close < latest_low  - confirm_distance
+// Asian box quality assessment
+asian_box_quality() =>
+    quality = "INVALID"
+    score = 0
+    
+    if not na(asian_range) and asian_range > 0
+        range_pips = asian_range / syminfo.mintick
+        
+        // Range quality scoring
+        if range_pips <= 30
+            quality := "OPTIMAL"
+            score := 5
+        else if range_pips <= 50
+            quality := "GOOD"
+            score := 4
+        else if range_pips <= 75
+            quality := "ACCEPTABLE"
+            score := 3
+        else if range_pips <= 100
+            quality := "WIDE"
+            score := 2
         else
-            confirmed_bull := breakout_bull
-            confirmed_bear := breakout_bear
+            quality := "TOO_WIDE"
+            score := 1
+    
+    [quality, score, range_pips]
 
-        // Volume
-        if volume_confirmation
-            vol_spike = volume > avg_volume * volume_threshold
-            confirmed_bull := confirmed_bull and vol_spike
-            confirmed_bear := confirmed_bear and vol_spike
+[asian_quality, quality_score, range_pips] = asian_box_quality()
 
-    [confirmed_bull, confirmed_bear]
+// Asian level strength assessment
+asian_level_strength() =>
+    strength = "WEAK"
+    
+    if not na(asian_open) and not na(asian_50_level)
+        open_to_50_ratio = math.abs(asian_open - asian_50_level) / asian_range
+        
+        if open_to_50_ratio <= 0.1
+            strength := "PERFECT"  // Open very close to 50%
+        else if open_to_50_ratio <= 0.2
+            strength := "STRONG"   // Open reasonably close to 50%
+        else if open_to_50_ratio <= 0.3
+            strength := "MODERATE" // Open somewhat close to 50%
+        else
+            strength := "WEAK"     // Open far from 50%
+    
+    strength
 
-[breakout_bull, breakout_bear] = detect_breakout()
-
-// Breakout conditions for legacy compatibility
-range_break_up = breakout_bull
-range_break_down = breakout_bear
-first_break_up = breakout_bull
-first_break_down = breakout_bear
-
-// ============================================================================
-// MOMENTUM ANALYSIS
-// ============================================================================
-
-// Breakout momentum (distance from range)
-latest_asian_high = array.size(asian_highs) > 0 ? array.get(asian_highs, array.size(asian_highs) - 1) : na
-latest_asian_low = array.size(asian_lows) > 0 ? array.get(asian_lows, array.size(asian_lows) - 1) : na
-
-breakout_momentum_up = range_break_up and not na(latest_asian_high) and not na(latest_asian_low) ?
-                      (close - latest_asian_high) / (latest_asian_high - latest_asian_low) : 0
-breakout_momentum_down = range_break_down and not na(latest_asian_high) and not na(latest_asian_low) ?
-                        (latest_asian_low - close) / (latest_asian_high - latest_asian_low) : 0
-
-// Overall momentum score
-momentum_score = breakout_momentum_up - breakout_momentum_down
+level_strength = asian_level_strength()
 
 // ============================================================================
-// VISUAL ELEMENTS
+// 🎨 VISUAL ELEMENTS & LEVEL DRAWING
 // ============================================================================
 
-// Asian range box
-var box range_box = na
-if asian_active and not asian_active[1] and show_range_box
-    range_box := box.new(bar_index, asian_high, bar_index, asian_low,
-                         border_color=color.yellow, bgcolor=color.new(color.yellow, 90),
-                         extend=extend.right)
+// Label size conversion
+label_text_size = switch label_size
+    "tiny" => size.tiny
+    "small" => size.small
+    "normal" => size.normal
+    "large" => size.large
+    "huge" => size.huge
+    => size.normal
 
-if asian_active and not na(range_box) and show_range_box
-    box.set_right(range_box, bar_index)
-    box.set_top(range_box, asian_high)
-    box.set_bottom(range_box, asian_low)
+// Draw Asian levels
+var line asian_high_line = na
+var line asian_low_line = na
+var line asian_open_line = na
+var line asian_50_line = na
+var box asian_range_box = na
+var label asian_quality_label = na
 
-// Range levels
-plot(show_breakout_levels and range_established ? asian_high : na,
-     "Asian High", color=color.red, linewidth=2, style=plot.style_line)
-plot(show_breakout_levels and range_established ? asian_low : na,
-     "Asian Low", color=color.green, linewidth=2, style=plot.style_line)
+if show_asian_levels and asian_session_ending and not na(asian_high)
+    // Delete previous lines and box
+    if not na(asian_high_line)
+        line.delete(asian_high_line)
+        line.delete(asian_low_line)
+        line.delete(asian_open_line)
+        line.delete(asian_50_line)
+        box.delete(asian_range_box)
+        label.delete(asian_quality_label)
+    
+    // Draw new levels
+    asian_high_line := line.new(bar_index, asian_high, bar_index + extend_levels, asian_high, 
+                               color=color.red, width=line_width, style=line.style_solid)
+    asian_low_line := line.new(bar_index, asian_low, bar_index + extend_levels, asian_low, 
+                              color=color.green, width=line_width, style=line.style_solid)
+    asian_open_line := line.new(bar_index, asian_open, bar_index + extend_levels, asian_open, 
+                               color=color.orange, width=line_width, style=line.style_dashed)
+    asian_50_line := line.new(bar_index, asian_50_level, bar_index + extend_levels, asian_50_level, 
+                             color=color.blue, width=line_width, style=line.style_dotted)
+    
+    // Draw Asian box
+    if show_asian_box
+        box_color = switch asian_quality
+            "OPTIMAL" => color.new(color.green, transparency)
+            "GOOD" => color.new(color.lime, transparency)
+            "ACCEPTABLE" => color.new(color.yellow, transparency)
+            "WIDE" => color.new(color.orange, transparency)
+            "TOO_WIDE" => color.new(color.red, transparency)
+            => color.new(color.gray, transparency)
+            
+        asian_range_box := box.new(asian_start_bar, asian_high, asian_end_bar, asian_low,
+                                  border_color=color.gray, bgcolor=box_color, border_width=1)
+    
+    // Quality assessment label
+    if show_quality_assessment
+        quality_text = "🌏 ASIAN ANALYSIS\n" +
+                      "Quality: " + asian_quality + " (" + str.tostring(quality_score) + "/5)\n" +
+                      "Range: " + str.tostring(range_pips, "#") + " pips\n" +
+                      "Level Strength: " + level_strength + "\n" +
+                      "High: " + str.tostring(asian_high, "#.#####") + "\n" +
+                      "Low: " + str.tostring(asian_low, "#.#####") + "\n" +
+                      "50%: " + str.tostring(asian_50_level, "#.#####") + "\n" +
+                      "Open: " + str.tostring(asian_open, "#.#####")
+        
+        label_color = switch asian_quality
+            "OPTIMAL" => color.green
+            "GOOD" => color.lime
+            "ACCEPTABLE" => color.yellow
+            "WIDE" => color.orange
+            "TOO_WIDE" => color.red
+            => color.gray
+            
+        asian_quality_label := label.new(bar_index + 5, asian_high + ta.atr(14) * 0.5, quality_text,
+                                        style=label.style_label_down, color=label_color, 
+                                        textcolor=color.white, size=label_text_size)
 
-// Breakout signals
-plotshape(first_break_up, "Range Break Up", shape.triangleup,
-          location.belowbar, color.lime, size=size.normal)
-plotshape(first_break_down, "Range Break Down", shape.triangledown,
-          location.abovebar, color.red, size=size.normal)
+// Level labels
+if show_level_labels and barstate.islast and not na(asian_high)
+    label.new(bar_index + extend_levels + 2, asian_high, "🔴 Asian High", 
+             style=label.style_label_left, color=color.red, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + extend_levels + 2, asian_low, "🟢 Asian Low", 
+             style=label.style_label_left, color=color.green, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + extend_levels + 2, asian_open, "🟠 Asian Open", 
+             style=label.style_label_left, color=color.orange, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + extend_levels + 2, asian_50_level, "🔵 Asian 50%", 
+             style=label.style_label_left, color=color.blue, textcolor=color.white, size=size.tiny)
 
 // ============================================================================
-// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// 🚨 STOP HUNT WARNING SYSTEM
 // ============================================================================
 
-plot(asian_active ? 1 : 0, "Asian_Session", display=display.data_window)
+// Stop hunt warnings
+if enable_stop_hunt_warnings
+    if pre_london_stop_hunt and not pre_london_stop_hunt[1]
+        label.new(bar_index, high + ta.atr(14) * 2, 
+                 "⚠️ PRE-LONDON STOP HUNT\n" +
+                 "Avoid trading for 30 minutes\n" +
+                 "Institutions hunting stops\n" +
+                 "Time: " + str.format_time(time, "HH:mm"),
+                 style=label.style_label_down, color=color.red, textcolor=color.white, size=size.normal)
+    
+    if pre_ny_stop_hunt and not pre_ny_stop_hunt[1]
+        label.new(bar_index, high + ta.atr(14) * 2, 
+                 "⚠️ PRE-NY STOP HUNT\n" +
+                 "Avoid trading for 30 minutes\n" +
+                 "Institutions hunting stops\n" +
+                 "Time: " + str.format_time(time, "HH:mm"),
+                 style=label.style_label_down, color=color.red, textcolor=color.white, size=size.normal)
+
+// ============================================================================
+// 📊 LEVEL INTERACTION ANALYSIS
+// ============================================================================
+
+// Level interaction detection
+price_at_asian_high = not na(asian_high) and math.abs(close - asian_high) <= ta.atr(14) * 0.5
+price_at_asian_low = not na(asian_low) and math.abs(close - asian_low) <= ta.atr(14) * 0.5
+price_at_asian_50 = not na(asian_50_level) and math.abs(close - asian_50_level) <= ta.atr(14) * 0.5
+price_at_asian_open = not na(asian_open) and math.abs(close - asian_open) <= ta.atr(14) * 0.5
+
+// Level break detection
+asian_high_break = not na(asian_high) and close > asian_high and close[1] <= asian_high
+asian_low_break = not na(asian_low) and close < asian_low and close[1] >= asian_low
+
+// Level test without break
+asian_high_test = price_at_asian_high and not asian_high_break
+asian_low_test = price_at_asian_low and not asian_low_break
+
+// Manipulation detection at levels
+manipulation_at_high = asian_high_test and high > asian_high and close <= asian_high
+manipulation_at_low = asian_low_test and low < asian_low and close >= asian_low
+
+// ============================================================================
+// 🎯 INSTITUTIONAL CONTEXT ANALYSIS
+// ============================================================================
+
+// Asian session completion status
+asian_session_complete = not na(asian_high) and not na(asian_low) and not na(asian_open) and not na(asian_close)
+
+// Institutional setup quality
+institutional_setup_quality() =>
+    if not asian_session_complete
+        "INCOMPLETE"
+    else if asian_quality == "OPTIMAL" and level_strength == "PERFECT"
+        "INSTITUTIONAL_GRADE"
+    else if asian_quality == "GOOD" and level_strength == "STRONG"
+        "HIGH_PROBABILITY"
+    else if asian_quality == "ACCEPTABLE" and level_strength == "MODERATE"
+        "MODERATE_PROBABILITY"
+    else
+        "LOW_PROBABILITY"
+
+institutional_quality = institutional_setup_quality()
+
+// ============================================================================
+// 📊 DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
 plot(asian_high, "Asian_High", display=display.data_window)
 plot(asian_low, "Asian_Low", display=display.data_window)
+plot(asian_open, "Asian_Open", display=display.data_window)
+plot(asian_50_level, "Asian_50_Level", display=display.data_window)
+plot(asian_range, "Asian_Range", display=display.data_window)
 plot(range_pips, "Range_Pips", display=display.data_window)
-plot(range_break_up ? 1 : 0, "Range_Break_Up", display=display.data_window)
-plot(range_break_down ? 1 : 0, "Range_Break_Down", display=display.data_window)
-plot(first_break_up ? 1 : 0, "First_Break_Up", display=display.data_window)
-plot(first_break_down ? 1 : 0, "First_Break_Down", display=display.data_window)
-plot(momentum_score, "Momentum_Score", display=display.data_window)
-plot(range_established ? 1 : 0, "Range_Established", display=display.data_window)
-
-// Legacy compatibility outputs
-plot(range_pips, "Asian_Range", display=display.data_window)
-plot(asian_active ? 1 : 0, "Session_Active", display=display.data_window)
-// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)
+plot(quality_score, "Quality_Score", display=display.data_window)
+plot(is_asian ? 1 : 0, "In_Asian_Session", display=display.data_window)
+plot(is_london ? 1 : 0, "In_London_Session", display=display.data_window)
+plot(is_ny ? 1 : 0, "In_NY_Session", display=display.data_window)
+plot(trading_allowed ? 1 : 0, "Trading_Allowed", display=display.data_window)
+plot(analysis_only ? 1 : 0, "Analysis_Only", display=display.data_window)
+plot(price_at_asian_high ? 1 : 0, "At_Asian_High", display=display.data_window)
+plot(price_at_asian_low ? 1 : 0, "At_Asian_Low", display=display.data_window)
+plot(price_at_asian_50 ? 1 : 0, "At_Asian_50", display=display.data_window)
+plot(asian_high_break ? 1 : 0, "Asian_High_Break", display=display.data_window)
+plot(asian_low_break ? 1 : 0, "Asian_Low_Break", display=display.data_window)
+plot(manipulation_at_high ? 1 : 0, "Manipulation_High", display=display.data_window)
+plot(manipulation_at_low ? 1 : 0, "Manipulation_Low", display=display.data_window)
+plot(pre_london_stop_hunt ? 1 : 0, "Pre_London_Hunt", display=display.data_window)
+plot(pre_ny_stop_hunt ? 1 : 0, "Pre_NY_Hunt", display=display.data_window)

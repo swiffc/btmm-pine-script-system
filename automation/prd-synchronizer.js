@@ -22,7 +22,7 @@ class PrdSynchronizer {
             const updates = this.detectRequiredUpdates(systemState, currentPrd);
             
             if (updates.length > 0) {
-                console.log( Found  PRD update requirements);
+                console.log('🔍 Found PRD update requirements');
                 const updatedPrd = this.applyUpdates(currentPrd, updates);
                 this.savePrd(updatedPrd);
                 console.log(' PRD successfully synchronized with system state!');
@@ -65,7 +65,7 @@ class PrdSynchronizer {
         let updatedPrd = currentPrd;
         
         updates.forEach(update => {
-            console.log( Applying update: );
+            console.log('📝 Applying update:', update.description);
             updatedPrd = this.updateVersionSection(updatedPrd, update);
         });
         
@@ -76,8 +76,8 @@ class PrdSynchronizer {
         const versionRegex = /(version: )[\d.]+/;
         const timestampRegex = /(last_updated: )[\d-]+/;
         
-        let updatedPrd = prd.replace(versionRegex, $1);
-        updatedPrd = updatedPrd.replace(timestampRegex, $1);
+        let updatedPrd = prd.replace(versionRegex, (match, prefix) => prefix + update.data.version);
+        updatedPrd = updatedPrd.replace(timestampRegex, (match, prefix) => prefix + update.data.timestamp);
         
         return updatedPrd;
     }
@@ -86,21 +86,21 @@ class PrdSynchronizer {
         const versionMatch = prd.match(/version: ([\d.]+)/);
         if (versionMatch) {
             const [major, minor, patch] = versionMatch[1].split('.').map(Number);
-            return ${major}..;
+            return `${major}.${minor}.${patch + 1}`;
         }
         return '2.1.1';
     }
 
     loadCurrentPrd() {
         if (!fs.existsSync(this.prdPath)) {
-            throw new Error(PRD file not found: );
+            throw new Error(`PRD file not found: ${this.prdPath}`);
         }
         return fs.readFileSync(this.prdPath, 'utf8');
     }
 
     savePrd(prd) {
         fs.writeFileSync(this.prdPath, prd);
-        console.log( Updated PRD saved to: );
+        console.log('💾 Updated PRD saved to:', this.prdPath);
     }
 }
 
