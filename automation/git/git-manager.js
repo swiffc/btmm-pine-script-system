@@ -426,6 +426,44 @@ jspm_packages/
       return null;
     }
   }
+
+  // BTMM GitHub enforcement methods
+  getRemotes() {
+    try {
+      const remotes = execSync('git remote -v', { encoding: 'utf8' }).trim();
+      return remotes.split('\n').filter(line => line.length > 0);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  fetchFromRemote() {
+    try {
+      if (!this.remoteConfigured) {
+        return false;
+      }
+      execSync('git fetch origin', { stdio: 'ignore' });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  isInSyncWithRemote() {
+    try {
+      if (!this.remoteConfigured) {
+        return false;
+      }
+      
+      const localCommit = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+      const remoteCommit = execSync('git rev-parse origin/main', { encoding: 'utf8' }).trim();
+      
+      return localCommit === remoteCommit;
+    } catch (error) {
+      // If we can't compare, assume we're not in sync
+      return false;
+    }
+  }
 }
 
 // CLI Usage
