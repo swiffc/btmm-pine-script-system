@@ -18,16 +18,16 @@ This system implements the complete BTMM framework with intelligent automation, 
 ## 📋 Pine Script Architecture (10 Scripts)
 
 ### **Protected 10-Script System**
-1. **BTMMFoundation.pine** - Core library and utilities
-2. **BTMM_EMA_System.pine** - Steve Mauro EMA framework
-3. **BTMM_Asian_Range.pine** - Asian session range analysis
-4. **BTMM_HTF_Bias.pine** - Higher timeframe bias determination
-5. **BTMM_Pattern_Detection.pine** - Market maker pattern recognition
-6. **BTMM_Entry_System.pine** - Trade entry signal generation
-7. **BTMM_Risk_Management.pine** - Position and risk management
-8. **BTMM_Stop_Hunt_Detection.pine** - Liquidity sweep detection
-9. **BTMM_Master_Dashboard.pine** - Comprehensive overview
-10. **BTMM_Alert_System.pine** - Alert management
+1. **BTMMFoundation.pine** - Core library and utilities (foundation/)
+2. **BTMM_Core_Signals_v2.pine** - Master control system with toggle switches (core/)
+3. **BTMM_Asian_Range.pine** - Comprehensive EMA and Asian session analysis (core/)
+4. **BTMM_HTF_Bias.pine** - Higher timeframe bias determination (core/)
+5. **BTMM_Pattern_Detection.pine** - Market maker pattern recognition (core/)
+6. **BTMM_Entry_System.pine** - Trade entry signal generation (core/)
+7. **BTMM_Risk_Management.pine** - Position and risk management (core/)
+8. **BTMM_Stop_Hunt_Detection.pine** - Liquidity sweep detection (core/)
+9. **BTMM_Master_Dashboard.pine** - Multi-panel dashboard system (dashboard/)
+10. **BTMM_Alert_System.pine** - Centralized alert management (alerts/)
 
 ## 🚀 Quick Start
 

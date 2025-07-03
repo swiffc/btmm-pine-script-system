@@ -1,0 +1,312 @@
+{
+  "name": "btmm-trading-system",
+  "version": "2.0.0",
+  "description": "BTMM Pine Script Trading System with MCP Integration",
+  "servers": {
+    "filesystem": {
+      "type": "filesystem",
+      "description": "Access to BTMM project files and structure",
+      "config": {
+        "allowedDirectories": [
+          "scripts/",
+          "automation/",
+          "docs/",
+          "configs/",
+          "tests/",
+          "exports/"
+        ],
+        "excludePatterns": [
+          "node_modules/",
+          ".git/",
+          "*.backup-*",
+          "*.tmp"
+        ]
+      }
+    },
+    "btmm-automation": {
+      "type": "custom",
+      "description": "BTMM automation scripts and functions",
+      "config": {
+        "baseUrl": "file://automation/",
+        "scripts": {
+          "dependency-tracker": {
+            "file": "management/dependency-tracker.js",
+            "description": "Tracks cross-script dependencies and validates integration health",
+            "functions": [
+              "validateAllDependencies",
+              "checkIntegrationHealth",
+              "getBTMMFiles",
+              "analyzeDependencies"
+            ]
+          },
+          "script-limit-enforcer": {
+            "file": "management/script-limit-enforcer.js", 
+            "description": "Enforces 10-script limit and prevents excess script creation",
+            "functions": [
+              "enforceScriptLimit",
+              "countCurrentScripts",
+              "validateScriptCreation"
+            ]
+          },
+          "smart-merger": {
+            "file": "merging/smart-merger.js",
+            "description": "Intelligent script merging with conflict resolution",
+            "functions": [
+              "suggestMergeTargets",
+              "mergeScripts",
+              "validateMerge"
+            ]
+          },
+          "integration-health-check": {
+            "file": "validation/integration-health-check.js",
+            "description": "Comprehensive system health monitoring",
+            "functions": [
+              "runHealthCheck",
+              "calculateHealthScore",
+              "validateIntegration"
+            ]
+          },
+          "rollback-system": {
+            "file": "management/rollback-system.js",
+            "description": "Emergency recovery and backup management",
+            "functions": [
+              "createBackup",
+              "rollbackChanges",
+              "listBackups"
+            ]
+          }
+        }
+      }
+    },
+    "btmm-pine-scripts": {
+      "type": "custom",
+      "description": "BTMM Pine Script files and their capabilities",
+      "config": {
+        "baseUrl": "file://scripts/",
+        "limit": 10,
+        "current": 13,
+        "status": "OVER_LIMIT",
+        "scripts": {
+          "BTMMFoundation.pine": {
+            "location": "foundation/",
+            "description": "Core library with shared functions and calculations",
+            "status": "PROTECTED",
+            "functions": [
+              "session_and_cycle",
+              "timeframe_classification", 
+              "ema_stack_analysis",
+              "asian_range_detection"
+            ]
+          },
+          "BTMM_EMA_System.pine": {
+            "location": "core/",
+            "description": "Steve Mauro's EMA system with bias calculations",
+            "status": "ACTIVE",
+            "features": [
+              "5-EMA food naming system",
+              "Perfect stack detection",
+              "Bias scoring (-8 to +8)",
+              "15M+ timeframe enforcement"
+            ]
+          },
+          "BTMM_Asian_Range.pine": {
+            "location": "core/",
+            "description": "Asian session detection and range analysis",
+            "status": "ACTIVE",
+            "features": [
+              "Quality assessment system",
+              "Level strength analysis",
+              "Session timing validation",
+              "Stop hunt warnings"
+            ]
+          },
+          "BTMM_Pattern_Detection.pine": {
+            "location": "core/",
+            "description": "Advanced M&W pattern detection with nameable patterns",
+            "status": "ACTIVE",
+            "features": [
+              "M&W pattern detection",
+              "Nameable patterns (Evening Star, Morning Star, etc.)",
+              "Pattern strength assessment",
+              "Context analysis"
+            ]
+          },
+          "BTMM_Entry_System.pine": {
+            "location": "core/",
+            "description": "OTE second leg detection and entry system",
+            "status": "ACTIVE",
+            "features": [
+              "OTE Fibonacci zones",
+              "Signal validation",
+              "13 EMA confirmation",
+              "Confluence analysis"
+            ]
+          },
+          "BTMM_Risk_Management.pine": {
+            "location": "core/",
+            "description": "Institutional-grade risk calculations",
+            "status": "ACTIVE",
+            "features": [
+              "Dynamic R:R adjustment",
+              "Multi-level take profits",
+              "Position sizing",
+              "Risk statistics"
+            ]
+          },
+          "BTMM_Master_Dashboard.pine": {
+            "location": "dashboard/",
+            "description": "Multi-timeframe analysis and system monitoring",
+            "status": "ACTIVE",
+            "features": [
+              "MTF bias analysis",
+              "Signal summary",
+              "Performance statistics",
+              "Session timing"
+            ]
+          },
+          "BTMM_Alert_System.pine": {
+            "location": "alerts/",
+            "description": "Comprehensive alert system with institutional context",
+            "status": "ACTIVE",
+            "features": [
+              "Pattern alerts",
+              "OTE alerts",
+              "Confluence alerts",
+              "Session warnings"
+            ]
+          },
+          "BTMM_HTF_Bias.pine": {
+            "location": "core/",
+            "description": "Higher timeframe bias analysis",
+            "status": "ACTIVE",
+            "features": [
+              "Multi-timeframe confluence",
+              "Bias strength scoring",
+              "Trend analysis",
+              "Setup identification"
+            ]
+          },
+          "BTMM_Stop_Hunt_Detection.pine": {
+            "location": "core/",
+            "description": "Session timing and stop hunt detection",
+            "status": "ACTIVE",
+            "features": [
+              "Liquidity sweep detection",
+              "Stop hunt identification",
+              "Session timing",
+              "Volume confirmation"
+            ]
+          }
+        }
+      }
+    },
+    "btmm-methodology": {
+      "type": "custom",
+      "description": "Steve Mauro's BTMM methodology and trading rules",
+      "config": {
+        "baseUrl": "file://docs/",
+        "methodology": {
+          "creator": "Steve Mauro",
+          "system": "Beat The Market Makers (BTMM)",
+          "approach": "Institutional trading methodology",
+          "core_concepts": [
+            "3-Day Market Maker Cycle",
+            "EMA Stack Analysis with Food Naming",
+            "Asian Range Trading",
+            "M&W Pattern Detection",
+            "OTE Second Leg Analysis",
+            "Stop Hunt Detection",
+            "Higher Timeframe Bias"
+          ],
+          "trading_rules": [
+            "No Asian session trading",
+            "15M+ timeframes only",
+            "Perfect stack confirmation",
+            "Confluence-based entries",
+            "Risk management priority",
+            "Session-based analysis"
+          ],
+          "ema_system": {
+            "5_ema": "Mustard (Yellow)",
+            "13_ema": "Ketchup (Red)", 
+            "50_ema": "Water (Blue)",
+            "200_ema": "Mayo (White)",
+            "800_ema": "Blueberry Pie (Purple)"
+          }
+        }
+      }
+    },
+    "project-status": {
+      "type": "custom",
+      "description": "Current project status and metrics",
+      "config": {
+        "current_status": {
+          "script_count": "13/10 (OVER_LIMIT)",
+          "health_score": "100/100",
+          "integration_status": "57/57 dependencies valid",
+          "consolidation_needed": true,
+          "todos_completed": 10,
+          "todos_remaining": 1
+        },
+        "required_actions": [
+          "Consolidate 3 scripts to reach 10-script limit",
+          "Complete file organization",
+          "Execute automated commit process",
+          "Validate final system health"
+        ]
+      }
+    }
+  },
+  "capabilities": {
+    "real_time_access": [
+      "Current script count and status",
+      "Integration health monitoring",
+      "Dependency validation",
+      "System performance metrics",
+      "File organization status"
+    ],
+    "automation_functions": [
+      "Script consolidation suggestions",
+      "Dependency tracking",
+      "Health score calculation",
+      "Backup and rollback operations",
+      "Git integration and commits"
+    ],
+    "btmm_expertise": [
+      "Steve Mauro methodology implementation",
+      "Pine Script v5 compliance",
+      "Institutional trading concepts",
+      "Multi-timeframe analysis",
+      "Risk management strategies"
+    ]
+  },
+  "documentation": {
+    "guides": [
+      "docs/btmm-development-guide.md",
+      "docs/cursor-integration-guide.md",
+      "docs/pine-script-v5-guidelines.md"
+    ],
+    "api_reference": [
+      "docs/api-reference.md",
+      "docs/function-reference.md"
+    ],
+    "reports": [
+      "docs/reports/CURSOR_INTEGRATION_SUMMARY.md",
+      "docs/reports/GIT_GITHUB_INTEGRATION_SUMMARY.md",
+      "docs/reports/CONTINUOUS_LEARNING_INTEGRATION_SUCCESS.md"
+    ]
+  },
+  "validation": {
+    "script_limit": {
+      "max": 10,
+      "current": 13,
+      "enforcement": "ACTIVE"
+    },
+    "quality_gates": {
+      "health_score_minimum": 95,
+      "integration_validity": "100%",
+      "pine_script_compliance": "v5",
+      "btmm_methodology_adherence": "STRICT"
+    }
+  }
+} 

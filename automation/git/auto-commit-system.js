@@ -2,9 +2,9 @@
 const fs = require('fs');
 const { execSync, exec } = require('child_process');
 const path = require('path');
-const PineScriptValidator = require('./pine-script-validator');
+const PineScriptValidator = require('../pine-script-validator');
 const GitManager = require('./git-manager');
-const BackupSystem = require('./backup-system');
+const BackupSystem = require('../backup/backup-system');
 
 class AutoCommitSystem {
   constructor() {
