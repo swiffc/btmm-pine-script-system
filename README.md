@@ -1,9 +1,10 @@
 # BTMM Pine Script Trading System
 
-[![Version](https://img.shields.io/badge/Version-2.0.0-blue.svg)](https://github.com/swiffc/btmm-pine-script-system)
+[![Version](https://img.shields.io/github/v/tag/swiffc/btmm-pine-script-system?label=Version&color=blue)](https://github.com/swiffc/btmm-pine-script-system/releases)
 [![GitHub](https://img.shields.io/badge/GitHub-swiffc%2Fbtmm--pine--script--system-green.svg)](https://github.com/swiffc/btmm-pine-script-system)
 [![Scripts](https://img.shields.io/badge/Scripts-10%2F10-brightgreen.svg)](#)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-success.svg)](#)
+[![Release](https://img.shields.io/github/release-date/swiffc/btmm-pine-script-system?label=Last%20Release&color=orange)](https://github.com/swiffc/btmm-pine-script-system/releases/latest)
 
 > **Latest Update:** July 2025 - Implemented mandatory GitHub push rule with complete automation synchronization and enterprise-grade file organization
 
@@ -162,10 +163,19 @@ npm run git-status         # GitHub synchronization status
 ## 🛡️ **Support & Updates**
 
 ### **Latest Version Information**
-- **Current Version**: 2.0.0
+- **Current Version**: v2.0.0 🏷️
 - **Release Date**: July 2025
+- **Git Tag**: v2.0.0 (Published to GitHub)
 - **Last Update**: "Implement mandatory GitHub push rule - All automation now requires immediate GitHub synchronization"
 - **Status**: Production Ready ✅
+
+### **Version Verification**
+```bash
+# Check current version
+npm run status                    # Shows: Scripts: 10/10 + version info
+git tag --list                   # Shows: v2.0.0 + deployment tags
+git describe --tags              # Shows: current version tag
+```
 
 ### **Automated Updates**
 The system automatically:
