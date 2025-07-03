@@ -1,3 +1,17 @@
 {
-  "exampleSetting": true
+  "exampleSetting": true,
+  "github": {
+    "repository_url": "https://github.com/swiffc/btmm-pine-script-system.git",
+    "owner": "swiffc",
+    "repo_name": "btmm-pine-script-system",
+    "remote_name": "origin",
+    "default_branch": "main",
+    "auto_push_enabled": true,
+    "sync_enabled": true
+  },
+  "automation": {
+    "mandatory_github_push": true,
+    "commit_and_push_required": true,
+    "github_visibility_check": true
+  }
 } 

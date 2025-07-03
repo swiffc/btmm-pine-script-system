@@ -2,7 +2,6 @@ name: ✨ Feature Request
 description: Propose a new feature for the BTMM Trading System
 title: "[FEATURE] "
 labels: ["enhancement", "needs-review"]
-assignees: ""
 
 body:
   - type: markdown
