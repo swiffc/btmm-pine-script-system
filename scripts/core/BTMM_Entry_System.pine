@@ -1,6 +1,19 @@
 //@version=5
 
 // =============================================================================
+// BTMM ENTRY SYSTEM - PRECISE ENTRY TIMING
+// =============================================================================
+// @description Precise entry timing system with multi-confirmation signals
+// @purpose High-probability entry signals with risk management integration
+// @method Multi-factor confluence analysis with institutional flow confirmation
+// @author BTMM Development Team
+// @version 2.0 - Enhanced with BTMMFoundation integration
+// @date 2025-07-02
+// =============================================================================
+
+import BTMMFoundation as btmm
+
+// =============================================================================
 // BTMM ENTRY SYSTEM - OTE & INSTITUTIONAL SIGNAL VALIDATION
 // =============================================================================
 // Purpose: Complete entry system with OTE second leg detection and signal validation

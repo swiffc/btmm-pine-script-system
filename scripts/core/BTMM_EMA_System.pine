@@ -1,14 +1,15 @@
-//@version=5
+// =============================================================================
+// BTMM EMA SYSTEM - STEVE MAURO EMA METHODOLOGY  
+// =============================================================================
+// @description Steve Mauro's EMA stack system with BTMM enhancements
+// @purpose 5-EMA trading system with perfect stack detection and bias analysis
+// @method Multi-timeframe EMA analysis with institutional flow confirmation
+// @author BTMM Development Team
+// @version 2.0 - Enhanced with BTMMFoundation integration
+// @date 2025-07-02
+// =============================================================================
 
-// =============================================================================
-// BTMM EMA SYSTEM - STEVE MAURO METHODOLOGY
-// =============================================================================
-// Purpose: Complete EMA bias system with food names and perfect stack detection
-// Method: Steve Mauro's BTMM EMA food naming system with institutional bias scoring
-// Author: BTMM Development Team  
-// Version: 2.0 - Enhanced from Master System
-// Date: 2025-07-02
-// =============================================================================
+import BTMMFoundation as btmm
 
 indicator("BTMM EMA System", "BTMM EMA", overlay=true, shorttitle="BTMM EMA Sys...",
          max_lines_count=50, max_labels_count=100)

@@ -1,14 +1,16 @@
 //@version=5
 
 // =============================================================================
-// BTMM HTF BIAS
+// BTMM HTF BIAS - MULTI-TIMEFRAME BIAS ANALYSIS
 // =============================================================================
-// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
-// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Purpose: Multi-timeframe bias analysis with EMA stack validation
+// Method: Steve Mauro EMA methodology across multiple timeframes
 // Author: BTMM Development Team
-// Version: 1.0
+// Version: 2.0 - Performance optimized with cached security calls
 // Date: 2025-07-02
 // =============================================================================
+
+import BTMMFoundation as btmm
 
 indicator("BTMM HTF Bias System", "BTMM HTF", overlay=false, shorttitle="BTMM HTF Bia...")
 
@@ -21,9 +23,6 @@ indicator("BTMM HTF Bias System", "BTMM HTF", overlay=false, shorttitle="BTMM HT
 // - Bias strength calculation
 // - Institutional flow direction
 // ============================================================================
-
-// Import Foundation Library
-// import BTMMFoundation as btmm  // Commented for standalone operation
 
 // ============================================================================
 // SETTINGS & INPUTS
@@ -45,42 +44,45 @@ show_bias_table = input.bool(true, "Show Bias Table", group=g_display)
 show_strength_meter = input.bool(true, "Show Strength Meter", group=g_display)
 
 // ============================================================================
-// HTF DATA RETRIEVAL
+// HTF DATA RETRIEVAL - PERFORMANCE OPTIMIZED
 // ============================================================================
 
-// Get HTF trend data
-htf1_close = request.security(syminfo.tickerid, htf_timeframe_1, close)
-htf1_ema20 = request.security(syminfo.tickerid, htf_timeframe_1, ta.ema(close, 20))
-htf1_ema50 = request.security(syminfo.tickerid, htf_timeframe_1, ta.ema(close, 50))
+// Cache security data to avoid nested calls and improve performance
+// Higher Timeframe 1 Data (cached)
+[htf1_close, htf1_ema20, htf1_ema50] = request.security(syminfo.tickerid, htf_timeframe_1, 
+    [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
-htf2_close = request.security(syminfo.tickerid, htf_timeframe_2, close)
-htf2_ema20 = request.security(syminfo.tickerid, htf_timeframe_2, ta.ema(close, 20))
-htf2_ema50 = request.security(syminfo.tickerid, htf_timeframe_2, ta.ema(close, 50))
+// Higher Timeframe 2 Data (cached)
+[htf2_close, htf2_ema20, htf2_ema50] = request.security(syminfo.tickerid, htf_timeframe_2, 
+    [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
-htf3_close = request.security(syminfo.tickerid, htf_timeframe_3, close)
-htf3_ema20 = request.security(syminfo.tickerid, htf_timeframe_3, ta.ema(close, 20))
-htf3_ema50 = request.security(syminfo.tickerid, htf_timeframe_3, ta.ema(close, 50))
+// Higher Timeframe 3 Data (cached)
+[htf3_close, htf3_ema20, htf3_ema50] = request.security(syminfo.tickerid, htf_timeframe_3, 
+    [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
-htf4_close = request.security(syminfo.tickerid, htf_timeframe_4, close)
-htf4_ema20 = request.security(syminfo.tickerid, htf_timeframe_4, ta.ema(close, 20))
-htf4_ema50 = request.security(syminfo.tickerid, htf_timeframe_4, ta.ema(close, 50))
+// Higher Timeframe 4 Data (cached)
+[htf4_close, htf4_ema20, htf4_ema50] = request.security(syminfo.tickerid, htf_timeframe_4, 
+    [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
 // ============================================================================
 // BIAS CALCULATION
 // ============================================================================
 
-// Individual timeframe bias
-htf1_bias = htf1_close > htf1_ema20 and htf1_ema20 > htf1_ema50 ? 1 :
-            htf1_close < htf1_ema20 and htf1_ema20 < htf1_ema50 ? -1 : 0
+// Individual timeframe bias - Check if close is above EMA20 and EMA20 is above EMA50 for bullish bias
+htf1_bias = htf1_close > htf1_ema20 and htf1_ema20 > htf1_ema50 ? 1 :  // Bullish alignment
+            htf1_close < htf1_ema20 and htf1_ema20 < htf1_ema50 ? -1 : 0  // Bearish vs Neutral
 
-htf2_bias = htf2_close > htf2_ema20 and htf2_ema20 > htf2_ema50 ? 1 :
-            htf2_close < htf2_ema20 and htf2_ema20 < htf2_ema50 ? -1 : 0
+// Higher timeframe 2 bias - Same logic with stronger weight
+htf2_bias = htf2_close > htf2_ema20 and htf2_ema20 > htf2_ema50 ? 1 :  // Bullish alignment
+            htf2_close < htf2_ema20 and htf2_ema20 < htf2_ema50 ? -1 : 0  // Bearish vs Neutral
 
-htf3_bias = htf3_close > htf3_ema20 and htf3_ema20 > htf3_ema50 ? 1 :
-            htf3_close < htf3_ema20 and htf3_ema20 < htf3_ema50 ? -1 : 0
+// Higher timeframe 3 bias - Same logic with stronger weight
+htf3_bias = htf3_close > htf3_ema20 and htf3_ema20 > htf3_ema50 ? 1 :  // Bullish alignment
+            htf3_close < htf3_ema20 and htf3_ema20 < htf3_ema50 ? -1 : 0  // Bearish vs Neutral
 
-htf4_bias = htf4_close > htf4_ema20 and htf4_ema20 > htf4_ema50 ? 1 :
-            htf4_close < htf4_ema20 and htf4_ema20 < htf4_ema50 ? -1 : 0
+// Higher timeframe 4 bias - Same logic with strongest weight
+htf4_bias = htf4_close > htf4_ema20 and htf4_ema20 > htf4_ema50 ? 1 :  // Bullish alignment
+            htf4_close < htf4_ema20 and htf4_ema20 < htf4_ema50 ? -1 : 0  // Bearish vs Neutral
 
 // Composite bias score
 composite_bias = (htf1_bias * 1) + (htf2_bias * 2) + (htf3_bias * 3) + (htf4_bias * 4)

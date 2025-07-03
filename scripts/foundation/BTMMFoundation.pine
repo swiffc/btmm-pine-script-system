@@ -1,13 +1,16 @@
 //@version=5
 
 // =============================================================================
-// BTMMFOUNDATION
+// BTMM FOUNDATION LIBRARY
 // =============================================================================
-// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
-// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
-// Author: BTMM Development Team
-// Version: 1.0
-// Date: 2025-07-02
+// @description Core infrastructure library for all BTMM trading system components
+// @purpose Provides session detection, 3-day cycle tracking, timeframe classification,
+//          current-day filters, Asian-range helpers, EMA-stack analysis, volume/market
+//          structure analytics, Fibonacci utilities, and risk-management calculations
+// @method Centralized library functions imported by all BTMM scripts for consistency
+// @author BTMM Development Team
+// @version 2.0 - Enhanced with performance optimizations
+// @date 2025-07-02
 // =============================================================================
 
 library("BTMMFoundation", overlay=false)

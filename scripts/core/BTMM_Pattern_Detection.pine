@@ -1,6 +1,19 @@
 //@version=5
 
 // =============================================================================
+// BTMM PATTERN DETECTION - ADVANCED PATTERN RECOGNITION
+// =============================================================================
+// @description Advanced pattern recognition with multi-timeframe confirmation
+// @purpose Detect M/W patterns, OTE zones, and nameable candlestick patterns
+// @method Technical analysis pattern recognition with volume confirmation
+// @author BTMM Development Team
+// @version 2.0 - Performance optimized with cached calculations
+// @date 2025-07-02
+// =============================================================================
+
+import BTMMFoundation as btmm
+
+// =============================================================================
 // BTMM PATTERN DETECTION ENGINE - M&W PATTERNS WITH NAMEABLE PATTERNS
 // =============================================================================
 // Purpose: Complete M&W pattern detection with institutional nameable patterns

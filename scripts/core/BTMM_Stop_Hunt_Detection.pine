@@ -10,6 +10,8 @@
 // Date: 2025-07-02
 // =============================================================================
 
+import BTMMFoundation as btmm
+
 indicator("BTMM Stop Hunt Detection", "BTMM Hunt", overlay=true, shorttitle="BTMM Stop Hu...")
 
 // ============================================================================
@@ -21,9 +23,6 @@ indicator("BTMM Stop Hunt Detection", "BTMM Hunt", overlay=true, shorttitle="BTM
 // - False move identification
 // - Market maker manipulation detection
 // ============================================================================
-
-// Import Foundation Library
-// import BTMMFoundation as btmm  // Commented for standalone operation
 
 // ============================================================================
 // SETTINGS & INPUTS
@@ -50,6 +49,13 @@ ema200_src = input.source(close, "EMA 200", group=g_sources)
 var g_display = "Display Settings"
 show_hunt_signals = input.bool(true, "Show Hunt Signals", group=g_display)
 show_liquidity_sweep = input.bool(true, "Show Liquidity Sweep", group=g_display)
+
+// ============================================================================
+// ATR AND VOLATILITY ANALYSIS - PERFORMANCE OPTIMIZED
+// ============================================================================
+
+// Cache ATR calculation for performance optimization (eliminates duplicate calculations)
+atr_14 = ta.atr(14)
 
 // ============================================================================
 // LIQUIDITY LEVEL DETECTION
@@ -90,7 +96,8 @@ detect_stop_hunt() =>
     bear_hunt = false
     hunt_level = 0.0
 
-    atr = ta.atr(14)
+    // Use cached ATR value instead of recalculating
+    hunt_threshold = close + (atr_14 * hunt_sensitivity)
 
     // Check for liquidity sweep above recent highs
     if array.size(liquidity_highs) > 0
@@ -99,7 +106,7 @@ detect_stop_hunt() =>
             level_bar = array.get(liquidity_high_bars, array.size(liquidity_high_bars) - 1 - i)
 
             // Stop hunt criteria: price spikes above level then quickly reverses
-            if high > level + (atr * hunt_sensitivity) and close < level and bar_index - level_bar <= 20
+            if high > level + (atr_14 * hunt_sensitivity) and close < level and bar_index - level_bar <= 20
                 bull_hunt := true
                 hunt_level := level
                 break
@@ -111,7 +118,7 @@ detect_stop_hunt() =>
             level_bar = array.get(liquidity_low_bars, array.size(liquidity_low_bars) - 1 - i)
 
             // Stop hunt criteria: price spikes below level then quickly reverses
-            if low < level - (atr * hunt_sensitivity) and close > level and bar_index - level_bar <= 20
+            if low < level - (atr_14 * hunt_sensitivity) and close > level and bar_index - level_bar <= 20
                 bear_hunt := true
                 hunt_level := level
                 break
@@ -124,23 +131,24 @@ detect_stop_hunt() =>
 // EMA LEVEL HUNTS
 // ============================================================================
 
-atr = ta.atr(14)
+// Use cached ATR value in risk calculations
+risk_level = atr_14 / close * 100
 
-// EMA 13 hunts
-ema13_bull_hunt = high > ema13_src + (atr * 0.5) and close < ema13_src and close < open
-ema13_bear_hunt = low < ema13_src - (atr * 0.5) and close > ema13_src and close > open
+// EMA 13 hunts using cached ATR
+ema13_bull_hunt = high > ema13_src + (atr_14 * 0.5) and close < ema13_src and close < open
+ema13_bear_hunt = low < ema13_src - (atr_14 * 0.5) and close > ema13_src and close > open
 
-// EMA 50 hunts
-ema50_bull_hunt = high > ema50_src + (atr * 0.8) and close < ema50_src and close < open
-ema50_bear_hunt = low < ema50_src - (atr * 0.8) and close > ema50_src and close > open
+// EMA 50 hunts using cached ATR
+ema50_bull_hunt = high > ema50_src + (atr_14 * 0.8) and close < ema50_src and close < open
+ema50_bear_hunt = low < ema50_src - (atr_14 * 0.8) and close > ema50_src and close > open
 
-// EMA 200 hunts (major levels)
-ema200_bull_hunt = high > ema200_src + (atr * 1.2) and close < ema200_src and close < open
-ema200_bear_hunt = low < ema200_src - (atr * 1.2) and close > ema200_src and close > open
+// EMA 200 hunts (major levels) using cached ATR
+ema200_bull_hunt = high > ema200_src + (atr_14 * 1.2) and close < ema200_src and close < open
+ema200_bear_hunt = low < ema200_src - (atr_14 * 1.2) and close > ema200_src and close > open
 
 // Asian range hunts
-asian_high_hunt = high > asian_hi_src + (atr * 0.5) and close < asian_hi_src and close < open
-asian_low_hunt = low < asian_lo_src - (atr * 0.5) and close > asian_lo_src and close > open
+asian_high_hunt = high > asian_hi_src + (risk_level * 0.5) and close < asian_hi_src and close < open
+asian_low_hunt = low < asian_lo_src - (risk_level * 0.5) and close > asian_lo_src and close > open
 
 // ============================================================================
 // LIQUIDITY SWEEP DETECTION
@@ -163,8 +171,8 @@ var bool false_move_up = false
 var bool false_move_down = false
 
 // Detect false moves
-strong_up_move = close > open and (close - open) >= atr * 1.5
-strong_down_move = close < open and (open - close) >= atr * 1.5
+strong_up_move = close > open and (close - open) >= risk_level * 1.5
+strong_down_move = close < open and (open - close) >= risk_level * 1.5
 
 // Check for quick reversal
 if strong_up_move

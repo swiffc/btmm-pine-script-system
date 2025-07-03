@@ -10,6 +10,8 @@
 // Date: 2025-07-02
 // =============================================================================
 
+import BTMMFoundation as btmm
+
 indicator("BTMM Risk Management", "BTMM Risk", overlay=true, shorttitle="BTMM Risk",
          max_boxes_count=50, max_lines_count=100, max_labels_count=100)
 
