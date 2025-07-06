@@ -1,0 +1,214 @@
+//@version=5
+
+// =============================================================================
+// BTMM RISK MANAGEMENT
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Risk Management System", "BTMM Risk", overlay=false, shorttitle="BTMM Risk Ma...")
+
+// ============================================================================
+// BTMM RISK MANAGEMENT SYSTEM - COMPREHENSIVE POSITION & RISK CONTROL
+// ============================================================================
+// This script consolidates all risk management functionality including:
+// - Position sizing and management
+// - Dynamic stop loss and take profit
+// - Risk-reward optimization
+// - Portfolio risk allocation
+// ============================================================================
+
+// Import Foundation Library
+import BTMMFoundation/BTMMFoundationLib/1 as btmm
+
+// ============================================================================
+// SETTINGS & INPUTS
+// ============================================================================
+
+var g_risk = "Risk Settings"
+account_balance = input.float(10000.0, "Account Balance", minval=100, group=g_risk)
+max_risk_per_trade = input.float(1.0, "Max Risk Per Trade (%)
+// TODO: Add input validation for max_risk_per_trade (e.g., if max_risk_per_trade < 1 runtime.error("max_risk_per_trade must be positive"))", minval=0.1, maxval=5.0, group=g_risk)
+max_daily_risk = input.float(3.0, "Max Daily Risk (%)", minval=0.5, maxval=10.0, group=g_risk)
+max_portfolio_risk = input.float(10.0, "Max Portfolio Risk (%)", minval=1.0, maxval=20.0, group=g_risk)
+
+var g_position = "Position Management"
+default_risk_reward = input.float(2.0, "Default Risk:Reward", minval=1.0, maxval=5.0, group=g_position)
+use_dynamic_sizing = input.bool(true, "Dynamic Position Sizing", group=g_position)
+use_trailing_stops = input.bool(true, "Enable Trailing Stops", group=g_position)
+trailing_start_rr = input.float(1.0, "Trailing Start (R:R)", minval=0.5, maxval=3.0, group=g_position)
+
+var g_sources = "External Sources"
+buy_entry_src = input.source(close, "Buy Entry Signal", group=g_sources)
+sell_entry_src = input.source(close, "Sell Entry Signal", group=g_sources)
+asian_high_src = input.source(close, "Asian High", group=g_sources)
+asian_low_src = input.source(close, "Asian Low", group=g_sources)
+
+var g_display = "Display Settings"
+show_position_info = input.bool(true, "Show Position Info", group=g_display)
+show_risk_metrics = input.bool(true, "Show Risk Metrics", group=g_display)
+
+// ============================================================================
+// POSITION TRACKING
+// ============================================================================
+
+var float entry_price = na
+var float stop_loss = na
+var float take_profit = na
+var float position_size = na
+var bool pos_active = false
+var string position_type = "none"
+var float initial_risk = na
+var float trailing_stop = na
+
+// Entry detection
+buy_signal = buy_entry_src > buy_entry_src[1]
+sell_signal = sell_entry_src > sell_entry_src[1]
+
+// ============================================================================
+// POSITION SIZING
+// ============================================================================
+
+calculate_position_size(entry, stop, risk_pct) =>
+    risk_amount = account_balance * risk_pct / 100
+    stop_distance = math.abs(entry - stop)
+    size = stop_distance > 0 ? risk_amount / stop_distance : 0
+    size
+
+// ============================================================================
+// POSITION MANAGEMENT
+// ============================================================================
+
+// Open new position
+if buy_signal and not pos_active
+    entry_price := close
+    stop_loss := asian_low_src
+    take_profit := entry_price + (entry_price - stop_loss) * default_risk_reward
+    position_size := use_dynamic_sizing ? calculate_position_size(entry_price, stop_loss, max_risk_per_trade) : account_balance * max_risk_per_trade / 100
+    initial_risk := (entry_price - stop_loss) * position_size
+    trailing_stop := stop_loss
+    pos_active := true
+    position_type := "long"
+
+if sell_signal and not pos_active
+    entry_price := close
+    stop_loss := asian_high_src
+    take_profit := entry_price - (stop_loss - entry_price) * default_risk_reward
+    position_size := use_dynamic_sizing ? calculate_position_size(entry_price, stop_loss, max_risk_per_trade) : account_balance * max_risk_per_trade / 100
+    initial_risk := (stop_loss - entry_price) * position_size
+    trailing_stop := stop_loss
+    pos_active := true
+    position_type := "short"
+
+// Trailing stop management
+if pos_active and use_trailing_stops
+    current_profit = position_type == "long" ? (close - entry_price) * position_size : (entry_price - close) * position_size
+    profit_in_r = current_profit / initial_risk
+
+    if profit_in_r >= trailing_start_rr
+        if position_type == "long"
+            new_trailing = close - (entry_price - stop_loss) * 0.5
+            trailing_stop := math.max(trailing_stop, new_trailing)
+        else
+            new_trailing = close + (stop_loss - entry_price) * 0.5
+            trailing_stop := math.min(trailing_stop, new_trailing)
+
+// Exit conditions
+exit_long = pos_active and position_type == "long" and (close <= trailing_stop or close >= take_profit)
+exit_short = pos_active and position_type == "short" and (close >= trailing_stop or close <= take_profit)
+
+if exit_long or exit_short
+    pos_active := false
+    position_type := "none"
+    entry_price := na
+    stop_loss := na
+    take_profit := na
+    position_size := na
+    initial_risk := na
+    trailing_stop := na
+
+// ============================================================================
+// RISK METRICS
+// ============================================================================
+
+// Current P&L
+pnl_pips = pos_active ?
+          (position_type == "long" ? (close - entry_price) : (entry_price - close)) * 10000 : 0
+
+pnl_amount = pos_active ? pnl_pips * position_size / 10000 : 0
+pnl_percent = pos_active and account_balance > 0 ? pnl_amount / account_balance * 100 : 0
+
+// Risk metrics
+current_risk = pos_active ? initial_risk : 0
+risk_percent = current_risk / account_balance * 100
+trailing_active = pos_active and use_trailing_stops and trailing_stop != stop_loss
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Position levels
+plot(pos_active ? entry_price : na, "Entry", color=color.white, linewidth=2, style=plot.style_line)
+plot(pos_active ? stop_loss : na, "Stop Loss", color=color.red, linewidth=1, style=plot.style_line)
+plot(pos_active ? take_profit : na, "Take Profit", color=color.green, linewidth=1, style=plot.style_line)
+plot(pos_active and trailing_active ? trailing_stop : na, "Trailing Stop", color=color.orange, linewidth=1, style=plot.style_line)
+
+// P&L plot
+plot(pnl_pips, "P&L (pips)", color=pnl_pips >= 0 ? color.green : color.red, linewidth=2)
+hline(0, "Break Even", color=color.gray, linestyle=hline.style_dashed)
+
+// Background
+bgcolor(pos_active ? (position_type == "long" ? color.new(color.green, 95) : color.new(color.red, 95)) : na)
+
+// ============================================================================
+// POSITION INFO TABLE
+// ============================================================================
+
+if show_position_info and barstate.islast
+    var table pos_table = table.new(position.top_left, 2, 8, bgcolor=color.white, border_width=1)
+
+    table.cell(pos_table, 0, 0, "POSITION", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    table.cell(pos_table, 1, 0, pos_active ? "ACTIVE" : "NONE", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+
+    table.cell(pos_table, 0, 1, "Type", text_size=size.tiny)
+    table.cell(pos_table, 1, 1, position_type, text_size=size.tiny)
+
+    table.cell(pos_table, 0, 2, "Entry", text_size=size.tiny)
+    table.cell(pos_table, 1, 2, pos_active ? str.tostring(entry_price, "#.#####") : "--", text_size=size.tiny)
+
+    table.cell(pos_table, 0, 3, "Size", text_size=size.tiny)
+    table.cell(pos_table, 1, 3, pos_active ? str.tostring(position_size, "#.##") : "--", text_size=size.tiny)
+
+    table.cell(pos_table, 0, 4, "P&L", text_size=size.tiny)
+    pnl_color = pnl_pips >= 0 ? color.green : color.red
+    table.cell(pos_table, 1, 4, str.tostring(pnl_pips, "#.#") + " pips", bgcolor=pnl_color, text_color=color.white, text_size=size.tiny)
+
+    table.cell(pos_table, 0, 5, "Risk", text_size=size.tiny)
+    table.cell(pos_table, 1, 5, str.tostring(risk_percent, "#.##") + "%", text_size=size.tiny)
+
+    table.cell(pos_table, 0, 6, "R:R", text_size=size.tiny)
+    current_rr = pos_active and initial_risk > 0 ? math.abs(pnl_amount / initial_risk) : 0
+    table.cell(pos_table, 1, 6, str.tostring(current_rr, "#.##"), text_size=size.tiny)
+
+    table.cell(pos_table, 0, 7, "Trailing", text_size=size.tiny)
+    table.cell(pos_table, 1, 7, trailing_active ? "ON" : "OFF",
+              bgcolor=trailing_active ? color.green : color.gray, text_color=color.white, text_size=size.tiny)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(pos_active ? 1 : 0, "Pos_Active", display=display.data_window)
+plot(pnl_pips, "PnL_pips", display=display.data_window)
+plot(trailing_active ? 1 : 0, "Trailing_Active", display=display.data_window)
+plot(entry_price, "Entry_Price", display=display.data_window)
+plot(stop_loss, "Stop_Loss", display=display.data_window)
+plot(take_profit, "Take_Profit", display=display.data_window)
+plot(position_size, "Position_Size", display=display.data_window)
+plot(risk_percent, "Risk_Percent", display=display.data_window)
+plot(current_rr, "Current_RR", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

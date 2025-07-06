@@ -1,0 +1,89 @@
+// @version=5
+indicator("BTMM Core Signals (v2)", "BTMM Core v2", overlay=true,
+         max_labels_count = 300, max_lines_count = 150)
+
+// -----------------------------------------------------------------------------
+// IMPORTS (BTMM Foundation supersedes legacy BTMMSessions)
+// -----------------------------------------------------------------------------
+import BTMMFoundation as foundation
+
+// -----------------------------------------------------------------------------
+// MASTER MODULE SWITCHES
+// -----------------------------------------------------------------------------
+var g_master = "Enable / Disable Sub-Systems"
+enable_display       = input.bool(true,  "Display & TF Control",           group=g_master)
+enable_emas          = input.bool(true,  "EMA System",                     group=g_master)
+enable_sessions      = input.bool(true,  "Session Detection",              group=g_master)
+enable_separators    = input.bool(true,  "Day / Week / Month Separators",  group=g_master)
+enable_cycle         = input.bool(true,  "3-Day Cycle Tracker",            group=g_master)
+enable_asian_range   = input.bool(true,  "Asian Range Tracker",            group=g_master)
+enable_signals       = input.bool(true,  "Signal Engine",                  group=g_master)
+enable_filters       = input.bool(true,  "Signal Hierarchy Filter",        group=g_master)
+enable_dashboard     = input.bool(true,  "Dashboard",                      group=g_master)
+enable_alerts        = input.bool(true,  "Alerts",                         group=g_master)
+
+// -----------------------------------------------------------------------------
+// 1. DISPLAY / TIMEFRAME CONTROL
+// -----------------------------------------------------------------------------
+_displayControl(autoHide, manualHide) =>
+    tfMin           = timeframe.in_seconds() / 60
+    shouldHide      = (autoHide and tfMin <= 5) or manualHide
+    // start of current trading day (5 pm EST)
+    todayStart      = timestamp("GMT-5", year(timenow, "GMT-5"), month(timenow, "GMT-5"),
+                                dayofmonth(timenow, "GMT-5"), 17, 0, 0)
+    if timenow < todayStart
+        todayStart := todayStart - 24 * 60 * 60 * 1000
+    isCurrentDay    = not shouldHide or time >= todayStart
+    [tfMin, shouldHide, isCurrentDay]
+
+// user inputs
+var g_display = "Display Control"
+auto_hide_history  = input.bool(true,  "Auto-Hide History ≤5M", group=g_display)
+manual_hide_history= input.bool(false, "Manual Hide History",   group=g_display)
+
+[tf_minutes, hide_history, is_today] = enable_display ?
+        _displayControl(auto_hide_history, manual_hide_history) :
+        [timeframe.in_seconds()/60, false, true]
+
+// -----------------------------------------------------------------------------
+// 2. EMA CALCULATIONS (single call per bar)
+// -----------------------------------------------------------------------------
+_emaCalc() =>
+    e5   = ta.ema(close, 5)
+    e13  = ta.ema(close, 13)
+    e50  = ta.ema(close, 50)
+    e200 = ta.ema(close, 200)
+    e800 = ta.ema(close, 800)
+    bull = e5 > e13 and e13 > e50 and close > e13
+    bear = e5 < e13 and e13 < e50 and close < e13
+    {e5, e13, e50, e200, e800, bull, bear}
+
+ema = enable_emas ? _emaCalc() : na
+
+// example plot to verify compile
+plot(enable_emas and is_today ? ema.e13 : na, "EMA13", color=color.red)
+
+// -----------------------------------------------------------------------------
+// 3. SESSION DETECTION wrappers
+// -----------------------------------------------------------------------------
+_sessionDetect() =>
+    [asian, london, ny, sess, _] = foundation.session_and_cycle()
+    [asian, london, ny, sess]
+
+[asian_session, london_session, ny_session, current_session] = enable_sessions ? _sessionDetect() : [false,false,false,"OFF"]
+
+// -----------------------------------------------------------------------------
+// 4. 3-DAY CYCLE TRACKER (simple placeholder)
+// -----------------------------------------------------------------------------
+_cycleTracker(asianStart) =>
+    var int cycleDay  = 1
+    if asianStart
+        cycleDay := cycleDay % 3 + 1
+    cycleDay
+
+cycle_day = enable_cycle ? _cycleTracker(asian_session and not asian_session[1]) : na
+
+// -----------------------------------------------------------------------------
+// (Further modules will be ported in subsequent commits: Separators, Asian Range,
+//  Signal Engine, Filters, Dashboard, Alerts.)
+// ----------------------------------------------------------------------------- 

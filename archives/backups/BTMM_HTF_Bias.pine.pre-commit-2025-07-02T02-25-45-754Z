@@ -1,0 +1,194 @@
+//@version=5
+indicator("BTMM HTF Bias System", "BTMM HTF", overlay=false)
+
+// ============================================================================
+// BTMM HTF BIAS SYSTEM - HIGHER TIMEFRAME BIAS ANALYSIS
+// ============================================================================
+// This script consolidates all higher timeframe bias functionality including:
+// - Multi-timeframe trend analysis
+// - HTF structure monitoring
+// - Bias strength calculation
+// - Institutional flow direction
+// ============================================================================
+
+// Import Foundation Library
+import BTMMFoundation/BTMMFoundationLib/1 as btmm
+
+// ============================================================================
+// SETTINGS & INPUTS
+// ============================================================================
+
+var g_htf = "Higher Timeframe Settings"
+htf_timeframe_1 = input.timeframe("1H", "HTF 1 (1H)", group=g_htf)
+htf_timeframe_2 = input.timeframe("4H", "HTF 2 (4H)", group=g_htf)
+htf_timeframe_3 = input.timeframe("1D", "HTF 3 (1D)", group=g_htf)
+htf_timeframe_4 = input.timeframe("1W", "HTF 4 (1W)", group=g_htf)
+
+var g_analysis = "Bias Analysis"
+bias_sensitivity = input.float(0.7, "Bias Sensitivity", minval=0.1, maxval=2.0, group=g_analysis)
+require_alignment = input.bool(true, "Require Multi-TF Alignment", group=g_analysis)
+
+var g_display = "Display Settings"
+show_bias_table = input.bool(true, "Show Bias Table", group=g_display)
+show_strength_meter = input.bool(true, "Show Strength Meter", group=g_display)
+
+// ============================================================================
+// HTF DATA RETRIEVAL
+// ============================================================================
+
+// Get HTF trend data
+htf1_close = request.security(syminfo.tickerid, htf_timeframe_1, close)
+htf1_ema20 = request.security(syminfo.tickerid, htf_timeframe_1, ta.ema(close, 20))
+htf1_ema50 = request.security(syminfo.tickerid, htf_timeframe_1, ta.ema(close, 50))
+
+htf2_close = request.security(syminfo.tickerid, htf_timeframe_2, close)
+htf2_ema20 = request.security(syminfo.tickerid, htf_timeframe_2, ta.ema(close, 20))
+htf2_ema50 = request.security(syminfo.tickerid, htf_timeframe_2, ta.ema(close, 50))
+
+htf3_close = request.security(syminfo.tickerid, htf_timeframe_3, close)
+htf3_ema20 = request.security(syminfo.tickerid, htf_timeframe_3, ta.ema(close, 20))
+htf3_ema50 = request.security(syminfo.tickerid, htf_timeframe_3, ta.ema(close, 50))
+
+htf4_close = request.security(syminfo.tickerid, htf_timeframe_4, close)
+htf4_ema20 = request.security(syminfo.tickerid, htf_timeframe_4, ta.ema(close, 20))
+htf4_ema50 = request.security(syminfo.tickerid, htf_timeframe_4, ta.ema(close, 50))
+
+// ============================================================================
+// BIAS CALCULATION
+// ============================================================================
+
+// Individual timeframe bias
+htf1_bias = htf1_close > htf1_ema20 and htf1_ema20 > htf1_ema50 ? 1 :
+            htf1_close < htf1_ema20 and htf1_ema20 < htf1_ema50 ? -1 : 0
+
+htf2_bias = htf2_close > htf2_ema20 and htf2_ema20 > htf2_ema50 ? 1 :
+            htf2_close < htf2_ema20 and htf2_ema20 < htf2_ema50 ? -1 : 0
+
+htf3_bias = htf3_close > htf3_ema20 and htf3_ema20 > htf3_ema50 ? 1 :
+            htf3_close < htf3_ema20 and htf3_ema20 < htf3_ema50 ? -1 : 0
+
+htf4_bias = htf4_close > htf4_ema20 and htf4_ema20 > htf4_ema50 ? 1 :
+            htf4_close < htf4_ema20 and htf4_ema20 < htf4_ema50 ? -1 : 0
+
+// Composite bias score
+composite_bias = (htf1_bias * 1) + (htf2_bias * 2) + (htf3_bias * 3) + (htf4_bias * 4)
+max_possible_bias = 1 + 2 + 3 + 4  // 10
+bias_percentage = composite_bias / max_possible_bias * 100
+
+// Bias strength (absolute value)
+bias_strength = math.abs(bias_percentage)
+
+// Bias direction
+bias_direction = composite_bias > 0 ? "BULLISH" : composite_bias < 0 ? "BEARISH" : "NEUTRAL"
+
+// ============================================================================
+// ALIGNMENT ANALYSIS
+// ============================================================================
+
+// Count aligned timeframes
+aligned_bullish = (htf1_bias > 0 ? 1 : 0) + (htf2_bias > 0 ? 1 : 0) +
+                  (htf3_bias > 0 ? 1 : 0) + (htf4_bias > 0 ? 1 : 0)
+
+aligned_bearish = (htf1_bias < 0 ? 1 : 0) + (htf2_bias < 0 ? 1 : 0) +
+                  (htf3_bias < 0 ? 1 : 0) + (htf4_bias < 0 ? 1 : 0)
+
+max_alignment = math.max(aligned_bullish, aligned_bearish)
+alignment_percentage = max_alignment / 4 * 100
+
+// Strong alignment (3+ timeframes)
+strong_alignment = max_alignment >= 3
+
+// ============================================================================
+// INSTITUTIONAL FLOW ANALYSIS
+// ============================================================================
+
+// Volume-weighted bias for institutional flow
+vol_avg = ta.sma(volume, 50)
+high_volume = volume > vol_avg * 1.5
+
+// Institutional flow strength
+institutional_flow = high_volume and strong_alignment ? bias_strength * 1.2 : bias_strength
+
+// Flow direction confirmation
+flow_confirmed = institutional_flow >= 60 and strong_alignment
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Bias strength meter
+plot(bias_percentage, "HTF Bias %", color=color.blue, linewidth=2)
+hline(50, "Strong Bull", color=color.green, linestyle=hline.style_dashed)
+hline(-50, "Strong Bear", color=color.red, linestyle=hline.style_dashed)
+hline(0, "Neutral", color=color.gray, linestyle=hline.style_solid)
+
+// Bias strength background
+bgcolor(bias_percentage > 50 ? color.new(color.green, 90) :
+        bias_percentage < -50 ? color.new(color.red, 90) :
+        color.new(color.gray, 95))
+
+// ============================================================================
+// BIAS TABLE
+// ============================================================================
+
+if show_bias_table and barstate.islast
+    var table bias_table = table.new(position.top_right, 3, 6, bgcolor=color.white, border_width=1)
+
+    // Headers
+    table.cell(bias_table, 0, 0, "Timeframe", text_color=color.black, bgcolor=color.lightgray)
+    table.cell(bias_table, 1, 0, "Bias", text_color=color.black, bgcolor=color.lightgray)
+    table.cell(bias_table, 2, 0, "Strength", text_color=color.black, bgcolor=color.lightgray)
+
+    // HTF 1 data
+    bias1_color = htf1_bias > 0 ? color.green : htf1_bias < 0 ? color.red : color.gray
+    table.cell(bias_table, 0, 1, htf_timeframe_1, text_color=color.black)
+    table.cell(bias_table, 1, 1, htf1_bias > 0 ? "BULL" : htf1_bias < 0 ? "BEAR" : "NEUT",
+               text_color=color.white, bgcolor=bias1_color)
+    table.cell(bias_table, 2, 1, str.tostring(math.abs(htf1_bias) * 100, "#.0") + "%", text_color=color.black)
+
+    // HTF 2 data
+    bias2_color = htf2_bias > 0 ? color.green : htf2_bias < 0 ? color.red : color.gray
+    table.cell(bias_table, 0, 2, htf_timeframe_2, text_color=color.black)
+    table.cell(bias_table, 1, 2, htf2_bias > 0 ? "BULL" : htf2_bias < 0 ? "BEAR" : "NEUT",
+               text_color=color.white, bgcolor=bias2_color)
+    table.cell(bias_table, 2, 2, str.tostring(math.abs(htf2_bias) * 100, "#.0") + "%", text_color=color.black)
+
+    // HTF 3 data
+    bias3_color = htf3_bias > 0 ? color.green : htf3_bias < 0 ? color.red : color.gray
+    table.cell(bias_table, 0, 3, htf_timeframe_3, text_color=color.black)
+    table.cell(bias_table, 1, 3, htf3_bias > 0 ? "BULL" : htf3_bias < 0 ? "BEAR" : "NEUT",
+               text_color=color.white, bgcolor=bias3_color)
+    table.cell(bias_table, 2, 3, str.tostring(math.abs(htf3_bias) * 100, "#.0") + "%", text_color=color.black)
+
+    // HTF 4 data
+    bias4_color = htf4_bias > 0 ? color.green : htf4_bias < 0 ? color.red : color.gray
+    table.cell(bias_table, 0, 4, htf_timeframe_4, text_color=color.black)
+    table.cell(bias_table, 1, 4, htf4_bias > 0 ? "BULL" : htf4_bias < 0 ? "BEAR" : "NEUT",
+               text_color=color.white, bgcolor=bias4_color)
+    table.cell(bias_table, 2, 4, str.tostring(math.abs(htf4_bias) * 100, "#.0") + "%", text_color=color.black)
+
+    // Overall bias
+    overall_color = bias_percentage > 20 ? color.green : bias_percentage < -20 ? color.red : color.gray
+    table.cell(bias_table, 0, 5, "OVERALL", text_color=color.black, bgcolor=color.lightgray)
+    table.cell(bias_table, 1, 5, bias_direction, text_color=color.white, bgcolor=overall_color)
+    table.cell(bias_table, 2, 5, str.tostring(bias_strength, "#.0") + "%", text_color=color.black)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(htf1_bias, "HTF1_Bias", display=display.data_window)
+plot(htf2_bias, "HTF2_Bias", display=display.data_window)
+plot(htf3_bias, "HTF3_Bias", display=display.data_window)
+plot(htf4_bias, "HTF4_Bias", display=display.data_window)
+plot(composite_bias, "Composite_Bias", display=display.data_window)
+plot(bias_percentage, "Bias_Percentage", display=display.data_window)
+plot(bias_strength, "Bias_Strength", display=display.data_window)
+plot(alignment_percentage, "Alignment_Percentage", display=display.data_window)
+plot(strong_alignment ? 1 : 0, "Strong_Alignment", display=display.data_window)
+plot(flow_confirmed ? 1 : 0, "Flow_Confirmed", display=display.data_window)
+
+// Legacy compatibility outputs
+plot(bias_percentage, "HTF_Bias", display=display.data_window)
+plot(composite_bias > 0 and strong_alignment ? 1 : 0, "Bullish_Setup", display=display.data_window)
+plot(composite_bias < 0 and strong_alignment ? 1 : 0, "Bearish_Setup", display=display.data_window)

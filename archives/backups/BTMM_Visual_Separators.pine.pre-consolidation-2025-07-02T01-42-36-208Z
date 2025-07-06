@@ -1,0 +1,6 @@
+// @version=5
+indicator("BTMM Visual Separators & Backgrounds", "BTMM Visuals", overlay=true)
+
+// TODO: Draw session boxes, daily separators, week dividers, and background highlights (Script 8).
+
+plot(close, display=display.none) 

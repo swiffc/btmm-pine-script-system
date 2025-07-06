@@ -1,0 +1,240 @@
+//@version=5
+indicator("BTMM Risk Management", "BTMM Risk", overlay=true, max_lines_count=50, max_labels_count=100)
+
+// =============================================================================
+// STEVE MAURO BTMM RISK MANAGEMENT SYSTEM
+// Position tracking, dynamic stops, takes, trailing, partials & dashboard
+// =============================================================================
+
+import BTMMFoundation as foundation
+
+// -----------------------------------------------------------------------------
+// 1. SETTINGS
+// -----------------------------------------------------------------------------
+var g_RISK = "Risk Management"
+risk_reward_ratio     = input.float(2.0, "Risk:Reward Ratio",          1.0, 5.0, group=g_RISK)
+account_risk_percent  = input.float(1.0, "Account Risk %",             0.1, 5.0, group=g_RISK)
+stop_loss_method      = input.string("ATR", "Stop Loss Method",       options=["ATR","Structure","Asian Range"], group=g_RISK)
+atr_multiplier        = input.float(1.5, "ATR Mult",                  0.5, 3.0, group=g_RISK)
+
+var g_TRAIL = "Trailing Stop"
+enable_trailing       = input.bool(false, "Enable Trailing", group=g_TRAIL)
+trail_trigger_rr      = input.float(1.0,  "Trail Trigger (R:R)", 0.5,2.0, group=g_TRAIL)
+trail_step_atr        = input.float(0.5,  "Trail Step (ATR)",     0.1,1.0, group=g_TRAIL)
+
+var g_POS = "Position Mgmt"
+max_positions         = input.int(1,  "Max Concurrent", 1,3, group=g_POS)
+break_even_rr         = input.float(1.0, "Break Even Trigger",0.3,1.5, group=g_POS)
+partial_rr            = input.float(1.5, "Partial Profit R:R",1.0,3.0, group=g_POS)
+partial_percent       = input.float(50.0,"Partial %",25.0,75.0, group=g_POS)
+
+var g_EXT = "External Sources"
+buy_entry_src  = input.source(close, "Buy Entry",  group=g_EXT)
+sell_entry_src = input.source(close, "Sell Entry", group=g_EXT)
+asian_high_src = input.source(high,  "Asian High", group=g_EXT)
+asian_low_src  = input.source(low,   "Asian Low",  group=g_EXT)
+
+var g_ACCT = "Account"
+acct_balance      = input.float(10000, "Account Balance",1000, group=g_ACCT)
+pip_val          = input.float(1.0,   "Pip Value (USD)",0.1,100, group=g_ACCT)
+use_fixed_lot    = input.bool(false,  "Use Fixed Lot", group=g_ACCT)
+fixed_lot_size   = input.float(0.01,  "Fixed Lot",0.01,10, group=g_ACCT)
+
+var g_STYLE = "Visual Style"
+col_entry = input.color(color.blue,  "Entry Line",   group=g_STYLE)
+col_stop  = input.color(color.red,   "Stop Line",    group=g_STYLE)
+col_tp    = input.color(color.green, "TP Line",      group=g_STYLE)
+col_be    = input.color(color.yellow,"BE Line",      group=g_STYLE)
+box_color = input.color(color.new(color.blue,90), "Position Box", group=g_STYLE)
+
+var g_DISP = "Display"
+show_info   = input.bool(true,  "Show Position Info", group=g_DISP)
+show_lines  = input.bool(true,  "Show Risk Lines",    group=g_DISP)
+show_pnl    = input.bool(true,  "Show P&L Table",     group=g_DISP)
+
+// -----------------------------------------------------------------------------
+// 2. CONTEXT
+// -----------------------------------------------------------------------------
+[asian_sess,london_sess,ny_sess,,] = foundation.session_and_cycle()
+[is_htf,is_exec,,]                 = foundation.timeframe_classification()
+trade_sess = foundation.is_trading_session()
+
+if not (is_exec and trade_sess)
+    // Not execution TF or not trading session -> skip heavy logic
+    plot(0,display=display.none)
+    return
+
+atr = foundation.atr14()
+
+// -----------------------------------------------------------------------------
+// 3. POSITION STATE VARS
+// -----------------------------------------------------------------------------
+var float entry_price  = na
+var float stop_loss    = na
+var float take_profit  = na
+var float be_level     = na
+var bool  long_pos     = false
+var bool  trailing_on  = false
+var float init_risk    = na
+var float pos_size     = na
+var bool  partial_done = false
+var bool  be_moved     = false
+var int   entry_bar    = na
+
+// -----------------------------------------------------------------------------
+// 4. UTILS
+// -----------------------------------------------------------------------------
+stop_from_method(isBuy, entry)=>
+    if stop_loss_method=="ATR"
+        isBuy ? entry-atr*atr_multiplier : entry+atr*atr_multiplier
+    else if stop_loss_method=="Structure"
+        // simple swing fallback using pivots
+        pivLow = ta.pivotlow(low,5,5)
+        pivHigh= ta.pivothigh(high,5,5)
+        sl = na(float)
+        if isBuy and not na(pivLow)
+            sl:=pivLow-atr*0.2
+        if not isBuy and not na(pivHigh)
+            sl:=pivHigh+atr*0.2
+        na(sl)? (isBuy?entry-atr*atr_multiplier:entry+atr*atr_multiplier):sl
+    else
+        // Asian range
+        if isBuy and not na(asian_low_src)
+            asian_low_src-atr*0.3
+        else if not isBuy and not na(asian_high_src)
+            asian_high_src+atr*0.3
+        else
+            isBuy?entry-atr*atr_multiplier:entry+atr*atr_multiplier
+
+calc_size(entry, stop)=>
+    if use_fixed_lot
+        fixed_lot_size
+    else
+        risk_amt = acct_balance*(account_risk_percent/100)
+        pip_risk = math.abs(entry-stop)*10000
+        pip_risk>0? math.round(risk_amt/(pip_risk*pip_val),2):0.0
+
+// -----------------------------------------------------------------------------
+// 5. ENTRY SIGNALS (external)
+// -----------------------------------------------------------------------------
+buy_signal  = buy_entry_src>0
+sell_signal = sell_entry_src>0
+
+if buy_signal and na(entry_price)
+    entry_price:=close
+    long_pos:=true
+    stop_loss:=stop_from_method(true,entry_price)
+    init_risk:=entry_price-stop_loss
+    take_profit:=entry_price+init_risk*risk_reward_ratio
+    be_level:=entry_price+init_risk*break_even_rr
+    pos_size:=calc_size(entry_price,stop_loss)
+    entry_bar:=bar_index
+    label.new(bar_index, low-atr, "🟢 LONG\nSize "+str.tostring(pos_size,"#.##")+"\nRisk " +str.tostring(init_risk*10000,"#.#")+"p", style=label.style_label_up, color=color.lime, textcolor=color.black)
+
+if sell_signal and na(entry_price)
+    entry_price:=close
+    long_pos:=false
+    stop_loss:=stop_from_method(false,entry_price)
+    init_risk:=stop_loss-entry_price
+    take_profit:=entry_price-init_risk*risk_reward_ratio
+    be_level:=entry_price-init_risk*break_even_rr
+    pos_size:=calc_size(entry_price,stop_loss)
+    entry_bar:=bar_index
+    label.new(bar_index, high+atr, "🔴 SHORT\nSize "+str.tostring(pos_size,"#.##")+"\nRisk " +str.tostring(init_risk*10000,"#.#")+"p", style=label.style_label_down, color=color.red, textcolor=color.white)
+
+// -----------------------------------------------------------------------------
+// 6. IN-POSITION MANAGEMENT
+// -----------------------------------------------------------------------------
+if not na(entry_price)
+    pnl_pips = long_pos? (close-entry_price)*10000 : (entry_price-close)*10000
+    rr       = pnl_pips/(init_risk*10000)
+
+    // BE move
+    if not be_moved and rr>=break_even_rr
+        stop_loss := long_pos? entry_price+atr*0.1 : entry_price-atr*0.1
+        be_moved:=true
+        label.new(bar_index, long_pos? high+atr*0.5:low-atr*0.5, "📍 BE", style= long_pos?label.style_label_down:label.style_label_up, color=col_be, textcolor=color.black, size=size.tiny)
+
+    // Trailing
+    if enable_trailing and rr>=trail_trigger_rr
+        trailing_on:=true
+    if trailing_on
+        new_sl = long_pos? close-atr*trail_step_atr : close+atr*trail_step_atr
+        if long_pos and new_sl>stop_loss
+            stop_loss:=new_sl
+        if not long_pos and new_sl<stop_loss
+            stop_loss:=new_sl
+
+    // Partial profit
+    if not partial_done and rr>=partial_rr
+        partial_done:=true
+        label.new(bar_index, long_pos? high+atr*0.5:low-atr*0.5, "💰 PARTIAL", style= long_pos?label.style_label_down:label.style_label_up, color=color.green, textcolor=color.white, size=size.tiny)
+
+    // Exit checks
+    exit=false
+    exit_price=close
+    exit_reason=""
+    if long_pos
+        if low<=stop_loss
+            exit=true; exit_price:=stop_loss; exit_reason:=be_moved?"BE":trailing_on?"TRAIL":"SL"
+        else if high>=take_profit
+            exit=true; exit_price:=take_profit; exit_reason:="TP"
+    else
+        if high>=stop_loss
+            exit=true; exit_price:=stop_loss; exit_reason:=be_moved?"BE":trailing_on?"TRAIL":"SL"
+        else if low<=take_profit
+            exit=true; exit_price:=take_profit; exit_reason:="TP"
+
+    if exit
+        final_pips = long_pos? (exit_price-entry_price)*10000 : (entry_price-exit_price)*10000
+        label.new(bar_index, long_pos? high+atr:low-atr, "🏁 EXIT "+exit_reason+"\n"+str.tostring(final_pips,"#.#")+" p", style= long_pos?label.style_label_down:label.style_label_up, color=final_pips>0?color.green:color.red, textcolor=color.white)
+        entry_price:=na;stop_loss:=na;take_profit:=na;be_level:=na;trailing_on:=false;partial_done:=false;be_moved:=false;pos_size:=na
+
+// -----------------------------------------------------------------------------
+// 7. LINES & BOXES
+// -----------------------------------------------------------------------------
+var line l_entry=na, l_sl=na,l_tp=na,l_be=na
+var box pos_box=na
+
+if show_lines
+    if not na(entry_price)
+        if not na(l_entry) line.delete(l_entry)
+        if not na(l_sl)    line.delete(l_sl)
+        if not na(l_tp)    line.delete(l_tp)
+        if not na(l_be)    line.delete(l_be)
+        if not na(pos_box) box.delete(pos_box)
+        fut=20
+        l_entry:=line.new(entry_bar,entry_price, bar_index+fut, entry_price,color=col_entry,width=2)
+        l_sl   :=line.new(entry_bar,stop_loss,   bar_index+fut, stop_loss,  color=col_stop ,width=2, style=line.style_dashed)
+        l_tp   :=line.new(entry_bar,take_profit, bar_index+fut, take_profit,color=col_tp,   width=2, style=line.style_dashed)
+        if be_moved
+            l_be:=line.new(entry_bar,be_level, bar_index+fut,be_level,color=col_be,width=1,style=line.style_dotted)
+        top = long_pos?take_profit:entry_price
+        bot = long_pos?entry_price:take_profit
+        pos_box:=box.new(entry_bar,top, bar_index+fut,bot, bgcolor=box_color,border_color=col_entry)
+
+// -----------------------------------------------------------------------------
+// 8. DASHBOARD
+// -----------------------------------------------------------------------------
+if show_pnl and not na(entry_price) and barstate.islast
+    var table pnl_tbl = table.new(position.bottom_right,2,6,bgcolor=color.white,border_width=1)
+    table.cell(pnl_tbl,0,0,"POSITION", text_color=color.white,bgcolor=color.navy)
+    table.cell(pnl_tbl,1,0,long_pos?"LONG":"SHORT", text_color=color.white,bgcolor=color.navy)
+    cur_pips = long_pos? (close-entry_price)*10000 : (entry_price-close)*10000
+    pcol = cur_pips>0?color.green:color.red
+    table.cell(pnl_tbl,0,1,"P&L (p)")
+    table.cell(pnl_tbl,1,1,str.tostring(cur_pips,"#.#"),bgcolor=pcol,text_color=color.white)
+    cur_rr = cur_pips/(init_risk*10000)
+    table.cell(pnl_tbl,0,2,"R:R")
+    table.cell(pnl_tbl,1,2,str.tostring(cur_rr,"#.#"))
+    table.cell(pnl_tbl,0,3,"Trail")
+    table.cell(pnl_tbl,1,3,trailing_on?"ON":"OFF",bgcolor=trailing_on?color.green:color.gray,text_color=color.white)
+    table.cell(pnl_tbl,0,4,"BE")
+    table.cell(pnl_tbl,1,4,be_moved?"YES":"NO",bgcolor=be_moved?color.green:color.gray,text_color=color.white)
+    table.cell(pnl_tbl,0,5,"Size")
+    table.cell(pnl_tbl,1,5,str.tostring(pos_size,"#.##"))
+
+// Data-window
+plot(not na(entry_price)?1:0,"Pos_Active",display=display.data_window)
+plot(not na(entry_price)?(long_pos?(close-entry_price)*10000:(entry_price-close)*10000):0,"PnL_pips",display=display.data_window)
+plot(trailing_on ? 1 : 0, "Trailing_Active", display=display.data_window)

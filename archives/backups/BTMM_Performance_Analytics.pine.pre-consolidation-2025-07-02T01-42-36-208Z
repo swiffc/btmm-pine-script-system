@@ -1,0 +1,6 @@
+// @version=5
+indicator("BTMM Performance Analytics", "BTMM Analytics", overlay=false)
+
+// TODO: Collect and visualise trade statistics, win rates, drawdowns (Script 9).
+
+plot(close, display=display.none) 

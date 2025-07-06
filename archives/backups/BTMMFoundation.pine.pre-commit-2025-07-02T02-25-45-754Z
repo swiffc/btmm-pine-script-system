@@ -1,0 +1,188 @@
+//@version=5
+library("BTMMFoundation")
+
+// ============================================================================
+// BTMM FOUNDATION LIBRARY - Core Infrastructure (enhanced)
+// Provides session detection, 3-day cycle tracking, timeframe classification,
+// current-day filters, Asian-range helpers, EMA-stack analysis, volume / market
+// structure analytics, Fibonacci utilities, and risk-management maths. All
+// other BTMM scripts import this single library.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// SESSION DETECTION & 3-DAY CYCLE
+// ---------------------------------------------------------------------------
+export session_and_cycle() =>
+    // Session time blocks are defined in GMT for consistency.
+    asian  = time(timeframe.period, "0700-1200:1234567", "GMT")
+    london = time(timeframe.period, "0700-1700:12345",   "GMT")
+    ny     = time(timeframe.period, "1300-2200:12345",   "GMT")
+
+    sessName = asian ? "ASIAN" : london ? "LONDON" : ny ? "NEW YORK" : "CLOSED"
+
+    // Three-day cycle-counter (resets at Monday London open)
+    var int cycle = 1
+    var int refStart = 0
+    resetPoint = dayofweek == dayofweek.monday and asian and not asian[1]
+    if resetPoint
+        cycle    := 1
+        refStart := time
+    else
+        if time > refStart + 24*60*60*1000  and time <= refStart + 2*24*60*60*1000
+            cycle := 2
+        else if time > refStart + 2*24*60*60*1000 and time <= refStart + 3*24*60*60*1000
+            cycle := 3
+    [asian, london, ny, sessName, cycle]
+
+export is_trading_session() =>
+    [_, london, ny, _, _] = session_and_cycle()
+    london or ny
+
+// ---------------------------------------------------------------------------
+// TIMEFRAME CLASSIFICATION HELPERS
+// ---------------------------------------------------------------------------
+export timeframe_classification() =>
+    tfm = timeframe.in_seconds() / 60
+    [ tfm >= 60  and tfm <= 240,   // Higher-TF analysis (1H-4H)
+      tfm >= 1   and tfm <= 30,    // Execution (1-30M)
+      tfm >= 1   and tfm <= 5,     // Early-entry (1-5M)
+      tfm >= 15  and tfm <= 30 ]   // Optimal-entry (15-30M)
+
+// ---------------------------------------------------------------------------
+// CURRENT-DAY FILTER (for decluttering small-timeframe history)
+// ---------------------------------------------------------------------------
+export current_day_filter(auto_hide, manual_hide) =>
+    tfm  = timeframe.in_seconds() / 60
+    hide = (auto_hide and tfm <= 5) or manual_hide
+    now  = time("GMT-5")
+    dayStart = timestamp("GMT-5", year(now, "GMT-5"), month(now, "GMT-5"), dayofmonth(now, "GMT-5"), 17, 0)
+    if now < dayStart
+        dayStart -= 86400000
+    isToday = not hide or time >= dayStart
+    [hide, isToday]
+
+// ---------------------------------------------------------------------------
+// ASIAN RANGE HELPER (returns high, low, completion flag)
+// ---------------------------------------------------------------------------
+export calculate_asian_range() =>
+    [asian,,,_,_] = session_and_cycle()
+    var float hi = na
+    var float lo = na
+    var bool  done = false
+    if asian and not asian[1]
+        hi   := high
+        lo   := low
+        done := false
+    if asian
+        hi := math.max(nz(hi), high)
+        lo := math.min(nz(lo), low)
+    if not asian and asian[1]
+        done := true
+    [hi, lo, done]
+
+// ---------------------------------------------------------------------------
+// EMA STACK ANALYSIS (Steve Mauro convention)
+// ---------------------------------------------------------------------------
+export ema_stack_analysis(e5, e13, e50, e200, e800) =>
+    bull = e5 > e13 and e13 > e50 and e50 > e200 and e200 > e800 and close > e13
+    bear = e5 < e13 and e13 < e50 and e50 < e200 and e200 < e800 and close < e13
+    mixed = not bull and not bear
+    separation = math.abs((e5 - e800) / e800) * 100
+    strength = bull or bear ? math.min(separation * 10, 100) : 0
+    status = bull ? "BULL STACK" : bear ? "BEAR STACK" : "MIXED"
+    [bull, bear, mixed, strength, status]
+
+// ---------------------------------------------------------------------------
+// VOLUME ANALYSIS (spike, dry-up, ratio)
+// ---------------------------------------------------------------------------
+export volume_analysis() =>
+    avg = ta.sma(volume, 20)
+    [ volume > avg * 1.5,  // spike
+      volume < avg * 0.7,  // dry-up
+      volume / avg ]
+
+// ---------------------------------------------------------------------------
+// MARKET STRUCTURE – Simple swing logic
+// ---------------------------------------------------------------------------
+export market_structure() =>
+    atrVal = ta.atr(14)
+    hh = high > high[1] and high[1] > high[2]
+    hl = low  > low[1]  and low[1]  > low[2]
+    bull = hh and hl
+    lh = high < high[1] and high[1] < high[2]
+    ll = low  < low[1]  and low[1]  < low[2]
+    bear = lh and ll
+    [bull, bear, not bull and not bear, atrVal]
+
+// ---------------------------------------------------------------------------
+// FIBONACCI LEVELS (array of common retracement levels)
+// ---------------------------------------------------------------------------
+export fibonacci_levels(sHigh, sLow) =>
+    rng = sHigh - sLow
+    [ sLow + rng * 0.236,
+      sLow + rng * 0.382,
+      sLow + rng * 0.5,
+      sLow + rng * 0.618,
+      sLow + rng * 0.786 ]
+
+// ---------------------------------------------------------------------------
+// RISK-MANAGEMENT CALCULATION (position sizing)
+// ---------------------------------------------------------------------------
+export risk_management(entry, stop, riskPct, balance) =>
+    riskAmt = balance * (riskPct / 100)
+    pipVal  = 10.0  // Standard pip value for 1-lot majors
+    pipRisk = math.abs(entry - stop) * 10000
+    size    = riskAmt / (pipRisk * pipVal)
+    [riskAmt, pipRisk, size]
+
+// ---------------------------------------------------------------------------
+// TIMEFRAME UTILS (minutes helper)
+// ---------------------------------------------------------------------------
+export timeframe_minutes() =>
+    timeframe.in_seconds() / 60.0
+
+// ---------------------------------------------------------------------------
+// DISPLAY CONTROL (extended version of current_day_filter returning tfMinutes)
+// ---------------------------------------------------------------------------
+export display_control(autoHide, manualHide) =>
+    tfMin          = timeframe_minutes()
+    shouldHide     = (autoHide and tfMin <= 5) or manualHide
+    todayStart     = timestamp("GMT-5", year(timenow, "GMT-5"), month(timenow, "GMT-5"),
+                                 dayofmonth(timenow, "GMT-5"), 17, 0)
+    if timenow < todayStart
+        todayStart -= 24 * 60 * 60 * 1000
+    isCurrentDay   = not shouldHide or time >= todayStart
+    [tfMin, shouldHide, isCurrentDay]
+
+// ---------------------------------------------------------------------------
+// PRICE ROUND-NUMBER PROXIMITY (00 / 50 levels)
+// ---------------------------------------------------------------------------
+export near_round_number(price, tolerance_pips) =>
+    priceInt      = math.round(price * 10000)
+    lastDigits    = priceInt % 100
+    dist00        = lastDigits
+    dist50        = math.abs(lastDigits - 50)
+    math.min(dist00, dist50) <= tolerance_pips
+
+// ---------------------------------------------------------------------------
+// SIMPLE PIVOT HIGH/LOW ARRAYS (helper to build pattern libs)
+// ---------------------------------------------------------------------------
+export pivot_arrays(phLen, plLen, maxSize) =>
+    var array<float> highs = array.new<float>()
+    var array<float> lows  = array.new<float>()
+    newHigh = ta.pivothigh(high, phLen, phLen)
+    newLow  = ta.pivotlow(low,  plLen, plLen)
+    if not na(newHigh)
+        if array.size(highs) >= maxSize
+            array.shift(highs)
+        array.push(highs, newHigh)
+    if not na(newLow)
+        if array.size(lows) >= maxSize
+            array.shift(lows)
+        array.push(lows, newLow)
+    [highs, lows]
+
+// ---------------------------------------------------------------------------
+// ATR HELPER (14-period by default)
+// ---------------------------------------------------------------------------
+export atr14() => ta.atr(14)

@@ -1,0 +1,246 @@
+//@version=5
+indicator("BTMM Stop Hunt Detection", "Stop Hunts", overlay=true, max_lines_count=100, max_labels_count=200)
+
+// =============================================================================
+// STEVE MAURO STOP HUNT DETECTION SYSTEM
+// Identifies liquidity sweeps, false breakouts, wick rejections, equal highs/lows
+// =============================================================================
+
+import BTMMFoundation as foundation
+
+// -----------------------------------------------------------------------------
+// 1. SETTINGS
+// -----------------------------------------------------------------------------
+var g_DET = "Stop Hunt Detection"
+enable_liquidity_sweeps = input.bool(true, "Liquidity Sweeps",      group=g_DET)
+enable_false_breakouts  = input.bool(true, "False Breakouts",      group=g_DET)
+enable_wick_rejections  = input.bool(true, "Wick Rejections",      group=g_DET)
+enable_equal_levels     = input.bool(true, "Equal Highs/Lows",     group=g_DET)
+
+var g_THRESH = "Thresholds"
+sweep_tol_atr     = input.float(0.3, "Sweep Tolerance (ATR)", 0.1,1.0, group=g_THRESH)
+min_wick_atr      = input.float(0.6, "Min Wick Size (ATR)",   0.3,2.0, group=g_THRESH)
+max_body_ratio    = input.float(0.4, "Max Body Ratio",        0.1,0.8, group=g_THRESH)
+false_break_pct   = input.float(0.7, "False Break Retrace %", 0.5,1.0, group=g_THRESH)
+
+var g_VALID = "Validation"
+require_vol_spike  = input.bool(true,  "Require Volume Spike",      group=g_VALID)
+vol_spike_thresh   = input.float(1.6,  "Volume Spike xAvg", 1.2,3.0, group=g_VALID)
+require_quick_rev  = input.bool(true,  "Require Quick Reversal",    group=g_VALID)
+max_rev_bars       = input.int(3,      "Max Reversal Bars", 1,10,   group=g_VALID)
+require_session    = input.bool(true,  "Session Filter",            group=g_VALID)
+
+var g_TARGET = "Hunt Targets"
+liquidity_lookback = input.int(20, "Liquidity Lookback", 10,50, group=g_TARGET)
+add_daily_levels    = input.bool(true,  "Daily High/Low", group=g_TARGET)
+add_asian_levels    = input.bool(true,  "Asian Range",    group=g_TARGET)
+add_ema_levels      = input.bool(true,  "EMA Levels",     group=g_TARGET)
+add_round_numbers   = input.bool(true,  "Round Numbers",  group=g_TARGET)
+
+var g_EXT = "External Sources"
+asian_hi_src = input.source(high,  "Asian High", group=g_EXT)
+asian_lo_src = input.source(low,   "Asian Low",  group=g_EXT)
+ema13_src    = input.source(close, "EMA 13",      group=g_EXT)
+ema50_src    = input.source(close, "EMA 50",      group=g_EXT)
+ema200_src   = input.source(close, "EMA 200",     group=g_EXT)
+
+var g_STYLE = "Style"
+col_bull   = input.color(color.lime,   "Bullish Hunt", group=g_STYLE)
+col_bear   = input.color(color.red,    "Bearish Hunt", group=g_STYLE)
+col_liq    = input.color(color.yellow, "Liquidity Lines", group=g_STYLE)
+col_equal  = input.color(color.orange, "Equal Levels", group=g_STYLE)
+
+var g_DISP = "Display"
+show_labels   = input.bool(true,  "Show Hunt Labels",   group=g_DISP)
+show_liq_lvls = input.bool(true,  "Show Liquidity",     group=g_DISP)
+show_dash     = input.bool(true,  "Show Dashboard",     group=g_DISP)
+auto_hide     = input.bool(true,  "Auto‐Hide ≤5M",      group=g_DISP)
+
+// -----------------------------------------------------------------------------
+// 2. CONTEXT & MARKET DATA
+// -----------------------------------------------------------------------------
+[hide_hist, is_today] = foundation.current_day_filter(auto_hide,false)
+[asian_sess,london_sess,ny_sess,cur_sess,cycle_day] = foundation.session_and_cycle()
+trade_sess = foundation.is_trading_session()
+
+atr       = foundation.atr14()
+avg_vol   = ta.sma(volume,20)
+[vol_spike,,vol_ratio] = foundation.volume_analysis()
+vol_ok    = not require_vol_spike or (vol_spike and vol_ratio>=vol_spike_thresh)
+valid_sess= (not require_session or trade_sess) and is_today
+
+// -----------------------------------------------------------------------------
+// 3. LIQUIDITY LEVEL MANAGEMENT
+// -----------------------------------------------------------------------------
+var array<float> liq_lvls  = array.new<float>()
+var array<string>liq_type  = array.new<string>()
+var array<int>   liq_bars  = array.new<int>()
+var array<line>  liq_lines = array.new<line>()
+
+add_liq(lvl, typ)=>
+    if show_liq_lvls and valid_sess
+        tol=atr*sweep_tol_atr
+        exists=false
+        for i=0 to array.size(liq_lvls)-1
+            if math.abs(lvl-array.get(liq_lvls,i))<=tol
+                exists:=true
+                break
+        if not exists and array.size(liq_lvls)<60
+            array.push(liq_lvls,lvl)
+            array.push(liq_type,typ)
+            array.push(liq_bars,bar_index)
+            array.push(liq_lines,line.new(bar_index,lvl,bar_index+40,lvl,color=col_liq,width=1,style=line.style_dashed,extend=extend.right))
+
+// Daily levels
+if add_daily_levels and timeframe.change("1D")
+    daily_hi = request.security(syminfo.tickerid,"1D",high[1])
+    daily_lo = request.security(syminfo.tickerid,"1D",low[1])
+    add_liq(daily_hi,"Daily High")
+    add_liq(daily_lo,"Daily Low")
+
+// Asian range
+if add_asian_levels and not na(asian_hi_src) and not na(asian_lo_src)
+    add_liq(asian_hi_src,"Asian High")
+    add_liq(asian_lo_src,"Asian Low")
+
+// EMA levels
+if add_ema_levels
+    if math.abs(close-ema200_src)/close<0.015
+        add_liq(ema200_src,"EMA 200")
+    if math.abs(close-ema50_src)/close<0.01
+        add_liq(ema50_src,"EMA 50")
+
+// Swing highs/lows
+if not na(ta.pivothigh(high,5,5))
+    add_liq(ta.pivothigh(high,5,5),"Swing High")
+if not na(ta.pivotlow(low,5,5))
+    add_liq(ta.pivotlow(low,5,5),"Swing Low")
+
+// Equal highs/lows cluster
+tol_eq = atr*0.4
+if enable_equal_levels
+    for i=5 to 20
+        if math.abs(high-high[i])<=tol_eq and high[i]>high[i-1] and high[i]>high[i+1]
+            add_liq(high,"Equal High"); break
+    for i=5 to 20
+        if math.abs(low-low[i])<=tol_eq and low[i]<low[i-1] and low[i]<low[i+1]
+            add_liq(low,"Equal Low"); break
+
+// Round numbers
+if add_round_numbers
+    priceInt = math.round(close*10000)
+    if priceInt%100<=8 or math.abs(priceInt%100-50)<=8
+        add_liq(close,"Round Number")
+
+// -----------------------------------------------------------------------------
+// 4. WICK & BODY ANALYSIS
+// -----------------------------------------------------------------------------
+uwick = high-math.max(close,open)
+lwick = math.min(close,open)-low
+body  = math.abs(close-open)
+range = high-low
+uwickR= range>0?uwick/range:0
+lwickR= range>0?lwick/range:0
+bodyR = range>0?body/range:0
+sig_u = uwick>=atr*min_wick_atr and uwickR>=0.4 and bodyR<=max_body_ratio
+sig_l = lwick>=atr*min_wick_atr and lwickR>=0.4 and bodyR<=max_body_ratio
+
+// -----------------------------------------------------------------------------
+// 5. DETECTORS
+// -----------------------------------------------------------------------------
+liq_sweep_bull=false
+liq_sweep_bear=false
+sweep_name=""
+if enable_liquidity_sweeps and valid_sess and vol_ok
+    tol=atr*sweep_tol_atr
+    for i=0 to array.size(liq_lvls)-1
+        lvl=array.get(liq_lvls,i)
+        typ=array.get(liq_type,i)
+        if bar_index-array.get(liq_bars,i)>=3
+            if high>lvl+tol and close<lvl-tol
+                liq_sweep_bull:=true; sweep_name:=typ+" Sweep"; break
+            if low<lvl-tol and close>lvl+tol
+                liq_sweep_bear:=true; sweep_name:=typ+" Sweep"; break
+
+fb_bull=false
+fb_bear=false
+fb_name=""
+if enable_false_breakouts and valid_sess
+    res = ta.highest(high,15)[1]
+    sup = ta.lowest(low,15)[1]
+    retr = false_break_pct/100
+    if high>res and close<res*(1-retr*0.01)
+        fb_bull:=true; fb_name:="False Break High"
+    if low<sup and close>sup*(1+retr*0.01)
+        fb_bear:=true; fb_name:="False Break Low"
+
+wick_bull=sig_l and enable_wick_rejections and valid_sess and vol_ok
+wick_bear=sig_u and enable_wick_rejections and valid_sess and vol_ok
+
+// -----------------------------------------------------------------------------
+// 6. AGGREGATE
+// -----------------------------------------------------------------------------
+stop_hunt=false
+bull_hunt=false
+bear_hunt=false
+hunt_txt=""
+if liq_sweep_bull or fb_bull or wick_bull
+    stop_hunt:=true; bull_hunt:=true
+    hunt_txt := liq_sweep_bull?sweep_name: fb_bull?fb_name: "Lower Wick Rej"
+if liq_sweep_bear or fb_bear or wick_bear
+    stop_hunt:=true; bear_hunt:=true
+    hunt_txt := liq_sweep_bear?sweep_name: fb_bear?fb_name: "Upper Wick Rej"
+
+// Quick reversal filter
+if stop_hunt and require_quick_rev
+    rev_ok = (bull_hunt and close>open) or (bear_hunt and close<open)
+    if not rev_ok
+        stop_hunt:=false; bull_hunt=false; bear_hunt=false
+
+// -----------------------------------------------------------------------------
+// 7. LABELS & SHAPES
+// -----------------------------------------------------------------------------
+if show_labels and stop_hunt
+    col = bull_hunt?col_bull:col_bear
+    styl= bull_hunt?label.style_label_up:label.style_label_down
+    y   = bull_hunt? low-atr: high+atr
+    label.new(bar_index,y,"🎯 "+hunt_txt+"\nVol "+str.tostring(vol_ratio,"#.#")+"x",style=styl,color=col,textcolor=color.white)
+
+if sig_u and enable_wick_rejections
+    plotchar(true,"U Wick","⚡",location.abovebar,col_bear,size=size.tiny)
+if sig_l and enable_wick_rejections
+    plotchar(true,"L Wick","⚡",location.belowbar,col_bull,size=size.tiny)
+
+// -----------------------------------------------------------------------------
+// 8. DASHBOARD
+// -----------------------------------------------------------------------------
+if show_dash and barstate.islast
+    var table dash = table.new(position.bottom_left,2,6,bgcolor=color.white,border_width=1)
+    table.cell(dash,0,0,"STOP HUNTS",text_color=color.white,bgcolor=color.purple)
+    table.cell(dash,1,0,timeframe.period,text_color=color.white,bgcolor=color.purple)
+    table.cell(dash,0,1,"Levels",text_size=size.tiny)
+    table.cell(dash,1,1,str.tostring(array.size(liq_lvls)),text_size=size.tiny)
+    table.cell(dash,0,2,"U Wick",text_size=size.tiny)
+    table.cell(dash,1,2,sig_u?"YES":"NO",bgcolor=sig_u?col_bear:color.gray,text_color=color.white,text_size=size.tiny)
+    table.cell(dash,0,3,"L Wick",text_size=size.tiny)
+    table.cell(dash,1,3,sig_l?"YES":"NO",bgcolor=sig_l?col_bull:color.gray,text_color=color.white,text_size=size.tiny)
+    table.cell(dash,0,4,"Session",text_size=size.tiny)
+    sc = london_sess?color.green: ny_sess?color.blue: asian_sess?color.yellow:color.gray
+    table.cell(dash,1,4,cur_sess,bgcolor=sc,text_color=color.white,text_size=size.tiny)
+    table.cell(dash,0,5,"Vol",text_size=size.tiny)
+    vc = vol_spike?color.green:color.gray
+    table.cell(dash,1,5,str.tostring(vol_ratio,"#.#")+"x",bgcolor=vc,text_color=color.white,text_size=size.tiny)
+
+// Backgrounds
+bgcolor(london_sess?color.new(color.green,98):na)
+bgcolor(ny_sess?    color.new(color.blue,98):na)
+
+// Alerts
+alertcondition(stop_hunt and bull_hunt, "Bull Stop Hunt", "Bullish stop hunt")
+alertcondition(stop_hunt and bear_hunt, "Bear Stop Hunt", "Bearish stop hunt")
+
+// Data-window outputs
+plot(stop_hunt?1:0,"Stop_Hunt",display=display.data_window)
+plot(bull_hunt?1:0,"Bull_Hunt",display=display.data_window)
+plot(bear_hunt?1:0,"Bear_Hunt",display=display.data_window)
+plot(array.size(liq_lvls),"Liquidity_Levels",display=display.data_window) 

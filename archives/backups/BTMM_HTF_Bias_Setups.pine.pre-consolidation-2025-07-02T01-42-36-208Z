@@ -1,0 +1,205 @@
+//@version=5
+indicator("BTMM HTF Bias Analysis", "HTF Bias", overlay=true, max_labels_count=50)
+
+// ============================================================================
+// STEVE MAURO HIGHER TIMEFRAME BIAS SYSTEM
+// Multi-timeframe bias determination for BTMM setups
+// ============================================================================
+
+import BTMMFoundation as foundation
+
+// ---------------------------------------------------------------------------
+// SETTINGS
+// ---------------------------------------------------------------------------
+var g_BIAS = "HTF Bias Settings"
+enable_4h_bias        = input.bool(true, "4H Bias Analysis",           group=g_BIAS)
+enable_1h_bias        = input.bool(true, "1H Bias Analysis",           group=g_BIAS)
+enable_daily_levels   = input.bool(true, "Daily Level Direction",      group=g_BIAS)
+bias_strength_filter  = input.float(0.3,  "Minimum Bias Strength",     minval=0.1, maxval=1.0, group=g_BIAS)
+
+var g_SETUP = "BTMM Setup Detection"
+enable_v1_setup = input.bool(true, "V1 Setup (Day 2, Above Balance)", group=g_SETUP)
+enable_a1_setup = input.bool(true, "A1 Setup (Day 2, Below Balance)", group=g_SETUP)
+enable_v2_setup = input.bool(true, "V2 Setup (Day 3, Above Home)",    group=g_SETUP)
+enable_a2_setup = input.bool(true, "A2 Setup (Day 3, Below Home)",    group=g_SETUP)
+
+var g_CONFLUENCE = "Confluence Analysis"
+require_ema_confluence      = input.bool(true, "Require EMA Confluence",      group=g_CONFLUENCE)
+require_session_confluence  = input.bool(true, "Require Session Confluence",  group=g_CONFLUENCE)
+require_cycle_confluence    = input.bool(true, "Require Cycle Day Confluence", group=g_CONFLUENCE)
+
+var g_STYLE = "Visual Settings"
+bull_bias_color   = input.color(color.green,  "Bullish Bias Color", group=g_STYLE)
+bear_bias_color   = input.color(color.red,    "Bearish Bias Color", group=g_STYLE)
+neutral_bias_color= input.color(color.gray,   "Neutral Bias Color", group=g_STYLE)
+setup_ready_color = input.color(color.yellow, "Setup Ready Color",   group=g_STYLE)
+
+var g_DISPLAY = "Display Control"
+show_htf_dashboard = input.bool(true, "Show HTF Dashboard", group=g_DISPLAY)
+show_setup_alerts  = input.bool(true, "Show Setup Alerts",  group=g_DISPLAY)
+
+// ---------------------------------------------------------------------------
+// EXECUTION CONTEXT – only run on HTF charts (1H-4H)
+// ---------------------------------------------------------------------------
+[is_htf_analysis, , , ] = foundation.timeframe_classification()
+if not is_htf_analysis
+    // Plot data-window placeholders so script still compiles on other TFs
+    plot(na, "HTF_Bias", display=display.data_window)
+    plot(na, "Bullish_Setup", display=display.data_window)
+    plot(na, "Bearish_Setup", display=display.data_window)
+    plot(na, "Bias_Direction", display=display.data_window)
+    plot(na, "Cycle_Day", display=display.data_window)
+    return
+
+// ---------------------------------------------------------------------------
+// CONTEXT & SESSION DATA
+// ---------------------------------------------------------------------------
+[asian_session, london_session, ny_session, current_session, cycle_day] = foundation.session_and_cycle()
+trading_session = foundation.is_trading_session()
+
+// ---------------------------------------------------------------------------
+// CURRENT-TF EMAS
+// ---------------------------------------------------------------------------
+ema5   = ta.ema(close, 5)
+ema13  = ta.ema(close, 13)
+ema50  = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+ema800 = ta.ema(close, 800)
+
+// ---------------------------------------------------------------------------
+// MULTI-TF DATA PULLS
+// ---------------------------------------------------------------------------
+h4_close = request.security(syminfo.tickerid, "240", close,       lookahead=barmerge.lookahead_off)
+h4_ema13 = request.security(syminfo.tickerid, "240", ta.ema(close, 13), lookahead=barmerge.lookahead_off)
+h4_ema50 = request.security(syminfo.tickerid, "240", ta.ema(close, 50), lookahead=barmerge.lookahead_off)
+
+h1_close = request.security(syminfo.tickerid, "60", close,       lookahead=barmerge.lookahead_off)
+h1_ema13 = request.security(syminfo.tickerid, "60", ta.ema(close, 13), lookahead=barmerge.lookahead_off)
+h1_ema50 = request.security(syminfo.tickerid, "60", ta.ema(close, 50), lookahead=barmerge.lookahead_off)
+
+daily_high = request.security(syminfo.tickerid, "1D", high, lookahead=barmerge.lookahead_off)
+daily_low  = request.security(syminfo.tickerid, "1D", low,  lookahead=barmerge.lookahead_off)
+
+// ---------------------------------------------------------------------------
+// HELPER – bias per timeframe
+// ---------------------------------------------------------------------------
+calc_bias(src_close, e13, e50) =>
+    src_close > e13 and e13 > e50 ?  math.min((e13 - e50) / e50 * 200, 5) :
+    src_close < e13 and e13 < e50 ? -math.min((e50 - e13) / e50 * 200, 5) : 0
+
+h4_bias       = enable_4h_bias ? calc_bias(h4_close, h4_ema13, h4_ema50) : 0
+h1_bias       = enable_1h_bias ? calc_bias(h1_close, h1_ema13, h1_ema50) : 0
+current_bias  = calc_bias(close, ema13, ema50)
+
+// Daily-levels direction (BTMM 2.5-5-day levels)
+tf_minutes  = foundation.timeframe_minutes()
+levels_len  = math.round(3.5 * 24 * 60 / tf_minutes)
+levels_high = ta.highest(high, levels_len)
+levels_low  = ta.lowest(low,  levels_len)
+daily_dir   = enable_daily_levels ? (close > levels_high[5] ? 2 : close < levels_low[5] ? -2 : 0) : 0
+
+// ---------------------------------------------------------------------------
+// COMBINED HTF BIAS (weighted)
+// ---------------------------------------------------------------------------
+htf_bias = (h4_bias * 4 + h1_bias * 2 + current_bias * 1 + daily_dir * 3) / 10
+
+bias_strength   = math.abs(htf_bias)
+bias_direction  = htf_bias >  bias_strength_filter ? 1 : htf_bias < -bias_strength_filter ? -1 : 0
+bias_label      = bias_direction == 1 ? (bias_strength > 2 ? "STRONG BULL" : "BULLISH") :
+                  bias_direction == -1 ? (bias_strength > 2 ? "STRONG BEAR" : "BEARISH") : "NEUTRAL"
+
+// ---------------------------------------------------------------------------
+// EMA STACK ANALYSIS & POSITION CONTEXT
+// ---------------------------------------------------------------------------
+[bull_stack, bear_stack, , stack_strength, stack_status] = foundation.ema_stack_analysis(ema5, ema13, ema50, ema200, ema800)
+
+above_balance  = close > ema50
+below_balance  = close < ema50
+above_homebase = close > ema200
+below_homebase = close < ema200
+
+// ---------------------------------------------------------------------------
+// BTMM SETUP LOGIC
+// ---------------------------------------------------------------------------
+confluence_ok(dir) =>
+    (not require_ema_confluence     or (dir == 1 ? bias_direction == 1 : bias_direction == -1)) and
+    (not require_session_confluence or london_session or trading_session) and
+    (not require_cycle_confluence   or true)
+
+btmm_v1_setup = enable_v1_setup and cycle_day == 2 and above_balance  and bull_stack and confluence_ok(1) and htf_bias > 0
+btmm_a1_setup = enable_a1_setup and cycle_day == 2 and below_balance  and bear_stack and confluence_ok(-1) and htf_bias < 0
+btmm_v2_setup = enable_v2_setup and cycle_day == 3 and above_homebase and bull_stack and confluence_ok(1) and htf_bias > 0
+btmm_a2_setup = enable_a2_setup and cycle_day == 3 and below_homebase and bear_stack and confluence_ok(-1) and htf_bias < 0
+
+bullish_setup = btmm_v1_setup or btmm_v2_setup
+bearish_setup = btmm_a1_setup or btmm_a2_setup
+
+current_setup = btmm_v1_setup ? "V1 READY" : btmm_a1_setup ? "A1 READY" : btmm_v2_setup ? "V2 READY" : btmm_a2_setup ? "A2 READY" : "NO SETUP"
+
+// ---------------------------------------------------------------------------
+// VISUAL & ALERTS
+// ---------------------------------------------------------------------------
+if show_setup_alerts
+    if btmm_v1_setup and not btmm_v1_setup[1]
+        label.new(bar_index, high + foundation.atr14(), "🎯 V1 SETUP\nDAY 2 | ABOVE BALANCE\nLONDON SESSION",  style=label.style_label_down, color=setup_ready_color, textcolor=color.black)
+    if btmm_a1_setup and not btmm_a1_setup[1]
+        label.new(bar_index, low  - foundation.atr14(), "🎯 A1 SETUP\nDAY 2 | BELOW BALANCE\nLONDON SESSION",  style=label.style_label_up,   color=setup_ready_color, textcolor=color.black)
+    if btmm_v2_setup and not btmm_v2_setup[1]
+        label.new(bar_index, high + foundation.atr14(), "🎯 V2 SETUP\nDAY 3 | ABOVE HOME\nTRADING SESSION",  style=label.style_label_down, color=setup_ready_color, textcolor=color.black)
+    if btmm_a2_setup and not btmm_a2_setup[1]
+        label.new(bar_index, low  - foundation.atr14(), "🎯 A2 SETUP\nDAY 3 | BELOW HOME\nTRADING SESSION",   style=label.style_label_up,   color=setup_ready_color, textcolor=color.black)
+
+// Dashboard
+if show_htf_dashboard and barstate.islast
+    var table htf_tbl = table.new(position.top_left, 2, 8, bgcolor=color.white, border_width=1)
+    table.cell(htf_tbl, 0, 0, "HTF BIAS ANALYSIS", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    table.cell(htf_tbl, 1, 0, timeframe.period,      text_color=color.white, bgcolor=color.navy, text_size=size.small)
+
+    bias_col = bias_direction == 1 ? bull_bias_color : bias_direction == -1 ? bear_bias_color : neutral_bias_color
+    table.cell(htf_tbl, 0, 1, "HTF Bias", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 1, bias_label, bgcolor=bias_col, text_color=color.white, text_size=size.tiny)
+
+    table.cell(htf_tbl, 0, 2, "Bias Strength", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 2, str.tostring(bias_strength, "#.##"), text_size=size.tiny)
+
+    // 4H / 1H snapshots
+    h4_col = h4_bias > 0 ? color.green : h4_bias < 0 ? color.red : color.gray
+    h1_col = h1_bias > 0 ? color.green : h1_bias < 0 ? color.red : color.gray
+    table.cell(htf_tbl, 0, 3, "4H Bias", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 3, str.tostring(h4_bias, "#.#"), bgcolor=h4_col, text_color=color.white, text_size=size.tiny)
+    table.cell(htf_tbl, 0, 4, "1H Bias", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 4, str.tostring(h1_bias, "#.#"), bgcolor=h1_col, text_color=color.white, text_size=size.tiny)
+
+    setup_col = str.contains(current_setup, "V") ? color.green : str.contains(current_setup, "A") ? color.red : color.gray
+    table.cell(htf_tbl, 0, 5, "BTMM Setup", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 5, current_setup, bgcolor=setup_col, text_color=color.white, text_size=size.tiny)
+
+    cyc_col = cycle_day == 1 ? color.blue : cycle_day == 2 ? color.orange : color.purple
+    table.cell(htf_tbl, 0, 6, "Cycle Day", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 6, "DAY " + str.tostring(cycle_day), bgcolor=cyc_col, text_color=color.white, text_size=size.tiny)
+
+    ses_col = london_session ? color.green : ny_session ? color.blue : color.gray
+    table.cell(htf_tbl, 0, 7, "Session", text_size=size.tiny)
+    table.cell(htf_tbl, 1, 7, current_session, bgcolor=ses_col, text_color=color.white, text_size=size.tiny)
+
+// Reference EMA plots
+plot(ema13,  "EMA 13", color.red,   2)
+plot(ema50,  "EMA 50", color.aqua,  2)
+plot(ema200, "EMA 200", color.white,3)
+
+// Session backgrounds
+bgcolor(london_session ? color.new(color.green, 97) : na)
+bgcolor(ny_session ? color.new(color.blue, 97)  : na)
+
+// Alerts
+alertcondition(btmm_v1_setup, "V1 Setup Ready", "BTMM V1 Setup ready")
+alertcondition(btmm_a1_setup, "A1 Setup Ready", "BTMM A1 Setup ready")
+alertcondition(btmm_v2_setup, "V2 Setup Ready", "BTMM V2 Setup ready")
+alertcondition(btmm_a2_setup, "A2 Setup Ready", "BTMM A2 Setup ready")
+
+// Data-window outputs
+plot(htf_bias,             "HTF_Bias",       display=display.data_window)
+plot(bullish_setup ? 1 : 0, "Bullish_Setup", display=display.data_window)
+plot(bearish_setup ? 1 : 0, "Bearish_Setup", display=display.data_window)
+plot(bias_direction,       "Bias_Direction", display=display.data_window)
+plot(cycle_day,            "Cycle_Day",      display=display.data_window) 

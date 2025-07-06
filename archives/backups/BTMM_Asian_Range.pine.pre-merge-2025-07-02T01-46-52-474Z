@@ -1,0 +1,144 @@
+//@version=5
+indicator("BTMM Asian Range System", "BTMM Asian", overlay=true)
+
+// ============================================================================
+// BTMM ASIAN RANGE SYSTEM - COMPREHENSIVE ASIAN SESSION ANALYSIS
+// ============================================================================
+// This script consolidates all Asian session functionality including:
+// - Asian session range detection and breakout analysis
+// - Session-based time filtering
+// - Range statistics and momentum analysis
+// - EMA integration within Asian context
+// ============================================================================
+
+// Import Foundation Library
+import BTMMFoundation/BTMMFoundationLib/1 as btmm
+
+// ============================================================================
+// SETTINGS & INPUTS
+// ============================================================================
+
+var g_session = "Asian Session Settings"
+asian_start = input.session("2000-0000", "Asian Session", group=g_session)
+session_buffer = input.int(30, "Session Buffer (minutes)", minval=0, group=g_session)
+min_range_pips = input.float(10.0, "Minimum Range (pips)", minval=1.0, group=g_session)
+
+var g_display = "Display Settings"
+show_range_box = input.bool(true, "Show Range Box", group=g_display)
+show_breakout_levels = input.bool(true, "Show Breakout Levels", group=g_display)
+show_statistics = input.bool(true, "Show Statistics", group=g_display)
+
+// ============================================================================
+// SESSION DETECTION
+// ============================================================================
+
+// Get session info from foundation
+[asian_session, london_session, ny_session, current_session, cycle_day] = btmm.session_and_cycle()
+
+// Session active states
+asian_active = asian_session
+london_active = london_session
+ny_active = ny_session
+
+// ============================================================================
+// ASIAN RANGE CALCULATION
+// ============================================================================
+
+var float asian_high = na
+var float asian_low = na
+var bool range_established = false
+
+// Reset range at start of Asian session
+if asian_active and not asian_active[1]
+    asian_high := high
+    asian_low := low
+    range_established := false
+
+// Update range during Asian session
+if asian_active
+    asian_high := math.max(asian_high, high)
+    asian_low := math.min(asian_low, low)
+
+// Mark range as established at end of Asian session
+if asian_active[1] and not asian_active
+    range_established := true
+
+// Range size in pips (simplified for multiple instruments)
+range_pips = (asian_high - asian_low) / syminfo.mintick * syminfo.pointvalue
+
+// ============================================================================
+// BREAKOUT DETECTION
+// ============================================================================
+
+// Breakout conditions
+range_break_up = not asian_active and range_established and close > asian_high
+range_break_down = not asian_active and range_established and close < asian_low
+
+// First breakout detection
+var bool first_break_up = false
+var bool first_break_down = false
+
+if range_break_up and not first_break_up and not first_break_down
+    first_break_up := true
+
+if range_break_down and not first_break_down and not first_break_up
+    first_break_down := true
+
+// Reset at new Asian session
+if asian_active and not asian_active[1]
+    first_break_up := false
+    first_break_down := false
+
+// ============================================================================
+// MOMENTUM ANALYSIS
+// ============================================================================
+
+// Breakout momentum (distance from range)
+breakout_momentum_up = range_break_up ? (close - asian_high) / (asian_high - asian_low) : 0
+breakout_momentum_down = range_break_down ? (asian_low - close) / (asian_high - asian_low) : 0
+
+// Overall momentum score
+momentum_score = breakout_momentum_up - breakout_momentum_down
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Asian range box
+var box range_box = na
+if asian_active and not asian_active[1] and show_range_box
+    range_box := box.new(bar_index, asian_high, bar_index, asian_low, 
+                         border_color=color.yellow, bgcolor=color.new(color.yellow, 90),
+                         extend=extend.right)
+
+if asian_active and not na(range_box) and show_range_box
+    box.set_right(range_box, bar_index)
+    box.set_top(range_box, asian_high)
+    box.set_bottom(range_box, asian_low)
+
+// Range levels
+plot(show_breakout_levels and range_established ? asian_high : na, 
+     "Asian High", color=color.red, linewidth=2, style=plot.style_line)
+plot(show_breakout_levels and range_established ? asian_low : na, 
+     "Asian Low", color=color.green, linewidth=2, style=plot.style_line)
+
+// Breakout signals
+plotshape(first_break_up, "Range Break Up", shape.triangleup, 
+          location.belowbar, color.lime, size=size.normal)
+plotshape(first_break_down, "Range Break Down", shape.triangledown, 
+          location.abovebar, color.red, size=size.normal)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(asian_active ? 1 : 0, "Asian_Session", display=display.data_window)
+plot(asian_high, "Asian_High", display=display.data_window)
+plot(asian_low, "Asian_Low", display=display.data_window)
+plot(range_pips, "Range_Pips", display=display.data_window)
+plot(range_break_up ? 1 : 0, "Range_Break_Up", display=display.data_window)
+plot(range_break_down ? 1 : 0, "Range_Break_Down", display=display.data_window)
+plot(first_break_up ? 1 : 0, "First_Break_Up", display=display.data_window)
+plot(first_break_down ? 1 : 0, "First_Break_Down", display=display.data_window)
+plot(momentum_score, "Momentum_Score", display=display.data_window)
+plot(range_established ? 1 : 0, "Range_Established", display=display.data_window) 

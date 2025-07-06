@@ -1,0 +1,7 @@
+// @version=5
+indicator("BTMM Market Structure & Liquidity", "Structure & Liquidity", overlay=true)
+
+// TODO: Implement structure/stop-hunt detection, equal highs/lows, and liquidity visualization from Script 5.
+// This script feeds dashboard & analytics modules.
+
+plot(close, display=display.none) 

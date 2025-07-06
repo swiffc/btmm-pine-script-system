@@ -1,0 +1,167 @@
+//@version=5
+indicator("BTMM Master Dashboard", "BTMM Dashboard", overlay=true, max_labels_count=50)
+
+// =============================================================================
+// STEVE MAURO BTMM MASTER DASHBOARD
+// Aggregates all BTMM modules into a single overview panel.
+// =============================================================================
+
+import BTMMFoundation as foundation
+
+// -----------------------------------------------------------------------------
+// 1. DASHBOARD SETTINGS
+// -----------------------------------------------------------------------------
+var g_DASH = "Dashboard Settings"
+dashboard_pos      = input.string("Top Left",  "Dashboard Position", options=["Top Left","Top Right","Bottom Left","Bottom Right","Middle Left","Middle Right"], group=g_DASH)
+dashboard_size_opt = input.string("Normal",   "Dashboard Size",     options=["Small","Normal","Large"], group=g_DASH)
+show_market_panel  = input.bool(true, "Market Overview",   group=g_DASH)
+show_setup_panel   = input.bool(true, "Setup Status",      group=g_DASH)
+show_entry_panel   = input.bool(true, "Entry Signals",     group=g_DASH)
+show_risk_panel    = input.bool(true, "Risk Management",   group=g_DASH)
+show_session_panel = input.bool(true, "Session Info",      group=g_DASH)
+
+// -----------------------------------------------------------------------------
+// 2. EXTERNAL DATA SOURCES (all modules feed here)
+// -----------------------------------------------------------------------------
+var g_SRC = "External Data"
+htf_bias_src       = input.source(close,"HTF Bias",group=g_SRC)
+bull_setup_src     = input.source(close,"Bull Setup",group=g_SRC)
+bear_setup_src     = input.source(close,"Bear Setup",group=g_SRC)
+ema_bull_src       = input.source(close,"EMA Bull Stack",group=g_SRC)
+ema_bear_src       = input.source(close,"EMA Bear Stack",group=g_SRC)
+ema_strength_src   = input.source(close,"EMA Strength",group=g_SRC)
+pattern_bull_src   = input.source(close,"Pattern Bull",group=g_SRC)
+pattern_bear_src   = input.source(close,"Pattern Bear",group=g_SRC)
+asian_hi_src       = input.source(high, "Asian High",group=g_SRC)
+asian_lo_src       = input.source(low,  "Asian Low",group=g_SRC)
+asian_brk_b_src    = input.source(close,"Asian Break Bull",group=g_SRC)
+asian_brk_s_src    = input.source(close,"Asian Break Bear",group=g_SRC)
+buy_entry_src      = input.source(close,"Buy Entry",group=g_SRC)
+sell_entry_src     = input.source(close,"Sell Entry",group=g_SRC)
+bull_conf_src      = input.source(close,"Bull Confluence",group=g_SRC)
+bear_conf_src      = input.source(close,"Bear Confluence",group=g_SRC)
+pos_active_src     = input.source(close,"Position Active",group=g_SRC)
+pnl_pips_src       = input.source(close,"PnL pips",group=g_SRC)
+trail_active_src   = input.source(close,"Trailing Active",group=g_SRC)
+stop_bull_src      = input.source(close,"StopHunt Bull",group=g_SRC)
+stop_bear_src      = input.source(close,"StopHunt Bear",group=g_SRC)
+
+// -----------------------------------------------------------------------------
+// 3. STYLE
+// -----------------------------------------------------------------------------
+var g_STY = "Styling"
+alpha        = input.int(10,"Transparency",0,50,group=g_STY)
+col_header   = input.color(color.navy,"Header",group=g_STY)
+col_pos      = input.color(color.green,"Positive",group=g_STY)
+col_neg      = input.color(color.red,  "Negative",group=g_STY)
+col_neu      = input.color(color.gray, "Neutral", group=g_STY)
+col_warn     = input.color(color.orange,"Warning",group=g_STY)
+
+// -----------------------------------------------------------------------------
+// 4. CONTEXT
+// -----------------------------------------------------------------------------
+[asian_sess,london_sess,ny_sess,cur_sess,cycle_day] = foundation.session_and_cycle()
+atr = foundation.atr14()
+[vol_spk,,vol_ratio] = foundation.volume_analysis()
+
+// -----------------------------------------------------------------------------
+// 5. HELPER MAPPINGS
+// -----------------------------------------------------------------------------
+get_pos(p)=> switch p
+    "Top Left"=>position.top_left
+    "Top Right"=>position.top_right
+    "Bottom Left"=>position.bottom_left
+    "Bottom Right"=>position.bottom_right
+    "Middle Left"=>position.middle_left
+    "Middle Right"=>position.middle_right
+    =>position.top_left
+
+txt_size()=> dashboard_size_opt=="Small"?size.tiny: dashboard_size_opt=="Large"?size.normal: size.small
+
+pos_tbl = get_pos(dashboard_pos)
+size_txt= txt_size()
+
+// -----------------------------------------------------------------------------
+// 6. DATA DERIVED FIELDS
+// -----------------------------------------------------------------------------
+htf_bias = htf_bias_src
+bull_setup = bull_setup_src>0
+bear_setup = bear_setup_src>0
+ema_bull   = ema_bull_src>0
+ema_bear   = ema_bear_src>0
+ema_strength = ema_strength_src
+pattern_bull = pattern_bull_src>0
+pattern_bear = pattern_bear_src>0
+asian_rng_sz = (not na(asian_hi_src) and not na(asian_lo_src))? (asian_hi_src-asian_lo_src)*10000: na
+asian_brk_b  = asian_brk_b_src>0
+asian_brk_s  = asian_brk_s_src>0
+buy_sig  = buy_entry_src>0
+sell_sig = sell_entry_src>0
+bull_conf = bull_conf_src
+bear_conf = bear_conf_src
+pos_active = pos_active_src>0
+pnl_pips = pnl_pips_src
+trail_on = trail_active_src>0
+stoph_bull = stop_bull_src>0
+stoph_bear = stop_bear_src>0
+
+market_cond = ema_bull?"BULLISH": ema_bear?"BEARISH":"RANGE"
+col_market  = ema_bull?col_pos: ema_bear?col_neg: col_neu
+bias_dir    = htf_bias>0.2?"BULL" : htf_bias<-0.2?"BEAR":"NEUTRAL"
+col_bias    = htf_bias>0.2?col_pos: htf_bias<-0.2?col_neg: col_neu
+setup_type  = bull_setup?"BULL": bear_setup?"BEAR":"NONE"
+col_setup   = bull_setup?col_pos: bear_setup?col_neg: col_neu
+entry_type  = buy_sig?"BUY": sell_sig?"SELL":"NONE"
+col_entry   = buy_sig?col_pos: sell_sig?col_neg: col_neu
+conf_type   = bull_conf>=4?"BULL "+str.tostring(bull_conf): bear_conf>=4?"BEAR "+str.tostring(bear_conf):"LOW"
+col_conf    = bull_conf>=4?col_pos: bear_conf>=4?col_neg: col_neu
+stop_type   = stoph_bull?"BULL": stoph_bear?"BEAR":"NONE"
+col_stop    = stoph_bull?col_pos: stoph_bear?col_neg: col_neu
+risk_status = pos_active? (pnl_pips>0?"PROFIT":"DRAW") : "NO POS"
+col_risk    = pos_active? (pnl_pips>0?col_pos:col_neg): col_neu
+
+// -----------------------------------------------------------------------------
+// 7. BUILD DASHBOARD
+// -----------------------------------------------------------------------------
+if barstate.islast
+    var table dash = table.new(pos_tbl,2,20,bgcolor=color.new(color.white,alpha),border_width=1)
+    table.cell(dash,0,0,"BTMM DASHBOARD",text_color=color.white,bgcolor=col_header,text_size=size_txt)
+    table.cell(dash,1,0,timeframe.period+" • "+syminfo.ticker,text_color=color.white,bgcolor=col_header,text_size=size_txt)
+
+    r=1
+    cell(label,val,col)=>{
+        table.cell(dash,0,r,label,text_size=size_txt)
+        table.cell(dash,1,r,val,bgcolor=col,text_color=color.white,text_size=size_txt)
+        r:=r+1
+    }
+
+    if show_market_panel
+        cell("Market",market_cond,col_market)
+        cell("HTF Bias",bias_dir+" "+str.tostring(math.abs(htf_bias),"#.##"),col_bias)
+        cell("EMA Stack",ema_bull?"BULL "+str.tostring(ema_strength,"#")+"%": ema_bear?"BEAR "+str.tostring(ema_strength,"#")+"%":"MIXED",col_market)
+    if show_setup_panel
+        cell("Setup",setup_type,col_setup)
+        cell("Pattern",pattern_bull?"BULL": pattern_bear?"BEAR":"NONE", pattern_bull?col_pos:pattern_bear?col_neg:col_neu)
+        if not na(asian_rng_sz)
+            rng_col = asian_brk_b?col_pos: asian_brk_s?col_neg: col_neu
+            cell("AsianRange",str.tostring(asian_rng_sz,"#.#")+"p",rng_col)
+    if show_entry_panel
+        cell("Entry",entry_type,col_entry)
+        cell("Confluence",conf_type,col_conf)
+        cell("StopHunt",stop_type,col_stop)
+    if show_risk_panel
+        cell("Position",risk_status,col_risk)
+        if pos_active
+            cell("PnL", (pnl_pips>0?"+":"")+str.tostring(pnl_pips,"#.#")+"p", col_risk)
+            cell("Trail",trail_on?"ON":"OFF", trail_on?col_pos:col_neu)
+    if show_session_panel
+        sess_col = london_sess?col_pos: ny_sess?color.blue: asian_sess?col_warn: col_neu
+        cell("Session",cur_sess,sess_col)
+        cyc_col = cycle_day==1?color.blue:cycle_day==2?col_warn:color.purple
+        cell("Cycle","Day "+str.tostring(cycle_day),cyc_col)
+        cell("Volume",str.tostring(vol_ratio,"#.#")+"x",vol_spk?col_pos:col_neu)
+
+// Backgrounds
+bgcolor(london_sess?color.new(col_pos,98):na)
+bgcolor(ny_sess?color.new(color.blue,98):na)
+bgcolor(asian_sess?color.new(col_warn,98):na) 

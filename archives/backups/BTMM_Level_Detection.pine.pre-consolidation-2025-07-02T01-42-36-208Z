@@ -1,0 +1,426 @@
+//@version=5
+indicator("BTMM Level Detection", "BTMM Levels", overlay=true, max_labels_count=100, max_lines_count=200)
+
+// ============================================================================
+// STEVE MAURO BTMM LEVEL IDENTIFICATION SYSTEM
+// Based on: 2.5-5 days Drop/Rise, 1x ADR levels, Blue Box Stacking, EMA Crosses
+// ============================================================================
+
+import BTMMFoundation as foundation
+
+// ============================================================================
+// SETTINGS GROUPS
+// ============================================================================
+var g_DETECTION = "Level Detection Settings"
+enable_level_detection = input.bool(true, "Enable Level Detection", group=g_DETECTION)
+min_movement_days      = input.float(2.5, "Min Movement Days", 2.0, 7.0, 0.5, group=g_DETECTION)
+max_movement_days      = input.float(5.0, "Max Movement Days", 3.0, 10.0, 0.5, group=g_DETECTION)
+adr_multiplier         = input.float(1.0, "ADR Multiplier per Level", 0.5, 2.0, 0.1, group=g_DETECTION)
+require_blue_box       = input.bool(true, "Require Asian Consolidation", group=g_DETECTION)
+
+var g_EMA_LEVELS = "EMA Cross Level Settings"
+enable_level1_ema     = input.bool(true, "Level 1: EMA 13/50 Cross", group=g_EMA_LEVELS)
+enable_level2_ema     = input.bool(true, "Level 2: EMA 50/200 Cross", group=g_EMA_LEVELS)
+enable_level3_ema     = input.bool(true, "Level 3: EMA 50/800 or 200/800", group=g_EMA_LEVELS)
+enable_ema_fan_out    = input.bool(true, "Level 3: EMA All Fanned Out", group=g_EMA_LEVELS)
+fan_out_threshold     = input.float(2.0, "EMA Fan Out Threshold %", 1.0, 5.0, 0.1, group=g_EMA_LEVELS)
+
+var g_ASIAN = "Asian Session (Blue Box) Settings"
+asian_consolidation_hours = input.int(4, "Min Asian Consolidation Hours", 2, 8, group=g_ASIAN)
+max_asian_range_atr   = input.float(0.8, "Max Asian Range (ATR)", 0.3, 1.5, 0.1, group=g_ASIAN)
+require_breakout      = input.bool(true, "Require Asian Range Breakout", group=g_ASIAN)
+
+var g_VALIDATION = "Level Validation"
+require_volume_spike  = input.bool(true, "Require Volume Confirmation", group=g_VALIDATION)
+volume_threshold      = input.float(1.5, "Volume Spike Threshold", 1.1, 3.0, 0.1, group=g_VALIDATION)
+min_level_separation  = input.float(1.0, "Min Level Separation (ATR)", 0.5, 3.0, 0.1, group=g_VALIDATION)
+
+var g_VISUAL = "Visual Settings"
+level1_color = input.color(color.blue, "Level 1 Color", group=g_VISUAL)
+level2_color = input.color(color.orange, "Level 2 Color", group=g_VISUAL)
+level3_color = input.color(color.red, "Level 3 Color", group=g_VISUAL)
+asian_box_color = input.color(color.new(color.aqua, 80), "Asian Box Color", group=g_VISUAL)
+show_level_labels = input.bool(true, "Show Level Labels", group=g_VISUAL)
+show_asian_boxes = input.bool(true, "Show Asian Consolidation Boxes", group=g_VISUAL)
+extend_levels = input.bool(true, "Extend Levels to Right", group=g_VISUAL)
+
+var g_ALERTS = "Alert Settings"
+alert_on_level_formation = input.bool(true, "Alert on Level Formation", group=g_ALERTS)
+alert_on_level_test = input.bool(true, "Alert on Level Test", group=g_ALERTS)
+alert_on_level_break = input.bool(true, "Alert on Level Break", group=g_ALERTS)
+
+// ============================================================================
+// CONTEXT & MARKET DATA
+// ============================================================================
+[asian_session, london_session, ny_session, current_session, cycle_day] = foundation.session_and_cycle()
+[is_htf, is_exec, is_early, is_optimal] = foundation.timeframe_classification()
+
+atr = foundation.atr14()
+avg_volume = ta.sma(volume, 20)
+[volume_spike, volume_strength, volume_ratio] = foundation.volume_analysis()
+
+// ============================================================================
+// EMA CALCULATIONS
+// ============================================================================
+ema13 = ta.ema(close, 13)
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+ema800 = ta.ema(close, 800)
+
+[bull_stack, bear_stack, mixed_stack, stack_strength, stack_status] = foundation.ema_stack_analysis(ema13, ema50, ema200, ema800)
+
+// ============================================================================
+// ADR CALCULATION (Average Daily Range)
+// ============================================================================
+calculate_adr() =>
+    // Calculate ADR based on last 20 trading days
+    var float daily_ranges = array.new<float>()
+    
+    // Check if we're at the start of a new day (5 PM EST)
+    new_day = not na(time) and (hour == 17 and minute == 0) and (hour[1] != 17 or minute[1] != 0)
+    
+    if new_day or barstate.isfirst
+        // Calculate yesterday's range
+        daily_high = request.security(syminfo.tickerid, "1D", high[1])
+        daily_low = request.security(syminfo.tickerid, "1D", low[1])
+        if not na(daily_high) and not na(daily_low)
+            daily_range = daily_high - daily_low
+            array.push(daily_ranges, daily_range)
+            
+            // Keep only last 20 days
+            if array.size(daily_ranges) > 20
+                array.shift(daily_ranges)
+    
+    // Calculate average
+    adr_value = array.size(daily_ranges) > 0 ? array.avg(daily_ranges) : atr * 24
+    adr_value
+
+adr = calculate_adr()
+
+// ============================================================================
+// ASIAN SESSION CONSOLIDATION DETECTION (Blue Box Stacking)
+// ============================================================================
+detect_asian_consolidation() =>
+    var float asian_high = na
+    var float asian_low = na
+    var int asian_start_time = na
+    var box asian_box = na
+    
+    // Track Asian session range
+    if asian_session and not asian_session[1]
+        // Asian session starting
+        asian_high := high
+        asian_low := low
+        asian_start_time := time
+        
+        // Delete previous box
+        if not na(asian_box)
+            box.delete(asian_box)
+    
+    if asian_session
+        // Update range during Asian session
+        asian_high := math.max(nz(asian_high), high)
+        asian_low := math.min(nz(asian_low), low)
+    
+    if not asian_session and asian_session[1]
+        // Asian session ended, create box if valid consolidation
+        asian_range = asian_high - asian_low
+        session_duration = (time - asian_start_time) / (1000 * 60 * 60) // Convert to hours
+        
+        is_consolidation = asian_range <= (atr * max_asian_range_atr) and 
+                          session_duration >= asian_consolidation_hours
+        
+        if is_consolidation and show_asian_boxes
+            asian_box := box.new(asian_start_time, asian_high, time, asian_low, 
+                               border_color=asian_box_color, bgcolor=asian_box_color,
+                               border_width=1, extend=extend.none)
+    
+    // Return consolidation data
+    consolidation_valid = not na(asian_high) and not na(asian_low) and 
+                         (asian_high - asian_low) <= (atr * max_asian_range_atr)
+    
+    [asian_high, asian_low, consolidation_valid]
+
+[asian_high, asian_low, asian_consolidation_valid] = detect_asian_consolidation()
+
+// ============================================================================
+// MOVEMENT PERIOD DETECTION (2.5-5 Days Drop/Rise)
+// ============================================================================
+detect_movement_period() =>
+    // Convert days to bars (approximate)
+    min_bars = math.round(min_movement_days * 24 * 60 / (timeframe.in_seconds() / 60))
+    max_bars = math.round(max_movement_days * 24 * 60 / (timeframe.in_seconds() / 60))
+    
+    // Look for significant price movement over the specified period
+    var float movement_start_price = na
+    var int movement_start_bar = na
+    var string movement_direction = ""
+    
+    // Calculate recent movement
+    recent_high = ta.highest(high, max_bars)
+    recent_low = ta.lowest(low, max_bars)
+    total_range = recent_high - recent_low
+    
+    // Determine if we have sufficient movement (should be at least 2-3x ADR)
+    sufficient_movement = total_range >= (adr * adr_multiplier * 2)
+    
+    // Determine direction
+    current_position = (close - recent_low) / (recent_high - recent_low)
+    
+    bullish_movement = current_position <= 0.2 and sufficient_movement  // Near recent lows after rise
+    bearish_movement = current_position >= 0.8 and sufficient_movement  // Near recent highs after drop
+    
+    movement_detected = bullish_movement or bearish_movement
+    movement_type = bullish_movement ? "BULLISH_LEVEL" : bearish_movement ? "BEARISH_LEVEL" : "NONE"
+    
+    [movement_detected, movement_type, total_range, recent_high, recent_low]
+
+[movement_detected, movement_type, movement_range, recent_high, recent_low] = detect_movement_period()
+
+// ============================================================================
+// EMA CROSS LEVEL DETECTION
+// ============================================================================
+detect_ema_levels() =>
+    // Level 1: EMA 13/50 Cross
+    level1_bull_cross = enable_level1_ema and ta.crossover(ema13, ema50)
+    level1_bear_cross = enable_level1_ema and ta.crossunder(ema13, ema50)
+    
+    // Level 2: EMA 50/200 Cross
+    level2_bull_cross = enable_level2_ema and ta.crossover(ema50, ema200)
+    level2_bear_cross = enable_level2_ema and ta.crossunder(ema50, ema200)
+    
+    // Level 3: EMA 50/800 or 200/800 Cross
+    level3_cross_5080 = enable_level3_ema and (ta.crossover(ema50, ema800) or ta.crossunder(ema50, ema800))
+    level3_cross_20080 = enable_level3_ema and (ta.crossover(ema200, ema800) or ta.crossunder(ema200, ema800))
+    
+    // Level 3: EMA All Fanned Out
+    ema_spread_percent = enable_ema_fan_out ? math.abs(ema13 - ema800) / close * 100 : 0
+    level3_fan_out = enable_ema_fan_out and ema_spread_percent >= fan_out_threshold
+    
+    level3_detected = level3_cross_5080 or level3_cross_20080 or level3_fan_out
+    
+    [level1_bull_cross, level1_bear_cross, level2_bull_cross, level2_bear_cross, level3_detected]
+
+[level1_bull, level1_bear, level2_bull, level2_bear, level3_detected] = detect_ema_levels()
+
+// ============================================================================
+// LEVEL FORMATION LOGIC
+// ============================================================================
+form_levels() =>
+    // Check all conditions for level formation
+    volume_ok = not require_volume_spike or (volume_spike and volume_ratio >= volume_threshold)
+    asian_ok = not require_blue_box or asian_consolidation_valid
+    breakout_ok = not require_breakout or (not na(asian_high) and not na(asian_low) and 
+                                          (high > asian_high or low < asian_low))
+    
+    base_conditions = enable_level_detection and movement_detected and volume_ok and asian_ok and breakout_ok
+    
+    // Level 1 Formation
+    level1_formation = base_conditions and (level1_bull or level1_bear)
+    level1_price = level1_formation ? close : na
+    
+    // Level 2 Formation  
+    level2_formation = base_conditions and (level2_bull or level2_bear)
+    level2_price = level2_formation ? close : na
+    
+    // Level 3 Formation
+    level3_formation = base_conditions and level3_detected
+    level3_price = level3_formation ? close : na
+    
+    [level1_formation, level1_price, level2_formation, level2_price, level3_formation, level3_price]
+
+[level1_formed, level1_price, level2_formed, level2_price, level3_formed, level3_price] = form_levels()
+
+// ============================================================================
+// LEVEL STORAGE AND MANAGEMENT
+// ============================================================================
+var array<float> level1_prices = array.new<float>()
+var array<int> level1_bars = array.new<int>()
+var array<line> level1_lines = array.new<line>()
+
+var array<float> level2_prices = array.new<float>()
+var array<int> level2_bars = array.new<int>()
+var array<line> level2_lines = array.new<line>()
+
+var array<float> level3_prices = array.new<float>()
+var array<int> level3_bars = array.new<int>()
+var array<line> level3_lines = array.new<line>()
+
+// Add new levels
+if level1_formed and not na(level1_price)
+    array.push(level1_prices, level1_price)
+    array.push(level1_bars, bar_index)
+    
+    // Create level line
+    level_line = line.new(bar_index, level1_price, bar_index + 50, level1_price,
+                         color=level1_color, width=2, style=line.style_solid,
+                         extend=extend_levels ? extend.right : extend.none)
+    array.push(level1_lines, level_line)
+    
+    // Level label
+    if show_level_labels
+        label.new(bar_index, level1_price, "L1: " + str.tostring(level1_price, "#.####") + "\n13/50 Cross",
+                 style=label.style_label_left, color=level1_color, textcolor=color.white, size=size.small)
+
+if level2_formed and not na(level2_price)
+    array.push(level2_prices, level2_price)
+    array.push(level2_bars, bar_index)
+    
+    // Create level line
+    level_line = line.new(bar_index, level2_price, bar_index + 50, level2_price,
+                         color=level2_color, width=2, style=line.style_solid,
+                         extend=extend_levels ? extend.right : extend.none)
+    array.push(level2_lines, level_line)
+    
+    // Level label
+    if show_level_labels
+        label.new(bar_index, level2_price, "L2: " + str.tostring(level2_price, "#.####") + "\n50/200 Cross",
+                 style=label.style_label_left, color=level2_color, textcolor=color.white, size=size.small)
+
+if level3_formed and not na(level3_price)
+    array.push(level3_prices, level3_price)
+    array.push(level3_bars, bar_index)
+    
+    // Create level line
+    level_line = line.new(bar_index, level3_price, bar_index + 50, level3_price,
+                         color=level3_color, width=2, style=line.style_solid,
+                         extend=extend_levels ? extend.right : extend.none)
+    array.push(level3_lines, level_line)
+    
+    // Level label
+    if show_level_labels
+        label.new(bar_index, level3_price, "L3: " + str.tostring(level3_price, "#.####") + "\nMajor Cross/Fan",
+                 style=label.style_label_left, color=level3_color, textcolor=color.white, size=size.small)
+
+// ============================================================================
+// LEVEL TESTING AND BREAK DETECTION
+// ============================================================================
+test_levels() =>
+    var bool level1_tested = false
+    var bool level2_tested = false  
+    var bool level3_tested = false
+    var bool level1_broken = false
+    var bool level2_broken = false
+    var bool level3_broken = false
+    
+    test_tolerance = atr * 0.1  // 10% of ATR for level testing
+    break_tolerance = atr * 0.2  // 20% of ATR for confirmed breaks
+    
+    // Test Level 1
+    if array.size(level1_prices) > 0
+        last_l1_price = array.get(level1_prices, array.size(level1_prices) - 1)
+        level1_tested := math.abs(close - last_l1_price) <= test_tolerance
+        level1_broken := math.abs(close - last_l1_price) > break_tolerance
+    
+    // Test Level 2
+    if array.size(level2_prices) > 0
+        last_l2_price = array.get(level2_prices, array.size(level2_prices) - 1)
+        level2_tested := math.abs(close - last_l2_price) <= test_tolerance
+        level2_broken := math.abs(close - last_l2_price) > break_tolerance
+    
+    // Test Level 3
+    if array.size(level3_prices) > 0
+        last_l3_price = array.get(level3_prices, array.size(level3_prices) - 1)
+        level3_tested := math.abs(close - last_l3_price) <= test_tolerance
+        level3_broken := math.abs(close - last_l3_price) > break_tolerance
+    
+    [level1_tested, level2_tested, level3_tested, level1_broken, level2_broken, level3_broken]
+
+[l1_tested, l2_tested, l3_tested, l1_broken, l2_broken, l3_broken] = test_levels()
+
+// ============================================================================
+// VISUAL INDICATORS
+// ============================================================================
+// Plot EMAs for reference
+plot(ema13, "EMA 13", color.red, 1)
+plot(ema50, "EMA 50", color.aqua, 2)
+plot(ema200, "EMA 200", color.white, 2)
+plot(ema800, "EMA 800", color.gray, 1)
+
+// Mark level formations
+plotshape(level1_formed, "Level 1", shape.diamond, location.belowbar, level1_color, size=size.small)
+plotshape(level2_formed, "Level 2", shape.diamond, location.belowbar, level2_color, size=size.normal)
+plotshape(level3_formed, "Level 3", shape.diamond, location.belowbar, level3_color, size=size.large)
+
+// Mark level tests and breaks
+plotchar(l1_tested, "L1 Test", "1", location.abovebar, color.new(level1_color, 50), size=size.tiny)
+plotchar(l2_tested, "L2 Test", "2", location.abovebar, color.new(level2_color, 50), size=size.tiny)
+plotchar(l3_tested, "L3 Test", "3", location.abovebar, color.new(level3_color, 50), size=size.tiny)
+
+plotchar(l1_broken, "L1 Break", "✗", location.abovebar, level1_color, size=size.small)
+plotchar(l2_broken, "L2 Break", "✗", location.abovebar, level2_color, size=size.small)
+plotchar(l3_broken, "L3 Break", "✗", location.abovebar, level3_color, size=size.small)
+
+// Session backgrounds
+bgcolor(asian_session ? color.new(color.aqua, 95) : na)
+bgcolor(london_session ? color.new(color.green, 95) : na)
+bgcolor(ny_session ? color.new(color.blue, 95) : na)
+
+// ============================================================================
+// INFORMATION DASHBOARD
+// ============================================================================
+if barstate.islast
+    var table info_table = table.new(position.top_left, 2, 8, bgcolor=color.white, border_width=1)
+    
+    table.cell(info_table, 0, 0, "BTMM LEVELS", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    table.cell(info_table, 1, 0, timeframe.period, text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    
+    // Movement analysis
+    movement_status = movement_detected ? (movement_type == "BULLISH_LEVEL" ? "BULLISH" : "BEARISH") : "NONE"
+    movement_color = movement_detected ? (movement_type == "BULLISH_LEVEL" ? color.green : color.red) : color.gray
+    table.cell(info_table, 0, 1, "Movement", text_size=size.tiny)
+    table.cell(info_table, 1, 1, movement_status, bgcolor=movement_color, text_color=color.white, text_size=size.tiny)
+    
+    // ADR info
+    table.cell(info_table, 0, 2, "ADR", text_size=size.tiny)
+    table.cell(info_table, 1, 2, str.tostring(adr, "#.####"), text_size=size.tiny)
+    
+    // Asian consolidation
+    asian_status = asian_consolidation_valid ? "VALID" : "INVALID"
+    asian_color = asian_consolidation_valid ? color.green : color.red
+    table.cell(info_table, 0, 3, "Asian Box", text_size=size.tiny)
+    table.cell(info_table, 1, 3, asian_status, bgcolor=asian_color, text_color=color.white, text_size=size.tiny)
+    
+    // Level counts
+    table.cell(info_table, 0, 4, "L1 Count", text_size=size.tiny)
+    table.cell(info_table, 1, 4, str.tostring(array.size(level1_prices)), text_size=size.tiny)
+    
+    table.cell(info_table, 0, 5, "L2 Count", text_size=size.tiny)
+    table.cell(info_table, 1, 5, str.tostring(array.size(level2_prices)), text_size=size.tiny)
+    
+    table.cell(info_table, 0, 6, "L3 Count", text_size=size.tiny)
+    table.cell(info_table, 1, 6, str.tostring(array.size(level3_prices)), text_size=size.tiny)
+    
+    // EMA Fan Out
+    ema_spread = math.abs(ema13 - ema800) / close * 100
+    fan_status = ema_spread >= fan_out_threshold ? "FANNED" : "NORMAL"
+    fan_color = ema_spread >= fan_out_threshold ? color.orange : color.gray
+    table.cell(info_table, 0, 7, "EMA Fan", text_size=size.tiny)
+    table.cell(info_table, 1, 7, fan_status + " " + str.tostring(ema_spread, "#.#") + "%", 
+              bgcolor=fan_color, text_color=color.white, text_size=size.tiny)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS
+// ============================================================================
+plot(level1_formed ? 1 : 0, "Level1_Formation", display=display.data_window)
+plot(level2_formed ? 1 : 0, "Level2_Formation", display=display.data_window)
+plot(level3_formed ? 1 : 0, "Level3_Formation", display=display.data_window)
+plot(l1_tested ? 1 : 0, "Level1_Test", display=display.data_window)
+plot(l2_tested ? 1 : 0, "Level2_Test", display=display.data_window)
+plot(l3_tested ? 1 : 0, "Level3_Test", display=display.data_window)
+plot(l1_broken ? 1 : 0, "Level1_Break", display=display.data_window)
+plot(l2_broken ? 1 : 0, "Level2_Break", display=display.data_window)
+plot(l3_broken ? 1 : 0, "Level3_Break", display=display.data_window)
+plot(movement_detected ? 1 : 0, "Movement_Period", display=display.data_window)
+plot(asian_consolidation_valid ? 1 : 0, "Asian_Consolidation", display=display.data_window)
+plot(adr, "ADR_Value", display=display.data_window)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+alertcondition(level1_formed, "Level 1 Formation", "BTMM Level 1 formation detected (EMA 13/50 cross)")
+alertcondition(level2_formed, "Level 2 Formation", "BTMM Level 2 formation detected (EMA 50/200 cross)")
+alertcondition(level3_formed, "Level 3 Formation", "BTMM Level 3 formation detected (Major EMA cross/fan)")
+alertcondition(l1_tested or l2_tested or l3_tested, "Level Test", "BTMM Level being tested")
+alertcondition(l1_broken or l2_broken or l3_broken, "Level Break", "BTMM Level broken")
+alertcondition(asian_consolidation_valid, "Asian Consolidation", "Asian session consolidation (Blue Box) detected") 

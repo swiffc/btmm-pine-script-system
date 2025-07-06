@@ -1,0 +1,362 @@
+//@version=5
+indicator("BTMM EMA & Asian Range System", "EMA + Asian", overlay=true, max_labels_count=100, max_lines_count=50)
+
+// ============================================================================
+// IMPORTS
+// ============================================================================
+import BTMMFoundation as foundation
+
+// ============================================================================
+// SETTINGS – EMAs
+// ============================================================================
+var g_EMA = "Steve Mauro EMAs"
+show_signal_emas = input.bool(true, "Signal EMAs (5,13)", group=g_EMA)
+show_balance_ema = input.bool(true, "Balance EMA (50)", group=g_EMA)
+show_home_ema    = input.bool(true, "Home Base EMA (200)", group=g_EMA)
+show_trend_ema   = input.bool(true, "Trend EMA (800)", group=g_EMA)
+
+var g_EMA_ANALYSIS = "EMA Analysis"
+show_ema_stack   = input.bool(true,  "Show EMA Stack Status", group=g_EMA_ANALYSIS)
+show_ema_touches = input.bool(true,  "Mark EMA Touches",      group=g_EMA_ANALYSIS)
+touch_threshold  = input.float(0.5,  "Touch Threshold (ATR)", minval=0.1, maxval=2.0, group=g_EMA_ANALYSIS)
+show_crossovers  = input.bool(true,  "Show Key Crossovers",   group=g_EMA_ANALYSIS)
+
+// EMA Visuals
+var g_EMA_STYLE = "EMA Visual Settings"
+ema5_color   = input.color(color.yellow, "EMA 5 Color",   group=g_EMA_STYLE)
+ema13_color  = input.color(color.red,    "EMA 13 Color",  group=g_EMA_STYLE)
+ema50_color  = input.color(color.aqua,   "EMA 50 Color",  group=g_EMA_STYLE)
+ema200_color = input.color(color.white,  "EMA 200 Color", group=g_EMA_STYLE)
+ema800_color = input.color(color.blue,   "EMA 800 Color", group=g_EMA_STYLE)
+
+// ============================================================================
+// SETTINGS – ASIAN RANGE
+// ============================================================================
+var g_RANGE = "Asian Range Settings"
+show_asian_range = input.bool(true, "Show Asian Range",  group=g_RANGE)
+extend_lines     = input.bool(true, "Extend Range Lines", group=g_RANGE)
+show_breakouts   = input.bool(true, "Show Breakout Signals", group=g_RANGE)
+max_ranges       = input.int(3, "Max Ranges to Display", minval=1, maxval=10, group=g_RANGE)
+
+var g_RANGE_VALIDATION = "Range Validation"
+min_range_pips      = input.float(10.0, "Minimum Range Size (pips)", minval=5.0, maxval=100.0, group=g_RANGE_VALIDATION)
+require_clean_range = input.bool(true,  "Require Clean Range (No Major Wicks)", group=g_RANGE_VALIDATION)
+wick_tolerance      = input.float(0.3,  "Wick Tolerance (ATR)", minval=0.1, maxval=1.0, group=g_RANGE_VALIDATION)
+
+var g_BREAKOUT = "Breakout Detection"
+breakout_confirmation = input.bool(true, "Require Breakout Confirmation", group=g_BREAKOUT)
+confirmation_pips     = input.float(5.0, "Confirmation Distance (pips)",  minval=1.0, maxval=20.0, group=g_BREAKOUT)
+volume_confirmation   = input.bool(true, "Require Volume Spike",         group=g_BREAKOUT)
+volume_threshold      = input.float(1.5, "Volume Spike Threshold", minval=1.1, maxval=3.0, group=g_BREAKOUT)
+
+// Range Visuals
+var g_RANGE_STYLE = "Range Visual Settings"
+range_line_color    = input.color(color.yellow,                    "Range Line Color",      group=g_RANGE_STYLE)
+range_line_width    = input.int(2,   "Range Line Width",  minval=1, maxval=5, group=g_RANGE_STYLE)
+bull_breakout_color = input.color(color.lime,                      "Bullish Breakout Color", group=g_RANGE_STYLE)
+bear_breakout_color = input.color(color.red,                       "Bearish Breakout Color", group=g_RANGE_STYLE)
+range_box_color     = input.color(color.new(color.yellow, 95),     "Range Box Color",       group=g_RANGE_STYLE)
+
+// ============================================================================
+// DISPLAY CONTROL
+// ============================================================================
+var g_DISPLAY = "Display Control"
+auto_hide  = input.bool(true,  "Auto-Hide History ≤5M", group=g_DISPLAY)
+manual_hide = input.bool(false, "Manual Hide History",   group=g_DISPLAY)
+
+// ============================================================================
+// CONTEXT
+// ============================================================================
+[should_hide, is_current_day] = foundation.current_day_filter(auto_hide, manual_hide)
+[asian_session, london_session, ny_session, current_session, cycle_day] = foundation.session_and_cycle()
+
+atr = ta.atr(14)
+avg_volume = ta.sma(volume, 20)
+
+// ============================================================================
+// EMA CALCULATIONS
+// ============================================================================
+ema5   = ta.ema(close, 5)
+ema13  = ta.ema(close, 13)
+ema50  = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+ema800 = ta.ema(close, 800)
+
+// EMA stack analysis using foundation utility
+[bull_stack, bear_stack, mixed_stack, stack_strength, stack_status] = foundation.ema_stack_analysis(ema5, ema13, ema50, ema200, ema800)
+
+// EMA Touch Detection
+ema13_touch = math.abs(close - ema13) <= (atr * touch_threshold)
+ema50_touch = math.abs(close - ema50) <= (atr * touch_threshold)
+ema200_touch = math.abs(close - ema200) <= (atr * touch_threshold)
+ema800_touch = math.abs(close - ema800) <= (atr * touch_threshold)
+
+// Key Crossovers
+ema5_cross_13_bull  = ta.crossover(ema5,  ema13)
+ema5_cross_13_bear  = ta.crossunder(ema5, ema13)
+price_cross_13_bull = ta.crossover(close, ema13)
+price_cross_13_bear = ta.crossunder(close, ema13)
+price_cross_50_bull = ta.crossover(close, ema50)
+price_cross_50_bear = ta.crossunder(close, ema50)
+price_cross_200_bull= ta.crossover(close, ema200)
+price_cross_200_bear= ta.crossunder(close, ema200)
+
+// EMA Cloud (area between EMA13 and EMA50)
+ema_cloud_color = bull_stack ? color.new(color.green, 90) : bear_stack ? color.new(color.red, 90) : color.new(color.gray, 95)
+
+// ============================================================================
+// ASIAN RANGE TRACKING ARRAYS
+// ============================================================================
+var array<float> asian_highs       = array.new<float>()
+var array<float> asian_lows        = array.new<float>()
+var array<int>   range_start_times = array.new<int>()
+var array<int>   range_end_times   = array.new<int>()
+var array<line>  high_lines        = array.new<line>()
+var array<line>  low_lines         = array.new<line>()
+var array<box>   range_boxes       = array.new<box>()
+
+var float current_asian_high = na
+var float current_asian_low  = na
+var int   asian_start_bar    = na
+var bool  range_broken_up    = false
+var bool  range_broken_down  = false
+
+// ============================================================================
+// ASIAN SESSION RANGE BUILDING
+// ============================================================================
+if asian_session and not asian_session[1]
+    current_asian_high := high
+    current_asian_low  := low
+    asian_start_bar    := bar_index
+    range_broken_up    := false
+    range_broken_down  := false
+
+if asian_session
+    current_asian_high := math.max(nz(current_asian_high), high)
+    current_asian_low  := math.min(nz(current_asian_low), low)
+
+// ============================================================================
+// ASIAN SESSION RANGE COMPLETION
+// ============================================================================
+if not asian_session and asian_session[1] and not na(current_asian_high) and not na(current_asian_low)
+    range_size_pips = (current_asian_high - current_asian_low) * 10000
+    // Validate range size
+    valid_range = range_size_pips >= min_range_pips
+    // Clean range validation
+    if require_clean_range and valid_range
+        clean = true
+        for i = 1 to bar_index - asian_start_bar
+            if high[i] > current_asian_high + (atr * wick_tolerance) or low[i] < current_asian_low - (atr * wick_tolerance)
+                clean := false
+                break
+        valid_range := valid_range and clean
+
+    if valid_range and show_asian_range and is_current_day
+        // Maintain max_ranges
+        while array.size(asian_highs) >= max_ranges
+            line.delete(array.shift(high_lines))
+            line.delete(array.shift(low_lines))
+            box.delete(array.shift(range_boxes))
+            array.shift(asian_highs)
+            array.shift(asian_lows)
+            array.shift(range_start_times)
+            array.shift(range_end_times)
+
+        // Store new range
+        array.push(asian_highs, current_asian_high)
+        array.push(asian_lows, current_asian_low)
+        array.push(range_start_times, asian_start_bar)
+        array.push(range_end_times, bar_index)
+
+        // Draw lines
+        high_line = line.new(asian_start_bar, current_asian_high, extend_lines ? bar_index + 100 : bar_index + 50,
+                             current_asian_high, color=range_line_color, width=range_line_width,
+                             extend=extend_lines ? extend.right : extend.none)
+        low_line  = line.new(asian_start_bar, current_asian_low, extend_lines ? bar_index + 100 : bar_index + 50,
+                             current_asian_low, color=range_line_color, width=range_line_width,
+                             extend=extend_lines ? extend.right : extend.none)
+
+        array.push(high_lines, high_line)
+        array.push(low_lines,  low_line)
+
+        // Draw box
+        range_box = box.new(asian_start_bar, current_asian_high, bar_index, current_asian_low,
+                            bgcolor=range_box_color, border_color=range_line_color, border_width=1)
+        array.push(range_boxes, range_box)
+
+        // Info label
+        label.new(bar_index, current_asian_high + atr * 0.5,
+                  "ASIAN RANGE\n" + str.tostring(range_size_pips, "#.#") + " pips\nDAY " + str.tostring(cycle_day),
+                  style=label.style_label_down, color=color.yellow, textcolor=color.black, size=size.small)
+
+// ============================================================================
+// BREAKOUT DETECTION
+// ============================================================================
+detect_breakout() =>
+    breakout_bull  = false
+    breakout_bear  = false
+    confirmed_bull = false
+    confirmed_bear = false
+
+    if array.size(asian_highs) > 0 and not asian_session
+        latest_high = array.get(asian_highs, array.size(asian_highs) - 1)
+        latest_low  = array.get(asian_lows,  array.size(asian_lows) - 1)
+
+        // Initial breakout
+        if high > latest_high and not range_broken_up
+            breakout_bull := true
+            range_broken_up := true
+        if low < latest_low and not range_broken_down
+            breakout_bear := true
+            range_broken_down := true
+
+        // Confirmation
+        confirm_distance = confirmation_pips * 0.0001
+        if breakout_confirmation
+            confirmed_bull := breakout_bull and close > latest_high + confirm_distance
+            confirmed_bear := breakout_bear and close < latest_low  - confirm_distance
+        else
+            confirmed_bull := breakout_bull
+            confirmed_bear := breakout_bear
+
+        // Volume
+        if volume_confirmation
+            vol_spike = volume > avg_volume * volume_threshold
+            confirmed_bull := confirmed_bull and vol_spike
+            confirmed_bear := confirmed_bear and vol_spike
+
+    [confirmed_bull, confirmed_bear]
+
+[breakout_bull, breakout_bear] = detect_breakout()
+
+// ============================================================================
+// EMA PLOTS
+// ============================================================================
+plot(show_signal_emas and is_current_day ? ema5  : na, "EMA 5",  color=ema5_color,  linewidth=1)
+plot(show_signal_emas and is_current_day ? ema13 : na, "EMA 13", color=ema13_color, linewidth=2)
+plot(show_balance_ema and is_current_day ? ema50 : na, "EMA 50", color=ema50_color, linewidth=2)
+plot(show_home_ema    and is_current_day ? ema200: na, "EMA 200", color=ema200_color,linewidth=3)
+plot(show_trend_ema   and is_current_day ? ema800: na, "EMA 800", color=ema800_color,linewidth=3)
+
+// EMA Cloud fill (13/50)
+fill(plot(show_signal_emas and is_current_day ? ema13 : na, display=display.none),
+     plot(show_balance_ema and is_current_day ? ema50 : na, display=display.none),
+     ema_cloud_color, title="EMA Cloud")
+
+// EMA Touch markers
+if show_ema_touches and is_current_day
+    if ema13_touch
+        label.new(bar_index, ema13, "13", style=label.style_circle, color=ema13_color, size=size.tiny)
+    if ema50_touch
+        label.new(bar_index, ema50, "50", style=label.style_circle, color=ema50_color, size=size.tiny)
+    if ema200_touch
+        label.new(bar_index, ema200, "200", style=label.style_circle, color=ema200_color, size=size.tiny)
+    if ema800_touch
+        label.new(bar_index, ema800, "800", style=label.style_circle, color=ema800_color, size=size.tiny)
+
+// Crossovers
+if show_crossovers and is_current_day
+    if price_cross_13_bull
+        label.new(bar_index, low - atr * 0.5, "↗13", style=label.style_label_up,
+                  color=color.lime, textcolor=color.black, size=size.small)
+    if price_cross_13_bear
+        label.new(bar_index, high + atr * 0.5, "↘13", style=label.style_label_down,
+                  color=color.red,  textcolor=color.white, size=size.small)
+    if price_cross_200_bull
+        label.new(bar_index, low - atr, "↗200", style=label.style_label_up,
+                  color=color.green, textcolor=color.white, size=size.normal)
+    if price_cross_200_bear
+        label.new(bar_index, high + atr, "↘200", style=label.style_label_down,
+                  color=color.maroon, textcolor=color.white, size=size.normal)
+
+// ============================================================================
+// ASIAN BREAKOUT MARKERS
+// ============================================================================
+if show_breakouts and is_current_day
+    if breakout_bull
+        label.new(bar_index, low - atr, "ASIAN HIGH\nBREAKOUT ↗", style=label.style_label_up,
+                  color=bull_breakout_color, textcolor=color.black, size=size.normal)
+    if breakout_bear
+        label.new(bar_index, high + atr, "ASIAN LOW\nBREAKOUT ↘", style=label.style_label_down,
+                  color=bear_breakout_color, textcolor=color.white, size=size.normal)
+
+// ============================================================================
+// DASHBOARDS (TABLES)
+// ============================================================================
+// EMA stack table
+if show_ema_stack and barstate.islast and is_current_day
+    var table ema_table = table.new(position.top_right, 2, 6, bgcolor=color.white, border_width=1)
+    table.cell(ema_table, 0, 0, "EMA STACK", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    table.cell(ema_table, 1, 0, timeframe.period, text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    stack_color = bull_stack ? color.green : bear_stack ? color.red : color.gray
+    table.cell(ema_table, 0, 1, "Status", text_size=size.tiny)
+    table.cell(ema_table, 1, 1, stack_status, bgcolor=stack_color, text_color=color.white, text_size=size.tiny)
+    table.cell(ema_table, 0, 2, "Strength", text_size=size.tiny)
+    table.cell(ema_table, 1, 2, str.tostring(stack_strength, "#.#") + "%", text_size=size.tiny)
+    table.cell(ema_table, 0, 3, "Price vs 13", text_size=size.tiny)
+    price_vs_13 = close > ema13 ? "ABOVE" : "BELOW"
+    price_color = close > ema13 ? color.green : color.red
+    table.cell(ema_table, 1, 3, price_vs_13, bgcolor=price_color, text_color=color.white, text_size=size.tiny)
+    table.cell(ema_table, 0, 4, "Price vs 50", text_size=size.tiny)
+    price_vs_50 = close > ema50 ? "ABOVE" : "BELOW"
+    balance_color = close > ema50 ? color.green : color.red
+    table.cell(ema_table, 1, 4, price_vs_50, bgcolor=balance_color, text_color=color.white, text_size=size.tiny)
+    table.cell(ema_table, 0, 5, "Cycle Day", text_size=size.tiny)
+    cycle_color = cycle_day == 1 ? color.blue : cycle_day == 2 ? color.orange : color.purple
+    table.cell(ema_table, 1, 5, "DAY " + str.tostring(cycle_day), bgcolor=cycle_color, text_color=color.white, text_size=size.tiny)
+
+// Range stats table
+if barstate.islast and is_current_day
+    var table range_table = table.new(position.bottom_right, 2, 6, bgcolor=color.white, border_width=1)
+    table.cell(range_table, 0, 0, "ASIAN RANGE", text_color=color.white, bgcolor=color.orange, text_size=size.small)
+    table.cell(range_table, 1, 0, timeframe.period, text_color=color.white, bgcolor=color.orange, text_size=size.small)
+    active_ranges = array.size(asian_highs)
+    table.cell(range_table, 0, 1, "Active Ranges", text_size=size.tiny)
+    table.cell(range_table, 1, 1, str.tostring(active_ranges), text_size=size.tiny)
+    if active_ranges > 0
+        latest_range_size = (array.get(asian_highs, active_ranges - 1) - array.get(asian_lows, active_ranges - 1)) * 10000
+        table.cell(range_table, 0, 2, "Latest Size", text_size=size.tiny)
+        table.cell(range_table, 1, 2, str.tostring(latest_range_size, "#.#") + " pips", text_size=size.tiny)
+    table.cell(range_table, 0, 3, "Session", text_size=size.tiny)
+    session_color = asian_session ? color.yellow : london_session ? color.green : ny_session ? color.blue : color.gray
+    table.cell(range_table, 1, 3, current_session, bgcolor=session_color, text_color=color.white, text_size=size.tiny)
+    table.cell(range_table, 0, 4, "Cycle Day", text_size=size.tiny)
+    table.cell(range_table, 1, 4, "DAY " + str.tostring(cycle_day), bgcolor=cycle_color, text_color=color.white, text_size=size.tiny)
+    table.cell(range_table, 0, 5, "Breakouts", text_size=size.tiny)
+    breakout_status = range_broken_up ? "HIGH ↗" : range_broken_down ? "LOW ↘" : "NONE"
+    breakout_color  = range_broken_up ? bull_breakout_color : range_broken_down ? bear_breakout_color : color.gray
+    table.cell(range_table, 1, 5, breakout_status, bgcolor=breakout_color, text_color=color.white, text_size=size.tiny)
+
+// ============================================================================
+// BACKGROUNDS
+// ============================================================================
+bgcolor(asian_session ? color.new(color.yellow, 97) : na, title="Asian Session")
+bgcolor(london_session ? color.new(color.green, 97) : na, title="London Session")
+bgcolor(ny_session ? color.new(color.blue, 97)      : na, title="NY Session")
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+alertcondition(price_cross_13_bull and bull_stack, "Bull Signal",      "Price crossed above EMA 13 with bull stack")
+alertcondition(price_cross_13_bear and bear_stack, "Bear Signal",      "Price crossed below EMA 13 with bear stack")
+alertcondition(price_cross_200_bull,               "Major Bull Signal","Price crossed above EMA 200 - Major bullish signal")
+alertcondition(price_cross_200_bear,               "Major Bear Signal","Price crossed below EMA 200 - Major bearish signal")
+alertcondition(breakout_bull,                      "Asian High Breakout","Asian range high broken - Potential bullish move")
+alertcondition(breakout_bear,                      "Asian Low Breakout", "Asian range low broken - Potential bearish move")
+
+// ============================================================================
+// DATA WINDOW OUTPUTS
+// ============================================================================
+plot(bull_stack ? 1 : 0, "Bull_Stack", display=display.data_window)
+plot(bear_stack ? 1 : 0, "Bear_Stack", display=display.data_window)
+plot(stack_strength, "Stack_Strength", display=display.data_window)
+
+plot(array.size(asian_highs) > 0 ? array.get(asian_highs, array.size(asian_highs) - 1) : na,
+     "Asian_High", display=display.data_window)
+plot(array.size(asian_lows) > 0 ? array.get(asian_lows, array.size(asian_lows) - 1) : na,
+     "Asian_Low", display=display.data_window)
+
+plot(breakout_bull ? 1 : 0, "Breakout_Bull", display=display.data_window)
+plot(breakout_bear ? 1 : 0, "Breakout_Bear", display=display.data_window)
+plot(range_broken_up ? 1 : 0, "Range_Broken_Up", display=display.data_window)
+plot(range_broken_down ? 1 : 0, "Range_Broken_Down", display=display.data_window)

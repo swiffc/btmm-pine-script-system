@@ -1,0 +1,362 @@
+//@version=5
+indicator("BTMM Advanced Market Maker Patterns", "BTMM Advanced", overlay=true, max_labels_count=100, max_lines_count=100)
+
+// ============================================================================
+// STEVE MAURO BTMM ADVANCED PATTERN SYSTEM
+// Based on Market Maker Cycle Diagram - Level 1, 2, 3 Patterns
+// ============================================================================
+
+import BTMMFoundation as foundation
+
+// ============================================================================
+// SETTINGS GROUPS
+// ============================================================================
+var g_ENTRY = "Entry Trigger Patterns"
+enable_railroad_tracks  = input.bool(true, "Railroad Tracks",           group=g_ENTRY)
+enable_cord_of_woods    = input.bool(true, "Cord of Woods (COW)",       group=g_ENTRY)
+enable_shift_candle     = input.bool(true, "Shift Candle (10+ Pips)",   group=g_ENTRY)
+enable_evening_star     = input.bool(true, "Evening Star Pattern",      group=g_ENTRY)
+enable_morning_star     = input.bool(true, "Morning Star Pattern",      group=g_ENTRY)
+
+var g_PEAK = "Peak Formation Patterns"
+enable_peak_formation   = input.bool(true, "Peak Formation Detection",  group=g_PEAK)
+peak_days_range         = input.int(5, "Peak Formation Days", 3, 7,     group=g_PEAK)
+peak_adr_multiplier     = input.float(3.0, "ADR Multiplier", 2.0, 5.0,  group=g_PEAK)
+enable_ema_fan_out      = input.bool(true, "EMA Fan Out Detection",     group=g_PEAK)
+enable_outside_structure= input.bool(true, "Outside Structure",         group=g_PEAK)
+
+var g_LEVELS = "Market Maker Levels"
+enable_level_1_afp      = input.bool(true, "Level 1: AFP Safety",       group=g_LEVELS)
+enable_level_2_mayo     = input.bool(true, "Level 2: Mayo AR Bounce",   group=g_LEVELS)
+enable_level_3_multi    = input.bool(true, "Level 3: Multi-Day H&S",    group=g_LEVELS)
+
+var g_LONDON = "London Patterns"
+enable_london_type1     = input.bool(true, "London Type 1",             group=g_LONDON)
+enable_london_type2     = input.bool(true, "London Type 2",             group=g_LONDON)
+enable_london_type3     = input.bool(true, "London Type 3",             group=g_LONDON)
+
+var g_RULES = "5 Rules System"
+enable_trend_rule       = input.bool(true, "1. Trend Rule",             group=g_RULES)
+enable_stop_hunt_rule   = input.bool(true, "2. Stop Hunt Rule",         group=g_RULES)
+enable_pattern_rule     = input.bool(true, "3. Pattern Rule",           group=g_RULES)
+enable_shift_rule       = input.bool(true, "4. Shift Rule",             group=g_RULES)
+enable_tdi_rule         = input.bool(true, "5. TDI Rule",               group=g_RULES)
+
+var g_FILTER = "Pattern Filters"
+min_candle_size_pips    = input.int(10, "Min Shift Candle Size (Pips)", 5, 50, group=g_FILTER)
+require_volume_conf     = input.bool(true, "Require Volume Confirmation", group=g_FILTER)
+volume_spike_threshold  = input.float(1.5, "Volume Spike Threshold", 1.1, 3.0, group=g_FILTER)
+require_session_filter  = input.bool(true, "Trading Sessions Only", group=g_FILTER)
+
+var g_STYLE = "Visual Settings"
+star_pattern_color      = input.color(color.orange, "Star Patterns", group=g_STYLE)
+shift_candle_color      = input.color(color.purple, "Shift Candles", group=g_STYLE)
+peak_formation_color    = input.color(color.red, "Peak Formation", group=g_STYLE)
+london_pattern_color    = input.color(color.blue, "London Patterns", group=g_STYLE)
+level_detection_color   = input.color(color.yellow, "Level Detection", group=g_STYLE)
+
+var g_DISPLAY = "Display Control"
+show_pattern_labels     = input.bool(true, "Show Pattern Labels", group=g_DISPLAY)
+show_level_analysis     = input.bool(true, "Show Level Analysis", group=g_DISPLAY)
+show_rules_dashboard    = input.bool(true, "Show 5 Rules Status", group=g_DISPLAY)
+auto_hide_history       = input.bool(true, "Auto-Hide History ≤5M", group=g_DISPLAY)
+
+// ============================================================================
+// CONTEXT & MARKET DATA
+// ============================================================================
+[hide_hist, is_today] = foundation.current_day_filter(auto_hide_history, false)
+[asian_session, london_session, ny_session, current_session, cycle_day] = foundation.session_and_cycle()
+[is_htf, is_exec, is_early, is_optimal] = foundation.timeframe_classification()
+trading_session = foundation.is_trading_session()
+
+atr = foundation.atr14()
+avg_volume = ta.sma(volume, 20)
+[volume_spike, volume_strength, volume_ratio] = foundation.volume_analysis()
+
+// Calculate pip size for current instrument
+pip_multiplier = syminfo.type == "forex" ? 10000 : syminfo.type == "crypto" ? 1 : 1
+min_shift_size = min_candle_size_pips / pip_multiplier
+
+// ============================================================================
+// EMA CALCULATIONS
+// ============================================================================
+ema5 = ta.ema(close, 5)
+ema13 = ta.ema(close, 13)
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+ema800 = ta.ema(close, 800)
+
+[bull_stack, bear_stack, mixed_stack, stack_strength, stack_status] = foundation.ema_stack_analysis(ema5, ema13, ema50, ema200, ema800)
+
+// ============================================================================
+// ADVANCED PATTERN DETECTION
+// ============================================================================
+
+// Evening Star Pattern (3-candle bearish reversal)
+detect_evening_star() =>
+    // First candle: Strong bullish
+    c1_bull = close[2] > open[2] and (close[2] - open[2]) >= atr * 0.8
+    
+    // Second candle: Small body (indecision)
+    c2_small = math.abs(close[1] - open[1]) <= atr * 0.3
+    c2_gaps_up = low[1] > high[2]  // Gaps above first candle
+    
+    // Third candle: Strong bearish, closes below first candle midpoint
+    c3_bear = close < open and (open - close) >= atr * 0.8
+    c3_closes_low = close < (open[2] + close[2]) / 2
+    
+    volume_ok = not require_volume_conf or (volume > avg_volume * volume_spike_threshold)
+    session_ok = not require_session_filter or trading_session
+    
+    pattern = c1_bull and c2_small and c2_gaps_up and c3_bear and c3_closes_low and volume_ok and session_ok and is_today
+    [pattern, "EVENING STAR"]
+
+// Morning Star Pattern (3-candle bullish reversal)
+detect_morning_star() =>
+    // First candle: Strong bearish
+    c1_bear = close[2] < open[2] and (open[2] - close[2]) >= atr * 0.8
+    
+    // Second candle: Small body (indecision)
+    c2_small = math.abs(close[1] - open[1]) <= atr * 0.3
+    c2_gaps_down = high[1] < low[2]  // Gaps below first candle
+    
+    // Third candle: Strong bullish, closes above first candle midpoint
+    c3_bull = close > open and (close - open) >= atr * 0.8
+    c3_closes_high = close > (open[2] + close[2]) / 2
+    
+    volume_ok = not require_volume_conf or (volume > avg_volume * volume_spike_threshold)
+    session_ok = not require_session_filter or trading_session
+    
+    pattern = c1_bear and c2_small and c2_gaps_down and c3_bull and c3_closes_high and volume_ok and session_ok and is_today
+    [pattern, "MORNING STAR"]
+
+// Shift Candle (10+ pip strong directional move)
+detect_shift_candle() =>
+    current_size = math.abs(close - open)
+    
+    bull_shift = close > open and current_size >= min_shift_size and close >= high - (high - low) * 0.2
+    bear_shift = close < open and current_size >= min_shift_size and close <= low + (high - low) * 0.2
+    
+    volume_ok = not require_volume_conf or (volume > avg_volume * volume_spike_threshold)
+    session_ok = not require_session_filter or trading_session
+    
+    bull_pattern = bull_shift and volume_ok and session_ok and is_today
+    bear_pattern = bear_shift and volume_ok and session_ok and is_today
+    
+    [bull_pattern, bear_pattern, "SHIFT CANDLE"]
+
+// Peak Formation Detection (3-5 days of rise/drop with 3x ADR)
+detect_peak_formation() =>
+    lookback = peak_days_range * 24 * 60 / (timeframe.in_seconds() / 60)  // Convert days to bars
+    
+    // Calculate recent price movement
+    period_high = ta.highest(high, math.round(lookback))
+    period_low = ta.lowest(low, math.round(lookback))
+    total_range = period_high - period_low
+    
+    // Estimate ADR (Average Daily Range)
+    daily_ranges = array.new<float>()
+    for i = 0 to math.min(lookback / 24, 20) - 1  // Sample recent days
+        day_high = ta.highest(high, 24)[i * 24]
+        day_low = ta.lowest(low, 24)[i * 24]
+        if not na(day_high) and not na(day_low)
+            array.push(daily_ranges, day_high - day_low)
+    
+    avg_daily_range = array.size(daily_ranges) > 0 ? array.avg(daily_ranges) : atr * 24
+    
+    // Peak formation criteria
+    exceeds_adr = total_range >= avg_daily_range * peak_adr_multiplier
+    at_extreme = (close >= period_high * 0.98) or (close <= period_low * 1.02)
+    
+    // EMA Fan Out Detection
+    ema_spread = math.abs(ema5 - ema200) / close * 100
+    ema_fan_out = ema_spread > 2.0  // EMAs spread more than 2%
+    
+    bullish_peak = exceeds_adr and close >= period_high * 0.98 and bear_stack  // Divergence
+    bearish_peak = exceeds_adr and close <= period_low * 1.02 and bull_stack   // Divergence
+    
+    peak_detected = (bullish_peak or bearish_peak) and ema_fan_out and is_today
+    peak_type = bullish_peak ? "BULLISH PEAK" : bearish_peak ? "BEARISH PEAK" : "NO PEAK"
+    
+    [peak_detected, peak_type]
+
+// London Pattern Types
+detect_london_patterns() =>
+    if not london_session
+        [false, false, false, ""]
+    else
+        // Type 1: Clean break above/below key EMA during London
+        type1_bull = ta.crossover(close, ema50) and bull_stack
+        type1_bear = ta.crossunder(close, ema50) and bear_stack
+        
+        // Type 2: Retest of London open level
+        london_open = open[ta.barssince(london_session and not london_session[1])]
+        type2_bull = close > london_open and low <= london_open * 1.001 and close > open
+        type2_bear = close < london_open and high >= london_open * 0.999 and close < open
+        
+        // Type 3: Asian range breakout during London
+        [asian_high, asian_low, asian_complete] = foundation.calculate_asian_range()
+        type3_bull = asian_complete and high > asian_high and close > asian_high
+        type3_bear = asian_complete and low < asian_low and close < asian_low
+        
+        pattern_type = type1_bull or type1_bear ? "LONDON TYPE 1" :
+                      type2_bull or type2_bear ? "LONDON TYPE 2" :
+                      type3_bull or type3_bear ? "LONDON TYPE 3" : ""
+        
+        [type1_bull or type1_bear, type2_bull or type2_bear, type3_bull or type3_bear, pattern_type]
+
+// 5 Rules System Analysis
+analyze_five_rules() =>
+    // Rule 1: Trend (EMA Stack)
+    trend_rule = bull_stack or bear_stack
+    
+    // Rule 2: Stop Hunt (price wicks beyond key level then reverses)
+    stop_hunt_bull = low < ema50 and close > ema50 and close > open
+    stop_hunt_bear = high > ema50 and close < ema50 and close < open
+    stop_hunt_rule = stop_hunt_bull or stop_hunt_bear
+    
+    // Rule 3: Pattern (any of our detected patterns)
+    pattern_rule = true  // Will be set based on pattern detection
+    
+    // Rule 4: Shift (strong directional candle)
+    shift_rule = math.abs(close - open) >= atr * 1.5
+    
+    // Rule 5: TDI (Trend Direction Indicator - simplified as EMA alignment)
+    tdi_rule = (close > ema13 and ema13 > ema50) or (close < ema13 and ema13 < ema50)
+    
+    rules_score = (trend_rule ? 1 : 0) + (stop_hunt_rule ? 1 : 0) + (pattern_rule ? 1 : 0) + (shift_rule ? 1 : 0) + (tdi_rule ? 1 : 0)
+    
+    [trend_rule, stop_hunt_rule, pattern_rule, shift_rule, tdi_rule, rules_score]
+
+// ============================================================================
+// PATTERN EXECUTION
+// ============================================================================
+
+// Execute pattern detection
+[evening_star_detected, evening_star_name] = enable_evening_star ? detect_evening_star() : [false, ""]
+[morning_star_detected, morning_star_name] = enable_morning_star ? detect_morning_star() : [false, ""]
+[shift_bull, shift_bear, shift_name] = enable_shift_candle ? detect_shift_candle() : [false, false, ""]
+[peak_detected, peak_type] = enable_peak_formation ? detect_peak_formation() : [false, ""]
+[london_type1, london_type2, london_type3, london_pattern_name] = enable_london_type1 or enable_london_type2 or enable_london_type3 ? detect_london_patterns() : [false, false, false, ""]
+
+// 5 Rules Analysis
+[trend_rule, stop_hunt_rule, pattern_rule, shift_rule, tdi_rule, rules_score] = analyze_five_rules()
+
+// Update pattern rule based on actual pattern detection
+pattern_rule := evening_star_detected or morning_star_detected or shift_bull or shift_bear or peak_detected or london_type1 or london_type2 or london_type3
+
+// ============================================================================
+// VISUAL OUTPUT
+// ============================================================================
+
+// Pattern Labels
+if show_pattern_labels and is_today
+    // Star Patterns
+    if evening_star_detected
+        label.new(bar_index, high + atr, "🌟 " + evening_star_name + "\nBEARISH REVERSAL", 
+                 style=label.style_label_down, color=star_pattern_color, textcolor=color.white, size=size.normal)
+    
+    if morning_star_detected
+        label.new(bar_index, low - atr, "⭐ " + morning_star_name + "\nBULLISH REVERSAL", 
+                 style=label.style_label_up, color=star_pattern_color, textcolor=color.black, size=size.normal)
+    
+    // Shift Candles
+    if shift_bull
+        label.new(bar_index, low - atr * 0.5, "🚀 " + shift_name + "\nBULL SHIFT", 
+                 style=label.style_label_up, color=shift_candle_color, textcolor=color.white, size=size.small)
+    
+    if shift_bear
+        label.new(bar_index, high + atr * 0.5, "📉 " + shift_name + "\nBEAR SHIFT", 
+                 style=label.style_label_down, color=shift_candle_color, textcolor=color.white, size=size.small)
+    
+    // Peak Formation
+    if peak_detected
+        label.new(bar_index, peak_type == "BULLISH PEAK" ? high + atr : low - atr, 
+                 "🏔️ " + peak_type + "\nREVERSAL ZONE", 
+                 style=peak_type == "BULLISH PEAK" ? label.style_label_down : label.style_label_up, 
+                 color=peak_formation_color, textcolor=color.white, size=size.normal)
+    
+    // London Patterns
+    if london_type1 or london_type2 or london_type3
+        label.new(bar_index, close > open ? low - atr : high + atr, 
+                 "🇬🇧 " + london_pattern_name + "\nLONDON SETUP", 
+                 style=close > open ? label.style_label_up : label.style_label_down, 
+                 color=london_pattern_color, textcolor=color.white, size=size.small)
+
+// Pattern Shapes
+plotshape(evening_star_detected, "Evening Star", shape.arrowdown, location.abovebar, star_pattern_color, size=size.small)
+plotshape(morning_star_detected, "Morning Star", shape.arrowup, location.belowbar, star_pattern_color, size=size.small)
+plotshape(shift_bull, "Bull Shift", shape.triangleup, location.belowbar, shift_candle_color, size=size.normal)
+plotshape(shift_bear, "Bear Shift", shape.triangledown, location.abovebar, shift_candle_color, size=size.normal)
+
+// ============================================================================
+// 5 RULES DASHBOARD
+// ============================================================================
+if show_rules_dashboard and barstate.islast and is_today
+    var table rules_table = table.new(position.top_right, 2, 7, bgcolor=color.white, border_width=1)
+    
+    table.cell(rules_table, 0, 0, "5 RULES SYSTEM", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    table.cell(rules_table, 1, 0, str.tostring(rules_score) + "/5", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    
+    // Rule 1: Trend
+    table.cell(rules_table, 0, 1, "1. Trend", text_size=size.tiny)
+    table.cell(rules_table, 1, 1, trend_rule ? "✅" : "❌", 
+              bgcolor=trend_rule ? color.green : color.red, text_color=color.white, text_size=size.tiny)
+    
+    // Rule 2: Stop Hunt
+    table.cell(rules_table, 0, 2, "2. Stop Hunt", text_size=size.tiny)
+    table.cell(rules_table, 1, 2, stop_hunt_rule ? "✅" : "❌", 
+              bgcolor=stop_hunt_rule ? color.green : color.red, text_color=color.white, text_size=size.tiny)
+    
+    // Rule 3: Pattern
+    table.cell(rules_table, 0, 3, "3. Pattern", text_size=size.tiny)
+    table.cell(rules_table, 1, 3, pattern_rule ? "✅" : "❌", 
+              bgcolor=pattern_rule ? color.green : color.red, text_color=color.white, text_size=size.tiny)
+    
+    // Rule 4: Shift
+    table.cell(rules_table, 0, 4, "4. Shift", text_size=size.tiny)
+    table.cell(rules_table, 1, 4, shift_rule ? "✅" : "❌", 
+              bgcolor=shift_rule ? color.green : color.red, text_color=color.white, text_size=size.tiny)
+    
+    // Rule 5: TDI
+    table.cell(rules_table, 0, 5, "5. TDI", text_size=size.tiny)
+    table.cell(rules_table, 1, 5, tdi_rule ? "✅" : "❌", 
+              bgcolor=tdi_rule ? color.green : color.red, text_color=color.white, text_size=size.tiny)
+    
+    // Overall Status
+    overall_color = rules_score >= 4 ? color.green : rules_score >= 3 ? color.orange : color.red
+    overall_status = rules_score >= 4 ? "STRONG" : rules_score >= 3 ? "MODERATE" : "WEAK"
+    table.cell(rules_table, 0, 6, "Status", text_size=size.tiny)
+    table.cell(rules_table, 1, 6, overall_status, bgcolor=overall_color, text_color=color.white, text_size=size.tiny)
+
+// ============================================================================
+// EMA PLOTS
+// ============================================================================
+plot(ema13, "EMA 13", color.red, 2)
+plot(ema50, "EMA 50", color.aqua, 2)
+plot(ema200, "EMA 200", color.white, 3)
+
+// Session backgrounds
+bgcolor(london_session ? color.new(color.green, 95) : na)
+bgcolor(ny_session ? color.new(color.blue, 95) : na)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS
+// ============================================================================
+plot(evening_star_detected ? 1 : 0, "Evening_Star", display=display.data_window)
+plot(morning_star_detected ? 1 : 0, "Morning_Star", display=display.data_window)
+plot(shift_bull ? 1 : 0, "Shift_Bull", display=display.data_window)
+plot(shift_bear ? 1 : 0, "Shift_Bear", display=display.data_window)
+plot(peak_detected ? 1 : 0, "Peak_Formation", display=display.data_window)
+plot(rules_score, "Rules_Score", display=display.data_window)
+plot(london_type1 or london_type2 or london_type3 ? 1 : 0, "London_Pattern", display=display.data_window)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+alertcondition(evening_star_detected, "Evening Star", "BTMM Evening Star bearish reversal pattern detected")
+alertcondition(morning_star_detected, "Morning Star", "BTMM Morning Star bullish reversal pattern detected")
+alertcondition(shift_bull or shift_bear, "Shift Candle", "BTMM Shift candle pattern detected")
+alertcondition(peak_detected, "Peak Formation", "BTMM Peak formation detected - potential reversal zone")
+alertcondition(rules_score >= 4, "5 Rules Strong", "BTMM 5 Rules system shows strong signal (4/5 or 5/5)")
+alertcondition(london_type1 or london_type2 or london_type3, "London Pattern", "BTMM London pattern detected") 

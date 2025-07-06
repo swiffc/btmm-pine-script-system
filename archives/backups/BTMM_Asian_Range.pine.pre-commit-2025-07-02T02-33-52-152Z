@@ -1,0 +1,336 @@
+//@version=5
+
+// =============================================================================
+// BTMM ASIAN RANGE
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Asian Range System", "BTMM Asian", overlay=true, shorttitle="BTMM Asian R...")
+
+// ============================================================================
+// BTMM ASIAN RANGE SYSTEM - COMPREHENSIVE ASIAN SESSION ANALYSIS & EMA SYSTEM
+// ============================================================================
+// This script consolidates all Asian session functionality including:
+// - Asian session range detection and breakout analysis
+// - Session-based time filtering
+// - Range statistics and momentum analysis
+// - EMA integration within Asian context
+// - Advanced EMA stack analysis and trend detection
+// - Steve Mauro EMA methodology implementation
+// ============================================================================
+
+// Import Foundation Library
+import BTMMFoundation/BTMMFoundationLib/1 as btmm
+
+// ============================================================================
+// SETTINGS & INPUTS - EMAS
+// ============================================================================
+var g_EMA = "Steve Mauro EMAs"
+show_signal_emas = input.bool(true, "Signal EMAs (5,13)
+// TODO: Add input validation for show_signal_emas (e.g., if show_signal_emas < 1 runtime.error("show_signal_emas must be positive"))", group=g_EMA)
+show_balance_ema = input.bool(true, "Balance EMA (50)", group=g_EMA)
+show_home_ema    = input.bool(true, "Home Base EMA (200)", group=g_EMA)
+show_trend_ema   = input.bool(true, "Trend EMA (800)", group=g_EMA)
+
+var g_EMA_ANALYSIS = "EMA Analysis"
+show_ema_stack   = input.bool(true,  "Show EMA Stack Status", group=g_EMA_ANALYSIS)
+show_ema_touches = input.bool(true,  "Mark EMA Touches",      group=g_EMA_ANALYSIS)
+touch_threshold  = input.float(0.5,  "Touch Threshold (ATR)", minval=0.1, maxval=2.0, group=g_EMA_ANALYSIS)
+show_crossovers  = input.bool(true,  "Show Key Crossovers",   group=g_EMA_ANALYSIS)
+
+// EMA Visuals
+var g_EMA_STYLE = "EMA Visual Settings"
+ema5_color   = input.color(color.yellow, "EMA 5 Color",   group=g_EMA_STYLE)
+ema13_color  = input.color(color.red,    "EMA 13 Color",  group=g_EMA_STYLE)
+ema50_color  = input.color(color.aqua,   "EMA 50 Color",  group=g_EMA_STYLE)
+ema200_color = input.color(color.white,  "EMA 200 Color", group=g_EMA_STYLE)
+ema800_color = input.color(color.blue,   "EMA 800 Color", group=g_EMA_STYLE)
+
+// ============================================================================
+// SETTINGS & INPUTS - ASIAN RANGE
+// ============================================================================
+var g_RANGE = "Asian Range Settings"
+show_asian_range = input.bool(true, "Show Asian Range",  group=g_RANGE)
+extend_lines     = input.bool(true, "Extend Range Lines", group=g_RANGE)
+show_breakouts   = input.bool(true, "Show Breakout Signals", group=g_RANGE)
+max_ranges       = input.int(3, "Max Ranges to Display", minval=1, maxval=10, group=g_RANGE)
+
+var g_RANGE_VALIDATION = "Range Validation"
+min_range_pips      = input.float(10.0, "Minimum Range Size (pips)", minval=5.0, maxval=100.0, group=g_RANGE_VALIDATION)
+require_clean_range = input.bool(true,  "Require Clean Range (No Major Wicks)", group=g_RANGE_VALIDATION)
+wick_tolerance      = input.float(0.3,  "Wick Tolerance (ATR)", minval=0.1, maxval=1.0, group=g_RANGE_VALIDATION)
+
+var g_BREAKOUT = "Breakout Detection"
+breakout_confirmation = input.bool(true, "Require Breakout Confirmation", group=g_BREAKOUT)
+confirmation_pips     = input.float(5.0, "Confirmation Distance (pips)",  minval=1.0, maxval=20.0, group=g_BREAKOUT)
+volume_confirmation   = input.bool(true, "Require Volume Spike",         group=g_BREAKOUT)
+volume_threshold      = input.float(1.5, "Volume Spike Threshold", minval=1.1, maxval=3.0, group=g_BREAKOUT)
+
+// Range Visuals
+var g_RANGE_STYLE = "Range Visual Settings"
+range_line_color    = input.color(color.yellow,                    "Range Line Color",      group=g_RANGE_STYLE)
+range_line_width    = input.int(2,   "Range Line Width",  minval=1, maxval=5, group=g_RANGE_STYLE)
+bull_breakout_color = input.color(color.lime,                      "Bullish Breakout Color", group=g_RANGE_STYLE)
+bear_breakout_color = input.color(color.red,                       "Bearish Breakout Color", group=g_RANGE_STYLE)
+range_box_color     = input.color(color.new(color.yellow, 95),     "Range Box Color",       group=g_RANGE_STYLE)
+
+// ============================================================================
+// DISPLAY CONTROL
+// ============================================================================
+var g_DISPLAY = "Display Control"
+auto_hide  = input.bool(true,  "Auto-Hide History ≤5M", group=g_DISPLAY)
+manual_hide = input.bool(false, "Manual Hide History",   group=g_DISPLAY)
+show_range_box = input.bool(true, "Show Range Box", group=g_DISPLAY)
+show_breakout_levels = input.bool(true, "Show Breakout Levels", group=g_DISPLAY)
+show_statistics = input.bool(true, "Show Statistics", group=g_DISPLAY)
+
+// ============================================================================
+// CONTEXT & SESSION DETECTION
+// ============================================================================
+
+// Context from foundation
+[should_hide, is_current_day] = btmm.current_day_filter(auto_hide, manual_hide)
+[asian_session, london_session, ny_session, current_session, cycle_day] = btmm.session_and_cycle()
+
+// Session active states
+asian_active = asian_session
+london_active = london_session
+ny_active = ny_session
+
+// Market data
+atr = ta.atr(14)
+avg_volume = ta.sma(volume, 20)
+
+// ============================================================================
+// EMA CALCULATIONS
+// ============================================================================
+ema5   = ta.ema(close, 5)
+ema13  = ta.ema(close, 13)
+ema50  = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+ema800 = ta.ema(close, 800)
+
+// EMA stack analysis using foundation utility
+[bull_stack, bear_stack, mixed_stack, stack_strength, stack_status] = btmm.ema_stack_analysis(ema5, ema13, ema50, ema200, ema800)
+
+// EMA Touch Detection
+ema13_touch = math.abs(close - ema13) <= (atr * touch_threshold)
+ema50_touch = math.abs(close - ema50) <= (atr * touch_threshold)
+ema200_touch = math.abs(close - ema200) <= (atr * touch_threshold)
+ema800_touch = math.abs(close - ema800) <= (atr * touch_threshold)
+
+// Key Crossovers
+ema5_cross_13_bull  = ta.crossover(ema5,  ema13)
+ema5_cross_13_bear  = ta.crossunder(ema5, ema13)
+price_cross_13_bull = ta.crossover(close, ema13)
+price_cross_13_bear = ta.crossunder(close, ema13)
+price_cross_50_bull = ta.crossover(close, ema50)
+price_cross_50_bear = ta.crossunder(close, ema50)
+price_cross_200_bull= ta.crossover(close, ema200)
+price_cross_200_bear= ta.crossunder(close, ema200)
+
+// EMA Cloud (area between EMA13 and EMA50)
+ema_cloud_color = bull_stack ? color.new(color.green, 90) : bear_stack ? color.new(color.red, 90) : color.new(color.gray, 95)
+
+// ============================================================================
+// ASIAN RANGE TRACKING ARRAYS
+// ============================================================================
+var array<float> asian_highs       = array.new<float>()
+var array<float> asian_lows        = array.new<float>()
+var array<int>   range_start_times = array.new<int>()
+var array<int>   range_end_times   = array.new<int>()
+var array<line>  high_lines        = array.new<line>()
+var array<line>  low_lines         = array.new<line>()
+var array<box>   range_boxes       = array.new<box>()
+
+var float current_asian_high = na
+var float current_asian_low  = na
+var int   asian_start_bar    = na
+var bool  range_broken_up    = false
+var bool  range_broken_down  = false
+
+// ============================================================================
+// ASIAN SESSION RANGE BUILDING
+// ============================================================================
+if asian_session and not asian_session[1]
+    current_asian_high := high
+    current_asian_low  := low
+    asian_start_bar    := bar_index
+    range_broken_up    := false
+    range_broken_down  := false
+
+if asian_session
+    current_asian_high := math.max(nz(current_asian_high), high)
+    current_asian_low  := math.min(nz(current_asian_low), low)
+
+// ============================================================================
+// ASIAN SESSION RANGE COMPLETION
+// ============================================================================
+if not asian_session and asian_session[1] and not na(current_asian_high) and not na(current_asian_low)
+    range_size_pips = (current_asian_high - current_asian_low) * 10000
+    // Validate range size
+    valid_range = range_size_pips >= min_range_pips
+    // Clean range validation
+    if require_clean_range and valid_range
+        clean = true
+        for i = 1 to bar_index - asian_start_bar
+            if high[i] > current_asian_high + (atr * wick_tolerance) or low[i] < current_asian_low - (atr * wick_tolerance)
+                clean := false
+                break
+        valid_range := valid_range and clean
+
+    if valid_range and show_asian_range and is_current_day
+        // Maintain max_ranges
+        while array.size(asian_highs) >= max_ranges
+            line.delete(array.shift(high_lines))
+            line.delete(array.shift(low_lines))
+            box.delete(array.shift(range_boxes))
+            array.shift(asian_highs)
+            array.shift(asian_lows)
+            array.shift(range_start_times)
+            array.shift(range_end_times)
+
+        // Store new range
+        array.push(asian_highs, current_asian_high)
+        array.push(asian_lows, current_asian_low)
+        array.push(range_start_times, asian_start_bar)
+        array.push(range_end_times, bar_index)
+
+        // Draw lines
+        high_line = line.new(asian_start_bar, current_asian_high, extend_lines ? bar_index + 100 : bar_index + 50,
+                             current_asian_high, color=range_line_color, width=range_line_width,
+                             extend=extend_lines ? extend.right : extend.none)
+        low_line  = line.new(asian_start_bar, current_asian_low, extend_lines ? bar_index + 100 : bar_index + 50,
+                             current_asian_low, color=range_line_color, width=range_line_width,
+                             extend=extend_lines ? extend.right : extend.none)
+
+        array.push(high_lines, high_line)
+        array.push(low_lines,  low_line)
+
+        // Draw box
+        range_box = box.new(asian_start_bar, current_asian_high, bar_index, current_asian_low,
+                            bgcolor=range_box_color, border_color=range_line_color, border_width=1)
+        array.push(range_boxes, range_box)
+
+        // Info label
+        label.new(bar_index, current_asian_high + atr * 0.5,
+                  "ASIAN RANGE\n" + str.tostring(range_size_pips, "#.#") + " pips\nDAY " + str.tostring(cycle_day),
+                  style=label.style_label_down, color=color.yellow, textcolor=color.black, size=size.small)
+
+// Range size in pips for current range
+range_pips = not na(current_asian_high) and not na(current_asian_low) ? (current_asian_high - current_asian_low) * 10000 : 0
+
+// ============================================================================
+// BREAKOUT DETECTION
+// ============================================================================
+detect_breakout() =>
+    breakout_bull  = false
+    breakout_bear  = false
+    confirmed_bull = false
+    confirmed_bear = false
+
+    if array.size(asian_highs) > 0 and not asian_session
+        latest_high = array.get(asian_highs, array.size(asian_highs) - 1)
+        latest_low  = array.get(asian_lows,  array.size(asian_lows) - 1)
+
+        // Initial breakout
+        if high > latest_high and not range_broken_up
+            breakout_bull := true
+            range_broken_up := true
+        if low < latest_low and not range_broken_down
+            breakout_bear := true
+            range_broken_down := true
+
+        // Confirmation
+        confirm_distance = confirmation_pips * 0.0001
+        if breakout_confirmation
+            confirmed_bull := breakout_bull and close > latest_high + confirm_distance
+            confirmed_bear := breakout_bear and close < latest_low  - confirm_distance
+        else
+            confirmed_bull := breakout_bull
+            confirmed_bear := breakout_bear
+
+        // Volume
+        if volume_confirmation
+            vol_spike = volume > avg_volume * volume_threshold
+            confirmed_bull := confirmed_bull and vol_spike
+            confirmed_bear := confirmed_bear and vol_spike
+
+    [confirmed_bull, confirmed_bear]
+
+[breakout_bull, breakout_bear] = detect_breakout()
+
+// Breakout conditions for legacy compatibility
+range_break_up = breakout_bull
+range_break_down = breakout_bear
+first_break_up = breakout_bull
+first_break_down = breakout_bear
+
+// ============================================================================
+// MOMENTUM ANALYSIS
+// ============================================================================
+
+// Breakout momentum (distance from range)
+latest_asian_high = array.size(asian_highs) > 0 ? array.get(asian_highs, array.size(asian_highs) - 1) : na
+latest_asian_low = array.size(asian_lows) > 0 ? array.get(asian_lows, array.size(asian_lows) - 1) : na
+
+breakout_momentum_up = range_break_up and not na(latest_asian_high) and not na(latest_asian_low) ?
+                      (close - latest_asian_high) / (latest_asian_high - latest_asian_low) : 0
+breakout_momentum_down = range_break_down and not na(latest_asian_high) and not na(latest_asian_low) ?
+                        (latest_asian_low - close) / (latest_asian_high - latest_asian_low) : 0
+
+// Overall momentum score
+momentum_score = breakout_momentum_up - breakout_momentum_down
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Asian range box
+var box range_box = na
+if asian_active and not asian_active[1] and show_range_box
+    range_box := box.new(bar_index, asian_high, bar_index, asian_low,
+                         border_color=color.yellow, bgcolor=color.new(color.yellow, 90),
+                         extend=extend.right)
+
+if asian_active and not na(range_box) and show_range_box
+    box.set_right(range_box, bar_index)
+    box.set_top(range_box, asian_high)
+    box.set_bottom(range_box, asian_low)
+
+// Range levels
+plot(show_breakout_levels and range_established ? asian_high : na,
+     "Asian High", color=color.red, linewidth=2, style=plot.style_line)
+plot(show_breakout_levels and range_established ? asian_low : na,
+     "Asian Low", color=color.green, linewidth=2, style=plot.style_line)
+
+// Breakout signals
+plotshape(first_break_up, "Range Break Up", shape.triangleup,
+          location.belowbar, color.lime, size=size.normal)
+plotshape(first_break_down, "Range Break Down", shape.triangledown,
+          location.abovebar, color.red, size=size.normal)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(asian_active ? 1 : 0, "Asian_Session", display=display.data_window)
+plot(asian_high, "Asian_High", display=display.data_window)
+plot(asian_low, "Asian_Low", display=display.data_window)
+plot(range_pips, "Range_Pips", display=display.data_window)
+plot(range_break_up ? 1 : 0, "Range_Break_Up", display=display.data_window)
+plot(range_break_down ? 1 : 0, "Range_Break_Down", display=display.data_window)
+plot(first_break_up ? 1 : 0, "First_Break_Up", display=display.data_window)
+plot(first_break_down ? 1 : 0, "First_Break_Down", display=display.data_window)
+plot(momentum_score, "Momentum_Score", display=display.data_window)
+plot(range_established ? 1 : 0, "Range_Established", display=display.data_window)
+
+// Legacy compatibility outputs
+plot(range_pips, "Asian_Range", display=display.data_window)
+plot(asian_active ? 1 : 0, "Session_Active", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

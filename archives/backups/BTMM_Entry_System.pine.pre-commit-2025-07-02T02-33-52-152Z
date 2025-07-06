@@ -1,0 +1,203 @@
+//@version=5
+
+// =============================================================================
+// BTMM ENTRY SYSTEM
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Entry System", "BTMM Entry", overlay=true, shorttitle="BTMM Entry S...")
+
+// ============================================================================
+// BTMM ENTRY SYSTEM - COMPREHENSIVE ENTRY SIGNAL GENERATION
+// ============================================================================
+// This script consolidates all entry-related functionality including:
+// - Multi-confluence entry signals
+// - Risk-reward optimization
+// - Entry timing and validation
+// - Signal filtering and quality scoring
+// ============================================================================
+
+// Import Foundation Library
+import BTMMFoundation/BTMMFoundationLib/1 as btmm
+
+// ============================================================================
+// SETTINGS & INPUTS
+// ============================================================================
+
+var g_signals = "Entry Signal Settings"
+min_confluence = input.int(3, "Minimum Confluence", minval=1, maxval=7, group=g_signals)
+// TODO: Add input validation for min_confluence (e.g., if min_confluence < 1 runtime.error("min_confluence must be positive"))
+signal_strength_filter = input.float(70.0, "Signal Strength Filter (%)", minval=0, maxval=100, group=g_signals)
+enable_session_filter = input.bool(true, "Enable Session Filter", group=g_signals)
+
+var g_risk = "Risk Management"
+default_risk_reward = input.float(2.0, "Default Risk:Reward", minval=1.0, group=g_risk)
+max_risk_per_trade = input.float(1.0, "Max Risk Per Trade (%)", minval=0.1, maxval=5.0, group=g_risk)
+
+var g_display = "Display Settings"
+show_entry_signals = input.bool(true, "Show Entry Signals", group=g_display)
+show_confluence_zones = input.bool(true, "Show Confluence Zones", group=g_display)
+show_invalidation_levels = input.bool(true, "Show Invalidation Levels", group=g_display)
+
+// ============================================================================
+// ENTRY SIGNAL DETECTION
+// ============================================================================
+
+// Get foundation data
+[support_level, resistance_level, trend_direction, trend_strength] = btmm.support_resistance_and_trend()
+[bullish_structure, bearish_structure, structure_break, liquidity_sweep] = btmm.market_structure_and_liquidity()
+
+// Multi-timeframe trend confirmation
+htf_trend_bull = request.security(syminfo.tickerid, "1H", trend_direction > 0)
+htf_trend_bear = request.security(syminfo.tickerid, "1H", trend_direction < 0)
+
+// Entry confluence factors
+confluence_factors = array.new<bool>()
+
+// Factor 1: Market structure alignment
+structure_bullish = bullish_structure and not bearish_structure
+structure_bearish = bearish_structure and not bullish_structure
+array.push(confluence_factors, structure_bullish or structure_bearish)
+
+// Factor 2: HTF trend alignment
+htf_alignment = (structure_bullish and htf_trend_bull) or (structure_bearish and htf_trend_bear)
+array.push(confluence_factors, htf_alignment)
+
+// Factor 3: Support/Resistance respect
+sr_respect = (close > support_level and structure_bullish) or (close < resistance_level and structure_bearish)
+array.push(confluence_factors, sr_respect)
+
+// Factor 4: Trend strength
+strong_trend = trend_strength >= 70
+array.push(confluence_factors, strong_trend)
+
+// Factor 5: Session filter
+[asian_session, london_session, ny_session, current_session, cycle_day] = btmm.session_and_cycle()
+valid_session = not enable_session_filter or london_session or ny_session
+array.push(confluence_factors, valid_session)
+
+// Count confluences
+confluence_count = 0
+for i = 0 to array.size(data) - 1  // Optimized array iteration
+    if array.get(confluence_factors, i)
+        confluence_count += 1
+
+// Signal generation
+long_signal = confluence_count >= min_confluence and structure_bullish
+short_signal = confluence_count >= min_confluence and structure_bearish
+
+// ============================================================================
+// SIGNAL QUALITY SCORING
+// ============================================================================
+
+// Base signal strength
+signal_strength = confluence_count * 100.0 / array.size(confluence_factors)
+
+// Quality modifiers
+quality_modifiers = 0.0
+
+// Structure break bonus
+if structure_break
+    quality_modifiers += 10.0
+
+// Liquidity sweep bonus
+if liquidity_sweep
+    quality_modifiers += 15.0
+
+// HTF alignment bonus
+if htf_alignment
+    quality_modifiers += 20.0
+
+// Final signal quality
+final_signal_quality = math.min(signal_strength + quality_modifiers, 100.0)
+
+// Apply quality filter
+qualified_long = long_signal and final_signal_quality >= signal_strength_filter
+qualified_short = short_signal and final_signal_quality >= signal_strength_filter
+
+// ============================================================================
+// ENTRY LEVELS & TARGETS
+// ============================================================================
+
+// Entry prices
+var float long_entry = na
+var float short_entry = na
+var float stop_loss = na
+var float take_profit = na
+
+// Set entry levels on signal
+if qualified_long and not qualified_long[1]
+    long_entry := close
+    stop_loss := support_level
+    take_profit := long_entry + (long_entry - stop_loss) * default_risk_reward
+
+if qualified_short and not qualified_short[1]
+    short_entry := close
+    stop_loss := resistance_level
+    take_profit := short_entry - (stop_loss - short_entry) * default_risk_reward
+
+// ============================================================================
+// RISK MANAGEMENT
+// ============================================================================
+
+// Calculate position size based on risk
+risk_amount = long_entry != na ? long_entry - stop_loss : short_entry != na ? stop_loss - short_entry : 0
+account_risk = close * max_risk_per_trade / 100
+position_size = risk_amount > 0 ? account_risk / risk_amount : 0
+
+// Risk-reward ratio
+current_rr = risk_amount > 0 ? math.abs(take_profit - (long_entry != na ? long_entry : short_entry)) / risk_amount : 0
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Entry signals
+plotshape(show_entry_signals and qualified_long, "Long Entry",
+          shape.triangleup, location.belowbar, color.lime, size=size.normal)
+plotshape(show_entry_signals and qualified_short, "Short Entry",
+          shape.triangledown, location.abovebar, color.red, size=size.normal)
+
+// Confluence zones
+bgcolor(show_confluence_zones and confluence_count >= min_confluence ?
+        (structure_bullish ? color.new(color.green, 95) :
+         structure_bearish ? color.new(color.red, 95) : na) : na)
+
+// Entry levels
+plot(show_invalidation_levels and long_entry != na ? long_entry : na,
+     "Long Entry", color=color.green, linewidth=2, style=plot.style_circles)
+plot(show_invalidation_levels and short_entry != na ? short_entry : na,
+     "Short Entry", color=color.red, linewidth=2, style=plot.style_circles)
+
+// Stop loss levels
+plot(show_invalidation_levels and stop_loss != na ? stop_loss : na,
+     "Stop Loss", color=color.orange, linewidth=1, style=plot.style_cross)
+
+// Take profit levels
+plot(show_invalidation_levels and take_profit != na ? take_profit : na,
+     "Take Profit", color=color.blue, linewidth=1, style=plot.style_cross)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(qualified_long ? 1 : 0, "Long_Signal", display=display.data_window)
+plot(qualified_short ? 1 : 0, "Short_Signal", display=display.data_window)
+plot(confluence_count, "Confluence_Count", display=display.data_window)
+plot(final_signal_quality, "Signal_Quality", display=display.data_window)
+plot(long_entry, "Long_Entry", display=display.data_window)
+plot(short_entry, "Short_Entry", display=display.data_window)
+plot(stop_loss, "Stop_Loss", display=display.data_window)
+plot(take_profit, "Take_Profit", display=display.data_window)
+plot(position_size, "Position_Size", display=display.data_window)
+plot(current_rr, "Risk_Reward", display=display.data_window)
+
+// Legacy compatibility outputs
+plot(qualified_long or qualified_short ? 1 : 0, "Entry_Signal", display=display.data_window)
+plot(final_signal_quality, "Signal_Strength", display=display.data_window)
+// TODO: Add division by zero protection (e.g., divisor != 0 ? numerator / divisor : na)

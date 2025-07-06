@@ -1,0 +1,492 @@
+//@version=5
+indicator("BTMM Market Maker Weekly Cycle", "MM Weekly Cycle", overlay=true, max_labels_count=200, max_lines_count=100)
+
+// ============================================================================
+// STEVE MAURO MARKET MAKER WEEKLY CYCLE SYSTEM
+// Complete 3-Day Cycle Implementation: PFH-PFL Pattern Analysis
+// ADR-Based Level Prediction, Trend Reset Detection, MM Psychology
+// ============================================================================
+
+import BTMMFoundation as foundation
+
+// ============================================================================
+// CYCLE ANALYSIS SETTINGS
+// ============================================================================
+var g_CYCLE = "Market Maker Cycle Settings"
+enable_cycle_analysis   = input.bool(true, "Enable MM Cycle Analysis", group=g_CYCLE)
+cycle_start_day         = input.string("Monday", "Weekly Cycle Start", ["Monday", "Tuesday", "Wednesday"], group=g_CYCLE)
+track_pfh_pfl          = input.bool(true, "Track PFH/PFL Patterns", group=g_CYCLE)
+enable_trend_reset     = input.bool(true, "Enable Trend Reset Detection", group=g_CYCLE)
+mm_psychology_levels   = input.bool(true, "Apply MM Psychology (3 Level Rule)", group=g_CYCLE)
+
+var g_ADR = "ADR Analysis Settings"
+adr_calculation_days   = input.int(15, "ADR Calculation Period", 10, 30, group=g_ADR)
+adr_level_multiplier   = input.float(1.0, "ADR Level Multiplier", 0.5, 3.0, 0.1, group=g_ADR)
+enable_adr_targets     = input.bool(true, "Enable ADR Target Zones", group=g_ADR)
+adr_reversal_zone      = input.float(3.0, "ADR Reversal Zone (3x ADR)", 2.0, 5.0, 0.5, group=g_ADR)
+intraday_push_divider  = input.float(3.0, "Intraday Push Divider", 2.0, 5.0, 0.1, group=g_ADR)
+
+var g_LEVELS = "Level Analysis"
+enable_anchor_points   = input.bool(true, "Track Anchor Points", group=g_LEVELS)
+enable_consolidation   = input.bool(true, "Consolidation Detection", group=g_LEVELS)
+min_consolidation_bars = input.int(12, "Min Consolidation Bars", 6, 48, group=g_LEVELS)
+consolidation_range_atr = input.float(0.6, "Consolidation Range (ATR)", 0.3, 1.5, 0.1, group=g_LEVELS)
+
+var g_TREND = "Trend Analysis"
+false_move_detection   = input.bool(true, "Detect False Moves", group=g_TREND)
+midweek_reversal       = input.bool(true, "Midweek Reversal Analysis", group=g_TREND)
+head_shoulders_detect  = input.bool(true, "Head & Shoulders Detection", group=g_TREND)
+enable_stop_hunt       = input.bool(true, "Stop Hunt Detection", group=g_TREND)
+
+var g_VISUAL = "Visual Settings"
+cycle_day_colors = input.bool(true, "Color Code Cycle Days", group=g_VISUAL)
+day1_color = input.color(color.blue, "Day 1 Color", group=g_VISUAL)
+day2_color = input.color(color.orange, "Day 2 Color", group=g_VISUAL)
+day3_color = input.color(color.red, "Day 3 Color", group=g_VISUAL)
+pfh_color = input.color(color.lime, "PFH Color", group=g_VISUAL)
+pfl_color = input.color(color.red, "PFL Color", group=g_VISUAL)
+anchor_color = input.color(color.yellow, "Anchor Point Color", group=g_VISUAL)
+consolidation_color = input.color(color.new(color.gray, 70), "Consolidation Color", group=g_VISUAL)
+
+var g_ALERTS = "Alert Settings"
+alert_cycle_start = input.bool(true, "Alert Cycle Start", group=g_ALERTS)
+alert_level_completion = input.bool(true, "Alert Level Completion", group=g_ALERTS)
+alert_trend_reset = input.bool(true, "Alert Trend Reset", group=g_ALERTS)
+alert_reversal_zone = input.bool(true, "Alert ADR Reversal Zone", group=g_ALERTS)
+
+// ============================================================================
+// CONTEXT & MARKET DATA
+// ============================================================================
+[asian_session, london_session, ny_session, current_session, cycle_day] = foundation.session_and_cycle()
+[is_htf, is_exec, is_early, is_optimal] = foundation.timeframe_classification()
+
+atr = foundation.atr14()
+avg_volume = ta.sma(volume, 20)
+[volume_spike, volume_strength, volume_ratio] = foundation.volume_analysis()
+
+// ============================================================================
+// ADR CALCULATION AND ANALYSIS
+// ============================================================================
+calculate_advanced_adr() =>
+    // Calculate ADR over specified period with range tightening detection
+    var float daily_ranges = array.new<float>()
+    
+    new_day = not na(time) and hour == 17 and minute == 0  // 5 PM EST
+    
+    if new_day or barstate.isfirst
+        daily_high = request.security(syminfo.tickerid, "1D", high[1])
+        daily_low = request.security(syminfo.tickerid, "1D", low[1])
+        if not na(daily_high) and not na(daily_low)
+            daily_range = daily_high - daily_low
+            array.push(daily_ranges, daily_range)
+            
+            if array.size(daily_ranges) > adr_calculation_days
+                array.shift(daily_ranges)
+    
+    current_adr = array.size(daily_ranges) > 0 ? array.avg(daily_ranges) : atr * 24
+    
+    // Calculate range tightening
+    recent_ranges = array.slice(daily_ranges, math.max(0, array.size(daily_ranges) - 5))
+    range_tightening = array.size(recent_ranges) >= 3 ? array.avg(recent_ranges) < current_adr * 0.8 : false
+    
+    [current_adr, range_tightening]
+
+[adr, range_tightening] = calculate_advanced_adr()
+
+// ============================================================================
+// WEEKLY CYCLE DETECTION
+// ============================================================================
+detect_weekly_cycle() =>
+    // Determine current day in weekly cycle
+    current_day_of_week = dayofweek
+    
+    // Map to cycle days based on start preference
+    cycle_start_dow = cycle_start_day == "Monday" ? 2 : cycle_start_day == "Tuesday" ? 3 : 4
+    
+    cycle_day_num = 1
+    if current_day_of_week >= cycle_start_dow
+        cycle_day_num := current_day_of_week - cycle_start_dow + 1
+    else
+        cycle_day_num := current_day_of_week + (8 - cycle_start_dow)
+    
+    // Ensure cycle day is 1, 2, or 3
+    if cycle_day_num > 3
+        cycle_day_num := ((cycle_day_num - 1) % 3) + 1
+    
+    cycle_day_num
+
+current_cycle_day = detect_weekly_cycle()
+
+// ============================================================================
+// PFH/PFL PATTERN DETECTION
+// ============================================================================
+detect_pfh_pfl_patterns() =>
+    // Track weekly highs and lows
+    var float weekly_high = na
+    var float weekly_low = na
+    var int weekly_high_bar = na
+    var int weekly_low_bar = na
+    var bool new_week = false
+    
+    // Detect new week
+    if dayofweek == 2 and dayofweek[1] != 2  // Monday
+        new_week := true
+        weekly_high := high
+        weekly_low := low
+        weekly_high_bar := bar_index
+        weekly_low_bar := bar_index
+    
+    // Update weekly extremes
+    if not new_week
+        if high > nz(weekly_high)
+            weekly_high := high
+            weekly_high_bar := bar_index
+        if low < nz(weekly_low)
+            weekly_low := low
+            weekly_low_bar := bar_index
+    
+    // Determine PFH/PFL based on cycle progression
+    pfh_detected = false
+    pfl_detected = false
+    
+    if current_cycle_day == 1 and high == weekly_high
+        pfh_detected := true
+    if current_cycle_day == 1 and low == weekly_low
+        pfl_detected := true
+    
+    [pfh_detected, pfl_detected, weekly_high, weekly_low, new_week]
+
+[pfh_signal, pfl_signal, week_high, week_low, new_week_started] = detect_pfh_pfl_patterns()
+
+// ============================================================================
+// ANCHOR POINT DETECTION
+// ============================================================================
+detect_anchor_points() =>
+    // Anchor points are significant highs/lows that act as reference points
+    var float last_anchor_high = na
+    var float last_anchor_low = na
+    var int last_anchor_high_bar = na
+    var int last_anchor_low_bar = na
+    
+    lookback = 20
+    pivot_high = ta.pivothigh(high, lookback, lookback)
+    pivot_low = ta.pivotlow(low, lookback, lookback)
+    
+    anchor_high_formed = false
+    anchor_low_formed = false
+    
+    // New anchor points with significance validation
+    if not na(pivot_high) and volume[lookback] > avg_volume * 1.2
+        last_anchor_high := pivot_high
+        last_anchor_high_bar := bar_index - lookback
+        anchor_high_formed := true
+    
+    if not na(pivot_low) and volume[lookback] > avg_volume * 1.2
+        last_anchor_low := pivot_low
+        last_anchor_low_bar := bar_index - lookback
+        anchor_low_formed := true
+    
+    [anchor_high_formed, anchor_low_formed, last_anchor_high, last_anchor_low]
+
+[anchor_high_signal, anchor_low_signal, anchor_high, anchor_low] = detect_anchor_points()
+
+// ============================================================================
+// CONSOLIDATION DETECTION
+// ============================================================================
+detect_consolidation_phases() =>
+    // Detect periods of price consolidation (accumulation/distribution)
+    var int consolidation_start = na
+    var float consolidation_high = na
+    var float consolidation_low = na
+    var bool in_consolidation = false
+    
+    // Calculate recent range
+    recent_high = ta.highest(high, min_consolidation_bars)
+    recent_low = ta.lowest(low, min_consolidation_bars)
+    range_size = recent_high - recent_low
+    
+    // Consolidation criteria
+    is_consolidating = range_size <= (atr * consolidation_range_atr)
+    volume_drying_up = ta.sma(volume, min_consolidation_bars) < avg_volume * 0.8
+    
+    consolidation_detected = is_consolidating and volume_drying_up
+    
+    if consolidation_detected and not in_consolidation
+        in_consolidation := true
+        consolidation_start := bar_index
+        consolidation_high := recent_high
+        consolidation_low := recent_low
+    
+    if not consolidation_detected and in_consolidation
+        in_consolidation := false
+    
+    [consolidation_detected, in_consolidation, consolidation_high, consolidation_low, consolidation_start]
+
+[consolidation_active, in_consolidation, consol_high, consol_low, consol_start] = detect_consolidation_phases()
+
+// ============================================================================
+// TREND RESET DETECTION
+// ============================================================================
+detect_trend_reset() =>
+    // Market Makers book profit after 3 days/levels
+    var int levels_completed = 0
+    var float trend_start_price = na
+    var string current_trend = "NONE"
+    var bool trend_reset_signal = false
+    
+    // Track significant moves (approximately 1 ADR each)
+    price_moved_up = close > close[20] + adr * adr_level_multiplier
+    price_moved_down = close < close[20] - adr * adr_level_multiplier
+    
+    // Detect trend changes
+    if price_moved_up and current_trend != "UP"
+        current_trend := "UP"
+        trend_start_price := close
+        levels_completed := 1
+    else if price_moved_down and current_trend != "DOWN"
+        current_trend := "DOWN"
+        trend_start_price := close
+        levels_completed := 1
+    else if current_trend == "UP" and price_moved_up
+        levels_completed += 1
+    else if current_trend == "DOWN" and price_moved_down
+        levels_completed += 1
+    
+    // Trend reset after 3 levels
+    if levels_completed >= 3
+        trend_reset_signal := true
+        levels_completed := 0
+        current_trend := "RESET"
+    
+    [trend_reset_signal, current_trend, levels_completed]
+
+[trend_reset, current_trend_direction, levels_count] = detect_trend_reset()
+
+// ============================================================================
+// MM PSYCHOLOGY IMPLEMENTATION (3 LEVEL RULE)
+// ============================================================================
+analyze_mm_psychology() =>
+    // MM moves price in certain direction for 3 levels due to human psychology
+    var int mm_level = 0
+    var string mm_phase = "LEVEL1_SHOW"
+    var bool psychology_complete = false
+    
+    significant_move = math.abs(close - close[10]) >= atr * 1.5
+    
+    if significant_move
+        mm_level += 1
+        
+        if mm_level == 1
+            mm_phase := "LEVEL1_SHOW"  // Show something once
+        else if mm_level == 2
+            mm_phase := "LEVEL2_CONVINCE"  // Show again to convince
+        else if mm_level == 3
+            mm_phase := "LEVEL3_COMMIT"  // Third time to get full commitment
+            psychology_complete := true
+        else if mm_level > 3
+            mm_phase := "REVERSAL_ZONE"  // Now reverse to opposite direction
+            mm_level := 0
+    
+    [mm_level, mm_phase, psychology_complete]
+
+[mm_psychology_level, mm_psychology_phase, psychology_cycle_complete] = analyze_mm_psychology()
+
+// ============================================================================
+// FALSE MOVE AND STOP HUNT DETECTION
+// ============================================================================
+detect_false_moves_and_stop_hunts() =>
+    // Detect false moves at week beginning and stop hunts
+    false_move_detected = false
+    stop_hunt_detected = false
+    
+    // False move: Price moves one direction then reverses (typical at week start)
+    if current_cycle_day == 1
+        initial_direction_up = close > open
+        reversal_occurred = initial_direction_up ? (low < open and close > open) : (high > open and close < open)
+        false_move_detected := reversal_occurred and volume > avg_volume * 1.3
+    
+    // Stop hunt: Price spikes beyond key level then quickly reverses
+    beyond_recent_high = high > ta.highest(high[1], 20) + atr * 0.5
+    beyond_recent_low = low < ta.lowest(low[1], 20) - atr * 0.5
+    quick_reversal = (beyond_recent_high and close < high - atr * 0.3) or (beyond_recent_low and close > low + atr * 0.3)
+    
+    stop_hunt_detected := quick_reversal and volume > avg_volume * 1.5
+    
+    [false_move_detected, stop_hunt_detected]
+
+[false_move, stop_hunt] = detect_false_moves_and_stop_hunts()
+
+// ============================================================================
+// ADR TARGET ZONES
+// ============================================================================
+calculate_adr_targets() =>
+    // Calculate ADR-based target zones
+    day_open = request.security(syminfo.tickerid, "1D", open)
+    
+    // Target zones
+    adr_target_up_1 = day_open + (adr * adr_level_multiplier)
+    adr_target_up_2 = day_open + (adr * adr_level_multiplier * 2)
+    adr_target_up_3 = day_open + (adr * adr_level_multiplier * 3)
+    
+    adr_target_down_1 = day_open - (adr * adr_level_multiplier)
+    adr_target_down_2 = day_open - (adr * adr_level_multiplier * 2)
+    adr_target_down_3 = day_open - (adr * adr_level_multiplier * 3)
+    
+    // Reversal zone (3x ADR)
+    in_reversal_zone_up = close >= day_open + (adr * adr_reversal_zone)
+    in_reversal_zone_down = close <= day_open - (adr * adr_reversal_zone)
+    
+    // Intraday push calculation
+    intraday_push_target = adr / intraday_push_divider
+    
+    [adr_target_up_1, adr_target_up_2, adr_target_up_3, adr_target_down_1, adr_target_down_2, adr_target_down_3, 
+     in_reversal_zone_up, in_reversal_zone_down, intraday_push_target]
+
+[target_up1, target_up2, target_up3, target_down1, target_down2, target_down3, 
+ reversal_zone_up, reversal_zone_down, intraday_push] = calculate_adr_targets()
+
+// ============================================================================
+// VISUAL REPRESENTATION
+// ============================================================================
+
+// Plot cycle day background colors
+cycle_bg_color = cycle_day_colors ? 
+    (current_cycle_day == 1 ? color.new(day1_color, 95) : 
+     current_cycle_day == 2 ? color.new(day2_color, 95) : 
+     color.new(day3_color, 95)) : na
+
+bgcolor(cycle_bg_color)
+
+// Mark PFH/PFL signals
+plotshape(pfh_signal, "PFH", shape.triangleup, location.abovebar, pfh_color, size=size.large)
+plotshape(pfl_signal, "PFL", shape.triangledown, location.belowbar, pfl_color, size=size.large)
+
+// Mark anchor points
+plotshape(anchor_high_signal, "Anchor High", shape.diamond, location.abovebar, anchor_color, size=size.normal)
+plotshape(anchor_low_signal, "Anchor Low", shape.diamond, location.belowbar, anchor_color, size=size.normal)
+
+// Mark psychological levels and phases
+plotchar(psychology_cycle_complete, "Psychology Complete", "✓", location.abovebar, color.purple, size=size.large)
+
+// Mark false moves and stop hunts
+plotshape(false_move, "False Move", shape.xcross, location.abovebar, color.orange, size=size.small)
+plotshape(stop_hunt, "Stop Hunt", shape.flag, location.abovebar, color.red, size=size.small)
+
+// Mark trend reset
+plotshape(trend_reset, "Trend Reset", shape.square, location.abovebar, color.white, size=size.large)
+
+// Mark reversal zones
+bgcolor(reversal_zone_up or reversal_zone_down ? color.new(color.purple, 80) : na)
+
+// ============================================================================
+// LABELS AND INFORMATION
+// ============================================================================
+if barstate.islast and enable_cycle_analysis
+    // Cycle information label
+    cycle_info = "MM CYCLE DAY " + str.tostring(current_cycle_day) + 
+                "\nTrend: " + current_trend_direction + 
+                "\nLevels: " + str.tostring(levels_count) + "/3" +
+                "\nMM Phase: " + mm_psychology_phase +
+                "\nADR: " + str.tostring(adr, "#.####")
+    
+    label.new(bar_index, high + atr, cycle_info, 
+             style=label.style_label_down, 
+             color=current_cycle_day == 1 ? day1_color : current_cycle_day == 2 ? day2_color : day3_color,
+             textcolor=color.white, size=size.normal)
+
+// ADR target lines
+if enable_adr_targets and barstate.islast
+    line.new(bar_index - 50, target_up1, bar_index + 10, target_up1, color=color.green, width=1, style=line.style_dashed)
+    line.new(bar_index - 50, target_up2, bar_index + 10, target_up2, color=color.green, width=1, style=line.style_dashed)
+    line.new(bar_index - 50, target_up3, bar_index + 10, target_up3, color=color.green, width=2, style=line.style_solid)
+    
+    line.new(bar_index - 50, target_down1, bar_index + 10, target_down1, color=color.red, width=1, style=line.style_dashed)
+    line.new(bar_index - 50, target_down2, bar_index + 10, target_down2, color=color.red, width=1, style=line.style_dashed)
+    line.new(bar_index - 50, target_down3, bar_index + 10, target_down3, color=color.red, width=2, style=line.style_solid)
+
+// ============================================================================
+// DASHBOARD
+// ============================================================================
+if barstate.islast
+    var table cycle_table = table.new(position.bottom_right, 2, 10, bgcolor=color.white, border_width=1)
+    
+    table.cell(cycle_table, 0, 0, "MM WEEKLY CYCLE", text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    table.cell(cycle_table, 1, 0, timeframe.period, text_color=color.white, bgcolor=color.navy, text_size=size.small)
+    
+    // Cycle day
+    table.cell(cycle_table, 0, 1, "Cycle Day", text_size=size.tiny)
+    day_color = current_cycle_day == 1 ? day1_color : current_cycle_day == 2 ? day2_color : day3_color
+    table.cell(cycle_table, 1, 1, "DAY " + str.tostring(current_cycle_day), bgcolor=day_color, text_color=color.white, text_size=size.tiny)
+    
+    // Trend direction
+    table.cell(cycle_table, 0, 2, "Trend", text_size=size.tiny)
+    trend_color = current_trend_direction == "UP" ? color.green : current_trend_direction == "DOWN" ? color.red : color.gray
+    table.cell(cycle_table, 1, 2, current_trend_direction, bgcolor=trend_color, text_color=color.white, text_size=size.tiny)
+    
+    // Levels completed
+    table.cell(cycle_table, 0, 3, "Levels", text_size=size.tiny)
+    levels_color = levels_count >= 3 ? color.red : levels_count >= 2 ? color.orange : color.green
+    table.cell(cycle_table, 1, 3, str.tostring(levels_count) + "/3", bgcolor=levels_color, text_color=color.white, text_size=size.tiny)
+    
+    // MM Psychology phase
+    table.cell(cycle_table, 0, 4, "MM Phase", text_size=size.tiny)
+    phase_color = mm_psychology_phase == "REVERSAL_ZONE" ? color.red : color.blue
+    table.cell(cycle_table, 1, 4, mm_psychology_phase, bgcolor=phase_color, text_color=color.white, text_size=size.tiny)
+    
+    // ADR info
+    table.cell(cycle_table, 0, 5, "ADR", text_size=size.tiny)
+    table.cell(cycle_table, 1, 5, str.tostring(adr, "#.####"), text_size=size.tiny)
+    
+    // Range tightening
+    table.cell(cycle_table, 0, 6, "Range", text_size=size.tiny)
+    range_color = range_tightening ? color.orange : color.gray
+    range_status = range_tightening ? "TIGHT" : "NORMAL"
+    table.cell(cycle_table, 1, 6, range_status, bgcolor=range_color, text_color=color.white, text_size=size.tiny)
+    
+    // Consolidation status
+    table.cell(cycle_table, 0, 7, "Consolidation", text_size=size.tiny)
+    consol_color = consolidation_active ? color.yellow : color.gray
+    consol_status = consolidation_active ? "ACTIVE" : "NONE"
+    table.cell(cycle_table, 1, 7, consol_status, bgcolor=consol_color, text_color=color.white, text_size=size.tiny)
+    
+    // Reversal zone
+    table.cell(cycle_table, 0, 8, "Reversal Zone", text_size=size.tiny)
+    reversal_color = reversal_zone_up or reversal_zone_down ? color.purple : color.gray
+    reversal_status = reversal_zone_up or reversal_zone_down ? "ACTIVE" : "NONE"
+    table.cell(cycle_table, 1, 8, reversal_status, bgcolor=reversal_color, text_color=color.white, text_size=size.tiny)
+    
+    // Session
+    table.cell(cycle_table, 0, 9, "Session", text_size=size.tiny)
+    session_color = london_session ? color.green : ny_session ? color.blue : color.gray
+    table.cell(cycle_table, 1, 9, current_session, bgcolor=session_color, text_color=color.white, text_size=size.tiny)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS
+// ============================================================================
+plot(current_cycle_day, "Cycle_Day", display=display.data_window)
+plot(pfh_signal ? 1 : 0, "PFH_Signal", display=display.data_window)
+plot(pfl_signal ? 1 : 0, "PFL_Signal", display=display.data_window)
+plot(trend_reset ? 1 : 0, "Trend_Reset", display=display.data_window)
+plot(levels_count, "Levels_Completed", display=display.data_window)
+plot(mm_psychology_level, "MM_Psychology_Level", display=display.data_window)
+plot(psychology_cycle_complete ? 1 : 0, "Psychology_Complete", display=display.data_window)
+plot(consolidation_active ? 1 : 0, "Consolidation_Active", display=display.data_window)
+plot(false_move ? 1 : 0, "False_Move", display=display.data_window)
+plot(stop_hunt ? 1 : 0, "Stop_Hunt", display=display.data_window)
+plot(reversal_zone_up or reversal_zone_down ? 1 : 0, "Reversal_Zone", display=display.data_window)
+plot(range_tightening ? 1 : 0, "Range_Tightening", display=display.data_window)
+plot(adr, "ADR_Value", display=display.data_window)
+plot(intraday_push, "Intraday_Push_Target", display=display.data_window)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+alertcondition(current_cycle_day == 1 and current_cycle_day[1] != 1, "Cycle Day 1", "MM Weekly Cycle Day 1 started")
+alertcondition(pfh_signal or pfl_signal, "PFH/PFL Signal", "Peak Formation High/Low detected")
+alertcondition(trend_reset, "Trend Reset", "Market Maker trend reset detected (3 levels completed)")
+alertcondition(psychology_cycle_complete, "Psychology Complete", "MM Psychology cycle complete - expect reversal")
+alertcondition(reversal_zone_up or reversal_zone_down, "ADR Reversal Zone", "Price in ADR reversal zone (3x ADR)")
+alertcondition(false_move, "False Move", "False move detected at cycle start")
+alertcondition(stop_hunt, "Stop Hunt", "Stop hunt pattern detected")
+alertcondition(consolidation_active and not consolidation_active[1], "Consolidation Start", "Consolidation phase started")
+alertcondition(range_tightening and not range_tightening[1], "Range Tightening", "ADR range tightening detected") 

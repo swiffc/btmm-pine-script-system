@@ -1,0 +1,6 @@
+// @version=5
+indicator("BTMM Utility & Tools", "BTMM Tools", overlay=true)
+
+// TODO: Misc helper drawings and manual trade tools (Script 10).
+
+plot(close, display=display.none) 
