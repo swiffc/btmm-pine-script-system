@@ -40,8 +40,8 @@
     "commit:validated": "node automation/auto-commit-system.js commit",
     "commit:skip-validation": "node automation/auto-commit-system.js commit --skip-validation",
     "watch:autocommit": "node automation/auto-commit-system.js watch",
-    "quality:check": "node automation/pine-script-validator.js && node automation/integration-health-check.js",
-    "quality:fix": "node automation/auto-commit-system.js autofix && npm run validate",
+    "quality:check": "node automation/quality-checker.js",
+    "quality:fix": "node automation/quality-fixer.js",
     "full-validation": "npm run validate && npm run integration-health && npm run count-scripts",
     "commit-with-quality": "npm run quality:check && npm run commit:auto",
     "guidelines:apply": "npm run autofix:all && npm run validate && npm run commit:auto",
@@ -83,7 +83,28 @@
     "pre-commit-install": "node automation/install-git-hooks.js",
     "workspace-cleanup": "node automation/pre-commit-optimization.js",
     "auto-commit": "npm run pre-commit && npm run git-commit && npm run git-push",
-    "setup-automation": "npm run pre-commit-install && echo 'Automated pre-commit optimization is now active!'"
+    "setup-automation": "npm run pre-commit-install && echo 'Automated pre-commit optimization is now active!'",
+    "quality:report": "node automation/quality-reporter.js",
+    "quality:monitor": "node automation/quality-monitor.js",
+    "final-quality-check": "npm run quality:check && npm run performance:benchmark && npm run docs:validate",
+    "validate-quality-score": "node automation/quality-score-validator.js",
+    "performance:benchmark": "node automation/performance-benchmark.js",
+    "performance:memory": "node automation/memory-profiler.js",
+    "performance:pine-script": "node automation/pine-script-performance.js",
+    "performance:test": "npm run performance:benchmark && npm run performance:memory",
+    "docs:validate": "node automation/docs-validator.js",
+    "docs:check-links": "node automation/link-checker.js",
+    "docs:coverage": "node automation/docs-coverage.js",
+    "docs:generate": "node automation/docs-generator.js",
+    "btmm-compliance-check": "node automation/btmm-compliance-checker.js",
+    "btmm:validate-methodology": "node automation/methodology-validator.js",
+    "btmm:performance-check": "node automation/btmm-performance-checker.js",
+    "generate-release-notes": "node automation/release-notes-generator.js",
+    "update-quality-badge": "node automation/badge-updater.js",
+    "quality-monitoring": "node automation/quality-monitoring.js",
+    "perfect-quality": "npm run quality:fix && npm run performance:test && npm run docs:validate && npm run btmm-compliance-check",
+    "quality-perfection": "node automation/quality-perfection.js",
+    "achieve-100": "npm run quality-perfection && npm run perfect-quality && npm run validate-quality-score"
   },
   "keywords": [
     "trading",
@@ -234,6 +255,17 @@
       "frontend": "react",
       "backend": "express",
       "uiLibrary": "radix-ui"
-    }
+    },
+    "qualityTarget": 100,
+    "lastQualityCheck": "2025-07-06T20:09:24.516Z",
+    "qualityFeatures": [
+      "automated-pre-commit",
+      "structure-optimization",
+      "github-templates",
+      "ci-cd-pipeline",
+      "performance-monitoring",
+      "documentation-validation",
+      "btmm-compliance-checking"
+    ]
   }
 }
