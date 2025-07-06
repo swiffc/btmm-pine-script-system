@@ -329,6 +329,16 @@ npm run system-evolve          # Complete system evolution
 
 ## 📚 **Comprehensive Documentation**
 
+### **🎯 Complete Trading Plan**
+**[📊 BTMM Complete Trading Plan](docs/BTMM_Complete_Trading_Plan.html)** - **Open this comprehensive HTML guide in your browser** for the complete M/W pattern trading methodology covering:
+
+- **All M/W Pattern Types (1-4)** across every timeframe (1M, 5M, 15M, 1H, 4H, Daily)
+- **OTE setups** and reference level breaks (PDH/PDL, PWH/PWL, PMH/PML, etc.)
+- **Advanced entry patterns** and candlestick confirmations
+- **Session timing** and Brinks precision windows (9:45 PM, 3:45 AM, 9:45 AM EST)
+- **Risk management** and execution checklists
+- **Visual styling** with color-coded patterns and timeframes
+
 ### **📖 Documentation Structure**
 ```
 📁 documentation/
@@ -338,14 +348,16 @@ npm run system-evolve          # Complete system evolution
 └── 📁 reports/          # System reports and analysis
 
 📁 docs/
-├── 📄 btmm-development-guide.md    # Complete development guide
-├── 📄 pine-script-v5-guidelines.md # Pine Script best practices
-├── 📄 cursor-integration-guide.md  # AI-assisted development
+├── 📄 BTMM_Complete_Trading_Plan.html  # 🎯 Complete M/W trading methodology
+├── 📄 btmm-development-guide.md        # Complete development guide
+├── 📄 pine-script-v5-guidelines.md     # Pine Script best practices
+├── 📄 cursor-integration-guide.md      # AI-assisted development
 ├── 📄 market-maker-cycle-enhancements.md # BTMM methodology
 └── 📁 api-reference/    # Technical API documentation
 ```
 
 ### **🎓 Learning Resources**
+- **[📊 Complete Trading Plan](docs/BTMM_Complete_Trading_Plan.html)** - **🎯 Master M/W methodology guide**
 - **[Complete User Manual](docs/user-manual.md)** - Step-by-step usage guide
 - **[Pine Script Guidelines](docs/pine-script-v5-guidelines.md)** - Best practices
 - **[Development Guide](docs/btmm-development-guide.md)** - Advanced development

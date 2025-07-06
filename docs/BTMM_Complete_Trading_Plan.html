@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete BTMM Trading Plan - All Timeframes</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0c0c1e, #1a1a2e);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin: 0;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #ffa502);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+        }
+        
+        .core-principle {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            border: 3px solid #ffa502;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 2.2em;
+            text-align: center;
+            margin-bottom: 25px;
+            color: #ffa502;
+            text-shadow: 0 0 20px rgba(255, 165, 2, 0.5);
+        }
+        
+        .subsection {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 5px solid;
+        }
+        
+        .type1 { border-left-color: #2ed573; }
+        .type2 { border-left-color: #3498db; }
+        .type3 { border-left-color: #9b59b6; }
+        .type4 { border-left-color: #e74c3c; }
+        .ote { border-left-color: #ffa502; }
+        .advanced { border-left-color: #ff6b6b; }
+        
+        .timeframe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .timeframe-box {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid;
+            text-align: center;
+        }
+        
+        .tf-1m { border-color: #ff4757; }
+        .tf-5m { border-color: #ffa502; }
+        .tf-15m { border-color: #2ed573; }
+        .tf-1h { border-color: #3498db; }
+        .tf-4h { border-color: #9b59b6; }
+        .tf-daily { border-color: #e74c3c; }
+        
+        .rules-list {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        
+        .rules-list h4 {
+            color: #ffa502;
+            margin-top: 0;
+        }
+        
+        .rules-list ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .rules-list li {
+            margin: 8px 0;
+            position: relative;
+        }
+        
+        .session-timing {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .session-box {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            border: 3px solid;
+            text-align: center;
+        }
+        
+        .asian-session { border-color: #f39c12; }
+        .london-session { border-color: #e74c3c; }
+        .ny-session { border-color: #3498db; }
+        .brinks-session { border-color: #9b59b6; }
+        
+        .pattern-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+        
+        .pattern-box {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 25px;
+            border: 3px solid;
+        }
+        
+        .key-levels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .level-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            text-align: center;
+        }
+        
+        .daily-level { border-left-color: #e74c3c; }
+        .weekly-level { border-left-color: #3498db; }
+        .monthly-level { border-left-color: #9b59b6; }
+        .yearly-level { border-left-color: #f39c12; }
+        .session-level { border-left-color: #2ecc71; }
+        .adr-level { border-left-color: #ff6b6b; }
+        
+        .execution-checklist {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            border: 3px solid #2ed573;
+        }
+        
+        .risk-management {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 25px 0;
+            color: white;
+        }
+        
+        .advanced-patterns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .highlight {
+            background: rgba(255, 165, 2, 0.2);
+            padding: 3px 8px;
+            border-radius: 5px;
+            color: #ffa502;
+            font-weight: bold;
+        }
+        
+        .emphasis {
+            color: #2ed573;
+            font-weight: bold;
+        }
+        
+        .warning {
+            color: #ff4757;
+            font-weight: bold;
+        }
+        
+        .brinks-times {
+            background: rgba(155, 89, 182, 0.2);
+            border: 2px solid #9b59b6;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .cycle-info {
+            background: rgba(52, 152, 219, 0.2);
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 COMPLETE BTMM TRADING PLAN</h1>
+            <p style="font-size: 1.4em; color: #ffa502;">M/W Patterns & OTE Setups - ALL TIMEFRAMES</p>
+        </div>
+        
+        <div class="core-principle">
+            🎯 <span class="highlight">CORE PRINCIPLE:</span> M/W patterns trigger on <span class="emphasis">EVERY TIMEFRAME</span> when setups are visually seen and <span class="emphasis">ALIGN WITH BIAS</span>
+        </div>
+        
+        <!-- TRADING OBJECTIVES -->
+        <div class="section">
+            <div class="section-title">🎯 1. TRADING OBJECTIVES</div>
+            <div class="subsection">
+                <h3><span class="emphasis">Primary Goal:</span> Trade in line with trend and liquidity cycles for consistent profitability</h3>
+                <p><span class="highlight">Focus Areas:</span></p>
+                <ul>
+                    <li>Daily Bias and Draw on Liquidity (DOL)</li>
+                    <li>Advanced M/W entry patterns on ALL timeframes</li>
+                    <li>OTE setups with proper reference level breaks</li>
+                    <li>Session timing alignment for optimal entries</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- WEEKLY AND DAILY PREPARATION -->
+        <div class="section">
+            <div class="section-title">📅 2. WEEKLY & DAILY PREPARATION</div>
+            
+            <div class="cycle-info">
+                <h3>📊 Weekly Cycle Structure</h3>
+                <div class="pattern-types">
+                    <div class="pattern-box type1">
+                        <h4>📈 DAY 2 - Level A1 Sell / Level V1 Buy</h4>
+                        <ul>
+                            <li><strong>FRD/FGD</strong> (First Red/Green Day)</li>
+                            <li><strong>Inside Day</strong> patterns</li>
+                            <li><strong>False Break Reversal</strong></li>
+                            <li><strong>Session 1:</strong> Higher high</li>
+                            <li><strong>Session 2:</strong> Higher low</li>
+                            <li><strong>Session 3:</strong> 3 pushes into high for false break reversal</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="pattern-box type2">
+                        <h4>🔄 INSIDE DAY REVERSAL</h4>
+                        <ul>
+                            <li><strong>Session 1:</strong> 1st push</li>
+                            <li><strong>Session 2:</strong> 2nd push</li>
+                            <li><strong>Session 3:</strong> 3rd push, break in structure, 1-2-3 reversal</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="pattern-box type3">
+                        <h4>💥 DAY 3 - Level A2/V2 Setups</h4>
+                        <ul>
+                            <li><strong>Level A2 Sell Setup</strong></li>
+                            <li><strong>Level V2 Sell Setup</strong></li>
+                            <li><strong>Day 3 Breakouts</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>🔍 Key Level Identification</h3>
+                <div class="key-levels">
+                    <div class="level-box daily-level">
+                        <h4>📅 DAILY</h4>
+                        <div><strong>PDH/PDL</strong></div>
+                        <div>Previous Day High/Low</div>
+                    </div>
+                    <div class="level-box weekly-level">
+                        <h4>📊 WEEKLY</h4>
+                        <div><strong>PWH/PWL</strong></div>
+                        <div>Previous Week High/Low</div>
+                    </div>
+                    <div class="level-box monthly-level">
+                        <h4>📈 MONTHLY</h4>
+                        <div><strong>PMH/PML</strong></div>
+                        <div>Previous Month High/Low</div>
+                    </div>
+                    <div class="level-box yearly-level">
+                        <h4>📋 YEARLY</h4>
+                        <div><strong>PYH/PYL</strong></div>
+                        <div>Previous Year High/Low</div>
+                    </div>
+                    <div class="level-box session-level">
+                        <h4>🕐 SESSION</h4>
+                        <div><strong>PSH/PSL</strong></div>
+                        <div>Previous Session High/Low</div>
+                    </div>
+                    <div class="level-box adr-level">
+                        <h4>📏 ADR</h4>
+                        <div><strong>ADR Boundaries</strong></div>
+                        <div>Average Daily Range</div>
+                    </div>
+                </div>
+                
+                <div class="rules-list">
+                    <h4>📋 Daily Pattern Checklist:</h4>
+                    <ul>
+                        <li><span class="highlight">HOD/LOD Status:</span> Is high/low locked in?</li>
+                        <li><span class="highlight">Session High/Low:</span> Is session high/low locked in?</li>
+                        <li><span class="highlight">HOM/HOW, LOM/LOW:</span> Monitor monthly/weekly extremes</li>
+                        <li><span class="warning">Avoid trading against D1 zone flips</span> to align with higher timeframe trend</li>
+                        <li>Use <span class="emphasis">Asian session range</span> as reference for liquidity sweeps</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SESSION TIMING -->
+        <div class="section">
+            <div class="section-title">⏰ 3. SESSION TIMING - (STOP HUNT → TRAP → TRADE)</div>
+            
+            <div class="session-timing">
+                <div class="session-box asian-session">
+                    <h3>🌏 ASIAN SESSION</h3>
+                    <p><strong>7:00 PM - 2:00 AM EST</strong></p>
+                    <p>Preparation phase, low liquidity</p>
+                    <p><span class="warning">Limited trading opportunities</span></p>
+                </div>
+                
+                <div class="session-box london-session">
+                    <h3>🇬🇧 LONDON SESSION</h3>
+                    <p><strong>3:00 AM - 5:00 AM EST</strong></p>
+                    <p>High volatility, reversals, breakouts</p>
+                    <p><span class="emphasis">Manipulation Phase</span></p>
+                </div>
+                
+                <div class="session-box ny-session">
+                    <h3>🇺🇸 NEW YORK SESSION</h3>
+                    <p><strong>8:30 AM - 11:00 AM EST</strong></p>
+                    <p>Major liquidity, trend continuation/reversal</p>
+                    <p><span class="emphasis">Distribution Phase</span></p>
+                </div>
+                
+                <div class="session-box brinks-session">
+                    <h3>⚡ BRINKS TIMING</h3>
+                    <p><strong>High Probability Windows</strong></p>
+                    <p><span class="emphasis">9:45 PM, 3:45 AM, 9:45 AM EST</span></p>
+                    <p>Liquidity spikes, precise entries</p>
+                </div>
+            </div>
+            
+            <div class="brinks-times">
+                <h3>🎯 SPECIAL TIMING NOTES</h3>
+                <p><span class="highlight">9:15 & 9:39:</span> Multiple timeframe traders active simultaneously</p>
+                <p><span class="highlight">9:39:</span> Equity markets open hour</p>
+                <p><span class="warning">"7:17" = Hour before 12-candle window - STOP HUNT</span></p>
+                <p><strong>DO NOT TAKE TRADES HERE!</strong></p>
+            </div>
+        </div>
+        
+        <!-- MAIN M/W PATTERN TYPES -->
+        <div class="section">
+            <div class="section-title">🔄 4. M/W PATTERN TYPES - ALL TIMEFRAMES</div>
+            
+            <div class="timeframe-grid">
+                <div class="timeframe-box tf-1m">
+                    <h4>1M</h4>
+                    <p>Scalping entries</p>
+                    <p>Quick reversals</p>
+                </div>
+                <div class="timeframe-box tf-5m">
+                    <h4>5M</h4>
+                    <p>Short-term trades</p>
+                    <p>Session scalps</p>
+                </div>
+                <div class="timeframe-box tf-15m">
+                    <h4>15M</h4>
+                    <p>Primary timeframe</p>
+                    <p>Safety trades</p>
+                </div>
+                <div class="timeframe-box tf-1h">
+                    <h4>1H</h4>
+                    <p>Swing entries</p>
+                    <p>Trend continuation</p>
+                </div>
+                <div class="timeframe-box tf-4h">
+                    <h4>4H</h4>
+                    <p>Major reversals</p>
+                    <p>Weekly bias</p>
+                </div>
+                <div class="timeframe-box tf-daily">
+                    <h4>DAILY</h4>
+                    <p>Long-term bias</p>
+                    <p>Major structure</p>
+                </div>
+            </div>
+            
+            <!-- TYPE 1: M/W ABOVE/BELOW ASIAN SESSION -->
+            <div class="subsection type1">
+                <h3>🔄 TYPE 1: M/W Patterns Above/Below Asian Session (Safety Trade)</h3>
+                
+                <div class="pattern-types">
+                    <div class="pattern-box type1">
+                        <h4>✅ Type 1a: Full 13 EMA Rules 📈</h4>
+                        <div class="rules-list">
+                            <h4>📝 Rules:</h4>
+                            <ul>
+                                <li>Both legs <span class="emphasis">strictly respect</span> the 13 EMA</li>
+                                <li>No break or violation allowed</li>
+                                <li>Apex forms with clean rejection candlestick pattern</li>
+                                <li><span class="highlight">Works on ALL timeframes</span></li>
+                            </ul>
+                            <h4>📍 Optimal Locations:</h4>
+                            <ul>
+                                <li>Session HOD/LOD</li>
+                                <li>PSH/PSL, PDH/PDL, PWH/PWL, PMH/PML, PYH/PYL</li>
+                                <li>5-day averaged ADR levels</li>
+                            </ul>
+                            <h4>🎯 Use Case:</h4>
+                            <p>Ideal in trending markets with clear structure</p>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type1">
+                        <h4>✅ Type 1b: 13 EMA Tap 🔄</h4>
+                        <div class="rules-list">
+                            <h4>📝 Rules:</h4>
+                            <ul>
+                                <li>First leg <span class="emphasis">taps</span> the 13 EMA but doesn't break it</li>
+                                <li>Second leg forms rejection candlestick pattern</li>
+                                <li>Examples: Morning Star, Railroad Tracks, COW</li>
+                                <li><span class="highlight">Triggers on every timeframe when visible</span></li>
+                            </ul>
+                            <h4>📍 Optimal Locations:</h4>
+                            <ul>
+                                <li><span class="brinks-times">Brinks Timing: 9:45 PM, 3:45 AM, 9:45 AM EST</span></li>
+                                <li>London/NY session extremes</li>
+                                <li>Key reversal levels: PSH/PSL, PDH/PDL, PWH/PWL</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type1">
+                        <h4>✅ Type 1c: Leg Does Not Touch 13 EMA 📊</h4>
+                        <div class="rules-list">
+                            <h4>📝 Rules:</h4>
+                            <ul>
+                                <li>First leg remains entirely above (buy) or below (sell) 13 EMA</li>
+                                <li>Second leg closes back inside 13 EMA</li>
+                                <li>Confirms with candlestick rejection (Railroad Tracks, COW)</li>
+                                <li><span class="highlight">Valid on all timeframes when pattern is clear</span></li>
+                            </ul>
+                            <h4>📍 Optimal Locations:</h4>
+                            <ul>
+                                <li>Near session HOD/LOD</li>
+                                <li>Liquidity sweeps before reversal</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TYPE 2: ASIAN 00 BOUNCE AND REVERSE -->
+            <div class="subsection type2">
+                <h3>🔄 TYPE 2: Asian 00 Bounce and Reverse Trades</h3>
+                
+                <div class="pattern-types">
+                    <div class="pattern-box type2">
+                        <h4>✅ Type 2a: Symmetrical Legs ↔️</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Both legs symmetrical in length and structure</li>
+                                <li>Apex forms with clear rejection candlestick</li>
+                                <li><span class="emphasis">Found near session HOD/LOD</span></li>
+                                <li><span class="highlight">Works on 5M, 15M, 1H, 4H timeframes</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type2">
+                        <h4>✅ Type 2b: Extended Second Leg 📏</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Second leg extended further than first leg</li>
+                                <li>Apex with candlestick rejection (Railroad Tracks, Morning/Evening Star)</li>
+                                <li>Found near HOD/LOD, HOW/LOW, ADR levels</li>
+                                <li><span class="highlight">Effective during Brinks Timing</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type2">
+                        <h4>✅ Type 2c: Pattern at Key EMA Levels 📊</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Pattern forms at significant EMAs (13, 50, 200)</li>
+                                <li>Both legs interact with EMA</li>
+                                <li>Second leg closes above/below EMA</li>
+                                <li><span class="highlight">Ideal for trend continuation/reversal</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TYPE 3: ASIAN 50 BOUNCE -->
+            <div class="subsection type3">
+                <h3>💥 TYPE 3: Asian 50 Bounce and Reverse Trades</h3>
+                
+                <div class="pattern-types">
+                    <div class="pattern-box type3">
+                        <h4>✅ Type 3a: 50 EMA Bounce 📈</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Price pulls back to 50 EMA after trend/breakout</li>
+                                <li>Entry confirmed with candlestick rejection (Railroad Tracks, Pin Bar)</li>
+                                <li><span class="emphasis">Trend continuation trades</span></li>
+                                <li><span class="highlight">Works best on 15M, 1H, 4H</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type3">
+                        <h4>✅ Type 3b: Asian Range Bounce 🌍</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Price respects 50% of Asian session range</li>
+                                <li>Bounces off range high/low</li>
+                                <li>Entry confirmed with candlestick patterns</li>
+                                <li><span class="highlight">Works during London and NY sessions</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type3">
+                        <h4>✅ Type 3c: ADR/Key Level Rejection 📏</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Price rejects ADR, PDH/PDL, YH/YL levels</li>
+                                <li>Entry after candlestick rejection (Morning/Evening Star)</li>
+                                <li><span class="emphasis">Effective for continuation trades</span></li>
+                                <li><span class="highlight">Valid on all timeframes</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TYPE 4: BREAKOUT AND CONTINUATION -->
+            <div class="subsection type4">
+                <h3>💥 TYPE 4: Breakout, Bounce off Asian 00 then Continuation</h3>
+                
+                <div class="pattern-types">
+                    <div class="pattern-box type4">
+                        <h4>✅ Type 4a: 50 EMA Continuation 📈</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Strong breakout from consolidation/range</li>
+                                <li>Retraces to 50 EMA as dynamic support/resistance</li>
+                                <li>Confirmation: Rejection candlestick at EMA</li>
+                                <li><span class="highlight">Works on 15M, 1H, 4H for trend continuation</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type4">
+                        <h4>✅ Type 4b: Breakout Pullback 💥</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Breaks PDH, PDL, Asian high/low, ADR boundary</li>
+                                <li>Retraces to test breakout level</li>
+                                <li>Forms rejection candlestick pattern</li>
+                                <li><span class="highlight">Effective during Brinks Timing</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="pattern-box type4">
+                        <h4>✅ Type 4c: Trend Continuation with 200 EMA 🔄</h4>
+                        <div class="rules-list">
+                            <ul>
+                                <li>Strong trend above/below 200 EMA</li>
+                                <li>Retraces to EMA or consolidates</li>
+                                <li>Continues in trend direction</li>
+                                <li><span class="highlight">Higher timeframe confluence</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- OTE SETUPS -->
+        <div class="section">
+            <div class="section-title">⚡ 5. OTE SETUPS (OPTIMAL TRADE ENTRY)</div>
+            
+            <div class="core-principle">
+                🎯 <span class="highlight">OTE FORMATION:</span> After break above/below PDH, PDL, PWH, PWL, PMH, PML, PYH, PYL, PSH, PSL
+            </div>
+            
+            <div class="subsection ote">
+                <h3>📊 Type 1: Standard OTE After Reference Level Break</h3>
+                <div class="rules-list">
+                    <h4>🎯 Setup Process:</h4>
+                    <ol>
+                        <li><span class="emphasis">Break Reference Level:</span> Price breaks above/below key level</li>
+                        <li><span class="emphasis">First Leg:</span> Impulse move away from reference level</li>
+                        <li><span class="emphasis">OTE Retracement:</span> 62-79% pullback (70.5% optimal)</li>
+                        <li><span class="emphasis">Second Leg:</span> Continuation from OTE zone</li>
+                    </ol>
+                    
+                    <h4>📍 Reference Levels for OTE:</h4>
+                    <div class="key-levels">
+                        <div class="level-box daily-level">PDH/PDL</div>
+                        <div class="level-box weekly-level">PWH/PWL</div>
+                        <div class="level-box monthly-level">PMH/PML</div>
+                        <div class="level-box yearly-level">PYH/PYL</div>
+                        <div class="level-box session-level">PSH/PSL</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection ote">
+                <h3>🔄 Type 2: OTE Divergence Setup</h3>
+                <div class="rules-list">
+                    <h4>🎯 Divergence Criteria:</h4>
+                    <ul>
+                        <li><span class="emphasis">Setup:</span> Price takes out high of first leg BUT closes back below within 3 candles</li>
+                        <li><span class="emphasis">Timeframe:</span> Works on <span class="highlight">EVERY timeframe</span> (1M, 5M, 15M, 1H, 4H, Daily)</li>
+                        <li><span class="emphasis">Signal:</span> Creates divergence and potential OTE opportunity</li>
+                        <li><span class="emphasis">Psychology:</span> Smart money rejecting higher prices, retail trapped</li>
+                    </ul>
+                    
+                    <h4>📝 Execution Steps:</h4>
+                    <ol>
+                        <li>Price breaks above first leg high (liquidity grab)</li>
+                        <li>Price closes below first leg high within 3 candles</li>
+                        <li>New OTE zone created from divergence high</li>
+                        <li>Look for lower timeframe confirmation in OTE</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ADVANCED ENTRY PATTERNS -->
+        <div class="section">
+            <div class="section-title">🚀 6. ADVANCED ENTRY PATTERNS</div>
+            
+            <div class="advanced-patterns">
+                <div class="pattern-box advanced">
+                    <h4>🅼🆆 M&W Patterns - Extended Rules</h4>
+                    <div class="rules-list">
+                        <h4>📝 BUY/SELL Rules:</h4>
+                        <ul>
+                            <li>First leg doesn't close above/below 13 but consolidates in range of <span class="emphasis">8+ candles</span></li>
+                            <li>TDI confirmation: RSI outside band (first leg)</li>
+                            <li>Comes back and closes above/below MBL crossing signal line</li>
+                        </ul>
+                        <h4>📍 Found at:</h4>
+                        <ul>
+                            <li>HOD or LOD</li>
+                            <li>Level 3 reversal areas</li>
+                            <li>YH or YL (blue tracer)</li>
+                            <li>After SHH or SHL above/below Asian range</li>
+                            <li>At EMAs (water, mayo, etc.)</li>
+                            <li>After ADR met or exceeded</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="pattern-box advanced">
+                    <h4>🦇 Half Batman Pattern</h4>
+                    <div class="rules-list">
+                        <h4>📝 Rules (Type 1&2) - Lev3, 15min/1hr:</h4>
+                        <ul>
+                            <li>Outside structure, first leg</li>
+                            <li>Price closes above/below 13 and comes back to challenge first leg</li>
+                            <li>Price fails to reach first leg by <span class="emphasis">10 pips</span></li>
+                            <li>Entry trigger: shift candle 10-12 pips</li>
+                            <li>Shift candle closes above/below apex (middle of structure)</li>
+                            <li>Price closes above/below 13 with TDI confirmation</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="pattern-box advanced">
+                    <h4>📊 ID50 / ID50 H1</h4>
+                    <div class="rules-list">
+                        <h4>📝 Rules (Lev1, 15min) / (Lev1&3, 1hr/4hr/Daily):</h4>
+                        <ul>
+                            <li>Must have anchor present left</li>
+                            <li>13/50 cross</li>
+                            <li>First pullback to 50 (20-25 pips) - quick move back to 50</li>
+                            <li>Wait for price to trap at 50 EMA</li>
+                            <li>Entry trigger: RR, COW, morning/evening star closing below 13</li>
+                            <li>TDI confirmation: RSI/Signal line cross</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="pattern-box advanced">
+                    <h4>📈 M&W off 200 EMA</h4>
+                    <div class="rules-list">
+                        <h4>📝 Rules (Mayo/Water) - L2, 15min/1hr/4hr:</h4>
+                        <ul>
+                            <li>Same entry rules as M/W patterns</li>
+                            <li>Second leg closes above/below 13</li>
+                            <li>TDI confirmation required</li>
+                            <li><span class="highlight">Works on all timeframes when visible</span></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="pattern-box advanced">
+                    <h4>🌏 2nd Leg Out of Asia</h4>
+                    <div class="rules-list">
+                        <h4>📝 Rules:</h4>
+                        <ul>
+                            <li>M Setup with Asian leg</li>
+                            <li>RR Pattern on second leg</li>
+                            <li>Divergence on TDI</li>
+                            <li>Setup on Blueberry</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="pattern-box advanced">
+                    <h4>🎯 33 Trade Pattern</h4>
+                    <div class="rules-list">
+                        <h4>📝 Rules (Lev3, 15min):</h4>
+                        <ul>
+                            <li><span class="emphasis">3 pushes</span> with 123 engulfments & pin hammers</li>
+                            <li><span class="emphasis">3 levels of rise</span> or 3 levels of fall (DAYS/SESSIONS)</li>
+                            <li>3 bar reversal / engulfment / inside bar / pin hammer</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- RISK MANAGEMENT -->
+        <div class="section">
+            <div class="section-title">🛡️ 7. RISK MANAGEMENT</div>
+            
+            <div class="risk-management">
+                <h3>🎯 Essential Risk Rules</h3>
+                <ul>
+                    <li><span class="emphasis">Stop Loss:</span> Set above/below key levels (apex, structure breaks)</li>
+                    <li><span class="emphasis">Risk:Reward:</span> Target minimum 2:1 ratio</li>
+                    <li><span class="warning">Avoid night hours:</span> Minimize trap setups</li>
+                    <li><span class="emphasis">Position Sizing:</span> Never risk more than 1-2% per trade</li>
+                    <li><span class="emphasis">ADR Awareness:</span> Use ADR boundaries for profit targets</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- EXECUTION CHECKLIST -->
+        <div class="section">
+            <div class="section-title">✅ 8. EXECUTION CHECKLIST</div>
+            
+            <div class="execution-checklist">
+                <h3>📋 Pre-Trade Checklist</h3>
+                <ol>
+                    <li>🔍 <span class="emphasis">Identify Setup Type:</span> Type 1, 2, 3, 4, OTE, or Advanced</li>
+                    <li>⏰ <span class="emphasis">Confirm Session Timing:</span> London, NY, or Brinks timing</li>
+                    <li>📊 <span class="emphasis">Check Timeframe Alignment:</span> Pattern clear and visible</li>
+                    <li>🎯 <span class="emphasis">Verify Bias Alignment:</span> Trade with institutional bias</li>
+                    <li>🕯️ <span class="emphasis">Confirm Candlestick Pattern:</span> Railroad Tracks, COW, Stars, etc.</li>
+                    <li>📈 <span class="emphasis">EMA Interaction:</span> Proper 13/50/200 EMA relationship</li>
+                    <li>🎛️ <span class="emphasis">TDI Confirmation:</span> Signal line, RSI, MBL alignment</li>
+                    <li>🛡️ <span class="emphasis">Set Risk Parameters:</span> Stop loss and take profit</li>
+                    <li>📏 <span class="emphasis">Calculate Position Size:</span> Based on risk tolerance</li>
+                    <li>⚡ <span class="emphasis">Execute Trade:</span> Enter on confirmation</li>
+                </ol>
+                
+                <div class="brinks-times">
+                    <h4>🎯 Remember: M/W patterns trigger on <span class="highlight">EVERY TIMEFRAME</span> when:</h4>
+                    <ul>
+                        <li>✅ Setup is <span class="emphasis">visually clear</span></li>
+                        <li>✅ Pattern <span class="emphasis">aligns with bias</span></li>
+                        <li>✅ Proper <span class="emphasis">candlestick confirmation</span></li>
+                        <li>✅ <span class="emphasis">Session timing</span> supports the move</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 
