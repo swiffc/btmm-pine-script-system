@@ -27,7 +27,7 @@ enable_continuation_patterns = input.bool(true, "Enable Continuation Patterns", 
 
 // === CORRECTED SESSION SETTINGS ===
 session_group = "🌍 Session Configuration - CORRECTED"
-btmm_asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", tooltip="Asian accumulation phase - CORRECTED", group=session_group)
+btmm_asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", tooltip="Asian accumulation phase with 24h pivot reference", group=session_group)
 btmm_london_session = input.session("0200-0900", "London Session (2AM-9AM)", tooltip="London manipulation phase", group=session_group)
 btmm_ny_session = input.session("0930-1700", "NY Session (9:30AM-5PM)", tooltip="New York distribution phase", group=session_group)
 
@@ -260,7 +260,7 @@ plot(btmm_perfect_stack ? 1 : 0, "BTMM Perfect Stack", color=btmm_perfect_stack 
 plot(system_health / 4.0, "BTMM Enhanced System Health", color=health_color, display=display.data_window)
 
 // Session data outputs with corrected Asian session
-plot(btmm_is_asian ? 1 : 0, "BTMM Asian Session (5PM-12AM)", color=color.yellow, display=display.data_window)
+plot(btmm_is_asian ? 1 : 0, "BTMM Asian Session (5PM-Midnight)", color=color.yellow, display=display.data_window)
 plot(btmm_is_london ? 1 : 0, "BTMM London Session (2AM-9AM)", color=color.orange, display=display.data_window)
 plot(btmm_is_ny ? 1 : 0, "BTMM NY Session (9:30AM-5PM)", color=color.blue, display=display.data_window)
 

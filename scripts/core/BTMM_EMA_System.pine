@@ -70,7 +70,7 @@ var float asian_low = na
 var float asian_range = na
 
 // Track Asian session (simplified)
-asian_session = time(timeframe.period, "1700-0500")
+asian_session = time(timeframe.period, "1700-0000")  // Corrected: 5PM-Midnight EST
 if asian_session and not asian_session[1]
     asian_high := high
     asian_low := low

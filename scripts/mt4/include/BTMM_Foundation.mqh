@@ -15,8 +15,8 @@
 #define BTMM_BUILD_DATE "2025-01-06"
 
 // Session Constants (synchronized with Pine Script)
-#define ASIAN_SESSION_START 20    // 8:00 PM GMT
-#define ASIAN_SESSION_END 8       // 8:00 AM GMT
+#define ASIAN_SESSION_START 22    // 10:00 PM GMT (5:00 PM EST)
+#define ASIAN_SESSION_END 5       // 5:00 AM GMT (Midnight EST)
 #define LONDON_SESSION_START 8    // 8:00 AM GMT
 #define LONDON_SESSION_END 16     // 4:00 PM GMT
 #define NY_SESSION_START 13       // 1:00 PM GMT

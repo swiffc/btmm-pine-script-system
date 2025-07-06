@@ -32,7 +32,8 @@ indicator("BTMM Asian Range", "BTMM Asian", overlay=true, shorttitle="BTMM Asian
 
 // === SESSION TIMING SETTINGS ===
 session_group = "⏰ Session Timing (Market Maker Cycle)"
-asian_session_time = input.session("1700-0500", "Asian Session (Accumulation)", group=session_group, tooltip="17:00-05:00 EST - Analysis only")
+asian_session_time = input.session("1700-0000", "Asian Session (Accumulation)", group=session_group, tooltip="17:00-00:00 EST - Corrected timing")
+asian_pivot_reference = input.session("1700-1700", "Asian Pivot Reference (24h)", group=session_group, tooltip="24-hour reference for pivot lines (5PM to next day 5PM)")
 london_session_time = input.session("0200-0900", "London Session (Manipulation)", group=session_group, tooltip="02:00-09:00 EST - Prime trading")
 ny_session_time = input.session("0930-1700", "NY Session (Distribution)", group=session_group, tooltip="09:30-17:00 EST - Prime trading")
 show_session_boxes = input.bool(true, "Show Session Background", group=session_group)
@@ -58,10 +59,12 @@ transparency = input.int(85, "Box Transparency", minval=50, maxval=95, group=vis
 
 // Session detection
 in_asian = time(timeframe.period, asian_session_time)
+in_asian_pivot = time(timeframe.period, asian_pivot_reference)  // 24-hour pivot reference
 in_london = time(timeframe.period, london_session_time)
 in_ny = time(timeframe.period, ny_session_time)
 
 is_asian = not na(in_asian)
+is_asian_pivot_active = not na(in_asian_pivot)  // 24-hour reference for pivot lines
 is_london = not na(in_london)
 is_ny = not na(in_ny)
 

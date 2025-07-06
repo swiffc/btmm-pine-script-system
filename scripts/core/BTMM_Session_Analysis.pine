@@ -17,8 +17,8 @@ import TradingView/ta/7 as ta
 
 // === SESSION CONFIGURATION ===
 session_group = "⏰ BTMM Session Analysis"
-asian_session = input.session("1700-0500", "Asian Session (Accumulation)", group=session_group)
-asian_bg_session = input.session("1700-0000", "Asian Background (5PM-Midnight)", group=session_group)
+asian_session = input.session("1700-0000", "Asian Session (Accumulation)", group=session_group, tooltip="5PM-Midnight EST with 24h pivot reference")
+asian_pivot_session = input.session("1700-1700", "Asian Pivot Reference (24h)", group=session_group, tooltip="24-hour reference for pivot lines")
 london_session = input.session("0200-0900", "London Session (Manipulation)", group=session_group)
 ny_session = input.session("0930-1700", "NY Session (Distribution)", group=session_group)
 show_session_backgrounds = input.bool(true, "Show Session Backgrounds", group=session_group)
@@ -67,7 +67,7 @@ alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once
 
 // Session Detection
 in_asian_session = time(timeframe.period, asian_session)
-in_asian_bg_session = time(timeframe.period, asian_bg_session)  // Background color timing
+in_asian_pivot_session = time(timeframe.period, asian_pivot_session)  // 24-hour pivot reference
 in_london_session = time(timeframe.period, london_session)
 in_ny_session = time(timeframe.period, ny_session)
 
@@ -173,7 +173,7 @@ detect_stop_hunt() =>
 // ═══════════════════════════════════════════════════════════════════════════════════
 
 // Session Background Colors
-bgcolor(show_session_backgrounds and in_asian_bg_session ? asian_box_color : na, title="Asian Background (5PM-Midnight)")
+bgcolor(show_session_backgrounds and in_asian_session ? asian_box_color : na, title="Asian Session (5PM-Midnight)")
 bgcolor(show_session_backgrounds and in_london_session ? london_box_color : na, title="London Session BG")
 bgcolor(show_session_backgrounds and in_ny_session ? ny_box_color : na, title="NY Session BG")
 

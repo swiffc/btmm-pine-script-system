@@ -77,7 +77,7 @@ indicator("BTMM Market Structure", shorttitle="BTMM-MS", overlay=true)
 
 group_btmm = "BTMM Configuration"
 show_manipulation = input.bool(true, "Show Manipulation Zones", group=group_btmm)
-asian_session = input.session("2100-0600", "Asian Session", group=group_btmm)
+asian_session = input.session("2200-0500", "Asian Session (5PM-Midnight EST)", group=group_btmm)
 london_session = input.session("0300-1200", "London Session", group=group_btmm)
 ny_session = input.session("0800-1700", "New York Session", group=group_btmm)
 
@@ -154,8 +154,8 @@ show_session_highs_lows = input.bool(true, "Show Session High/Low", group=group_
 extend_lines = input.bool(false, "Extend Lines", group=group_sessions)
 
 // Session times (adjustable for different brokers)
-asian_start = input.time(timestamp("2000-01-01 21:00"), "Asian Start", group=group_sessions)
-asian_end = input.time(timestamp("2000-01-01 06:00"), "Asian End", group=group_sessions)
+asian_start = input.time(timestamp("2000-01-01 22:00"), "Asian Start (5PM EST)", group=group_sessions)
+asian_end = input.time(timestamp("2000-01-01 05:00"), "Asian End (Midnight EST)", group=group_sessions)
 london_start = input.time(timestamp("2000-01-01 03:00"), "London Start", group=group_sessions)
 london_end = input.time(timestamp("2000-01-01 12:00"), "London End", group=group_sessions)
 ny_start = input.time(timestamp("2000-01-01 08:00"), "NY Start", group=group_sessions)

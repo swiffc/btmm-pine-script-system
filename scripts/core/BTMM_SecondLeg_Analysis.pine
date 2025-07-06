@@ -4,7 +4,8 @@
 // BTMM SECOND LEG CONFIRMATION ANALYSIS
 // =============================================================================
 // Purpose: Advanced second leg confirmation system for continuation trades
-// Sessions: Asian (5PM-12AM), London (2AM-9AM), NY (9:30AM-5PM)
+// Sessions: Asian (5PM-Midnight), London (2AM-9AM), NY (9:30AM-5PM)
+// Asian Pivot: 24-hour reference (5PM to next day 5PM) for key levels
 // Author: BTMM Development Team
 // Version: 1.0 - Second Leg Focus
 // =============================================================================
@@ -16,7 +17,7 @@ indicator("BTMM Second Leg Confirmation", "BTMM 2L", overlay=true)
 // ============================================================================
 
 // Session Settings - CORRECTED per user requirements
-asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", group="Sessions")
+asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", group="Sessions", tooltip="Accumulation phase with 24h pivot reference")
 london_session = input.session("0200-0900", "London Session (2AM-9AM)", group="Sessions") 
 ny_session = input.session("0930-1700", "NY Session (9:30AM-5PM)", group="Sessions")
 

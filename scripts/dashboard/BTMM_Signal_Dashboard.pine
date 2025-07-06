@@ -72,8 +72,8 @@ btmm_bias_score = calculate_bias_score()
 btmm_market_bias = btmm_bias_score >= 2.0 ? "BULLISH" : btmm_bias_score <= -2.0 ? "BEARISH" : "NEUTRAL"
 
 // Session Analysis Data (Script 2)
-asian_session = time(timeframe.period, "1700-0500")
-asian_bg_session = time(timeframe.period, "1700-0000")  // Background color timing
+asian_session = time(timeframe.period, "1700-0000")  // Corrected: 5PM-Midnight EST
+asian_pivot_reference = time(timeframe.period, "1700-1700")  // 24-hour pivot reference
 london_session = time(timeframe.period, "0200-0900")
 ny_session = time(timeframe.period, "0930-1700")
 current_session = asian_session ? "ASIAN" : london_session ? "LONDON" : ny_session ? "NY" : "OFF-HOURS"
