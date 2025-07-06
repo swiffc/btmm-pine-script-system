@@ -1,0 +1,332 @@
+//@version=5
+
+// =============================================================================
+// BTMM MASTER DASHBOARD - SECOND LEG CONFIRMATION TRADING VERSION
+// =============================================================================
+// Purpose: Enhanced dashboard with second leg confirmation trade detection
+// Method: Multi-phase confirmation system for continuation patterns
+// Author: BTMM Development Team
+// Version: 4.0 - Second Leg Confirmation Enhancement
+// Date: 2025-07-02
+// Standards: Pine Script v5 + BTMM Professional Guidelines + Second Leg Analysis
+// =============================================================================
+
+indicator("BTMM Master Dashboard - Second Leg", "BTMM 2nd Leg", overlay=true, shorttitle="BTMM 2L")
+
+// ============================================================================
+// ENHANCED CONFIGURATION - SECOND LEG FOCUSED
+// ============================================================================
+
+// === SECOND LEG CONFIRMATION SETTINGS ===
+second_leg_group = "🎯 Second Leg Confirmation"
+enable_second_leg = input.bool(true, "Enable Second Leg Detection", group=second_leg_group)
+first_leg_min_pips = input.int(20, "First Leg Minimum (pips)", minval=5, maxval=100, group=second_leg_group, tooltip="Minimum first leg size for valid setup")
+pullback_max_percent = input.float(0.618, "Max Pullback %", minval=0.3, maxval=0.8, step=0.05, group=second_leg_group, tooltip="Maximum pullback percentage of first leg")
+second_leg_confirmation_bars = input.int(3, "Second Leg Confirmation Bars", minval=1, maxval=10, group=second_leg_group)
+enable_continuation_patterns = input.bool(true, "Enable Continuation Patterns", group=second_leg_group)
+
+// === CORRECTED SESSION SETTINGS ===
+session_group = "🌍 Session Configuration - CORRECTED"
+btmm_asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", tooltip="Asian accumulation phase - CORRECTED", group=session_group)
+btmm_london_session = input.session("0200-0900", "London Session (2AM-9AM)", tooltip="London manipulation phase", group=session_group)
+btmm_ny_session = input.session("0930-1700", "NY Session (9:30AM-5PM)", tooltip="New York distribution phase", group=session_group)
+
+// === MULTI-TIMEFRAME DASHBOARD ===
+dashboard_group = "📊 Multi-Timeframe Dashboard"
+enable_dashboard = input.bool(true, "Enable MTF Dashboard", group=dashboard_group)
+dashboard_position = input.string("top_right", "Dashboard Position", 
+                                 options=["top_left", "top_center", "top_right", "middle_left", "middle_center", "middle_right", "bottom_left", "bottom_center", "bottom_right"], 
+                                 group=dashboard_group)
+dashboard_size = input.string("normal", "Dashboard Size", options=["tiny", "small", "normal", "large"], group=dashboard_group)
+
+// === EMA SETTINGS ===
+ema_group = "📈 EMA Configuration"
+btmm_ema_5 = input.int(5, "EMA Fast", minval=1, maxval=50, step=1, tooltip="Fast EMA period for trend detection", group=ema_group)
+btmm_ema_13 = input.int(13, "EMA Medium", minval=1, maxval=50, step=1, tooltip="Medium EMA period for bias confirmation", group=ema_group)
+btmm_ema_50 = input.int(50, "EMA Slow", minval=1, maxval=200, step=1, tooltip="Slow EMA period for major trend", group=ema_group)
+btmm_ema_200 = input.int(200, "EMA Filter", minval=1, maxval=500, step=1, tooltip="Long-term EMA filter for institutional bias", group=ema_group)
+
+// === VOLUME & INSTITUTIONAL SETTINGS ===
+volume_group = "🏦 Volume & Institutional Analysis"
+enable_volume_analysis = input.bool(true, "Enable Volume Analysis", group=volume_group)
+volume_ma_length = input.int(20, "Volume MA Length", minval=5, maxval=100, group=volume_group)
+institutional_threshold = input.float(1.5, "Institutional Volume Threshold", minval=1.0, maxval=5.0, step=0.1, group=volume_group)
+volume_confirmation_bars = input.int(2, "Volume Confirmation Bars", minval=1, maxval=10, group=volume_group)
+
+// === SIGNAL SETTINGS ===
+signal_group = "🎯 Signal Configuration"
+btmm_signal_confirmation = input.bool(true, "Require Volume Confirmation", tooltip="Signals must have volume confirmation", group=signal_group)
+btmm_stack_tolerance = input.float(0.001, "Stack Tolerance %", minval=0.0001, maxval=0.01, step=0.0001, tooltip="Tolerance for perfect stack detection", group=signal_group)
+
+// ============================================================================
+// ENHANCED CALCULATIONS WITH SECOND LEG DETECTION
+// ============================================================================
+
+// Session Detection with Corrected Times
+btmm_session_london = time(timeframe.period, btmm_london_session)
+btmm_session_ny = time(timeframe.period, btmm_ny_session)
+btmm_session_asian = time(timeframe.period, btmm_asian_session)
+
+btmm_is_london = not na(btmm_session_london)
+btmm_is_ny = not na(btmm_session_ny)
+btmm_is_asian = not na(btmm_session_asian)
+
+// Market Phase Analysis - Steve Mauro Methodology with Corrected Sessions
+btmm_current_phase = btmm_is_asian ? "ACCUMULATION" : btmm_is_london ? "MANIPULATION" : btmm_is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
+
+// EMA Calculations
+btmm_ema5 = na(close) ? na : ta.ema(close, btmm_ema_5)
+btmm_ema13 = na(close) ? na : ta.ema(close, btmm_ema_13)
+btmm_ema50 = na(close) ? na : ta.ema(close, btmm_ema_50)
+btmm_ema200 = na(close) ? na : ta.ema(close, btmm_ema_200)
+
+// Enhanced Bias Calculation
+btmm_price_above_ema5 = na(btmm_ema5) ? false : close > btmm_ema5
+btmm_price_above_ema13 = na(btmm_ema13) ? false : close > btmm_ema13
+btmm_price_above_ema50 = na(btmm_ema50) ? false : close > btmm_ema50
+btmm_price_above_ema200 = na(btmm_ema200) ? false : close > btmm_ema200
+
+btmm_bias_score = (btmm_price_above_ema5 ? 1 : -1) + (btmm_price_above_ema13 ? 1 : -1) + (btmm_price_above_ema50 ? 1 : -1) + (btmm_price_above_ema200 ? 1 : -1)
+btmm_bias_direction = btmm_bias_score >= 2 ? "BULL" : btmm_bias_score <= -2 ? "BEAR" : "NEUT"
+
+// Perfect Stack Detection
+btmm_perfect_bullish_stack = na(btmm_ema5) or na(btmm_ema13) or na(btmm_ema50) or na(btmm_ema200) ? false : 
+     btmm_ema5 > btmm_ema13 * (1 + btmm_stack_tolerance) and 
+     btmm_ema13 > btmm_ema50 * (1 + btmm_stack_tolerance) and 
+     btmm_ema50 > btmm_ema200 * (1 + btmm_stack_tolerance)
+
+btmm_perfect_bearish_stack = na(btmm_ema5) or na(btmm_ema13) or na(btmm_ema50) or na(btmm_ema200) ? false : 
+     btmm_ema5 < btmm_ema13 * (1 - btmm_stack_tolerance) and 
+     btmm_ema13 < btmm_ema50 * (1 - btmm_stack_tolerance) and 
+     btmm_ema50 < btmm_ema200 * (1 - btmm_stack_tolerance)
+
+btmm_perfect_stack = btmm_perfect_bullish_stack or btmm_perfect_bearish_stack
+
+// Volume Analysis
+btmm_volume_ma = na(volume) ? na : ta.sma(volume, volume_ma_length)
+btmm_high_volume = na(btmm_volume_ma) ? false : volume > btmm_volume_ma * institutional_threshold
+btmm_institutional_volume = enable_volume_analysis and btmm_high_volume
+
+// Volume confirmation over multiple bars
+btmm_volume_confirmed = false
+if enable_volume_analysis
+    btmm_volume_confirmed := btmm_high_volume
+    for i = 1 to volume_confirmation_bars - 1
+        btmm_volume_confirmed := btmm_volume_confirmed or volume[i] > btmm_volume_ma[i] * institutional_threshold
+
+// ============================================================================
+// SECOND LEG CONFIRMATION SYSTEM - ADVANCED
+// ============================================================================
+
+// Variables for tracking legs
+var float first_leg_start = na
+var float first_leg_end = na
+var int first_leg_direction = 0  // 1 for bullish, -1 for bearish
+var bool first_leg_completed = false
+var float pullback_level = na
+var bool pullback_completed = false
+var int bars_since_pullback = 0
+
+// Helper function to calculate pip value
+pip_value = syminfo.mintick * 10
+
+// First Leg Detection
+bullish_impulse = close > close[5] and close > btmm_ema13 and btmm_high_volume
+bearish_impulse = close < close[5] and close < btmm_ema13 and btmm_high_volume
+
+// First leg start detection
+if not first_leg_completed and enable_second_leg
+    if bullish_impulse and first_leg_direction != 1
+        first_leg_start := low[1]
+        first_leg_direction := 1
+        first_leg_completed := false
+        
+    if bearish_impulse and first_leg_direction != -1
+        first_leg_start := high[1]
+        first_leg_direction := -1
+        first_leg_completed := false
+
+// First leg completion detection
+first_leg_size_pips = na
+if not na(first_leg_start) and first_leg_direction != 0
+    if first_leg_direction == 1  // Bullish leg
+        current_leg_size = (high - first_leg_start) / pip_value
+        if current_leg_size >= first_leg_min_pips
+            first_leg_end := high
+            first_leg_size_pips := current_leg_size
+            if close < high * 0.95  // Started to pullback
+                first_leg_completed := true
+                pullback_level := first_leg_start + (first_leg_end - first_leg_start) * pullback_max_percent
+    
+    if first_leg_direction == -1  // Bearish leg
+        current_leg_size = (first_leg_start - low) / pip_value
+        if current_leg_size >= first_leg_min_pips
+            first_leg_end := low
+            first_leg_size_pips := current_leg_size
+            if close > low * 1.05  // Started to pullback
+                first_leg_completed := true
+                pullback_level := first_leg_start - (first_leg_start - first_leg_end) * pullback_max_percent
+
+// Pullback completion detection
+if first_leg_completed and not pullback_completed
+    if first_leg_direction == 1 and low <= pullback_level
+        pullback_completed := true
+        bars_since_pullback := 0
+    if first_leg_direction == -1 and high >= pullback_level
+        pullback_completed := true
+        bars_since_pullback := 0
+
+// Count bars since pullback
+if pullback_completed
+    bars_since_pullback += 1
+
+// Second leg confirmation detection
+second_leg_bullish_confirmed = pullback_completed and first_leg_direction == 1 and 
+                              close > first_leg_end and btmm_volume_confirmed and 
+                              bars_since_pullback <= second_leg_confirmation_bars
+
+second_leg_bearish_confirmed = pullback_completed and first_leg_direction == -1 and 
+                              close < first_leg_end and btmm_volume_confirmed and 
+                              bars_since_pullback <= second_leg_confirmation_bars
+
+// Reset tracking when second leg confirmed or timeout
+if second_leg_bullish_confirmed or second_leg_bearish_confirmed or bars_since_pullback > 20
+    first_leg_completed := false
+    pullback_completed := false
+    first_leg_direction := 0
+    first_leg_start := na
+    first_leg_end := na
+    pullback_level := na
+    bars_since_pullback := 0
+
+// Continuation Pattern Detection
+var bool flag_pattern = false
+var bool pennant_pattern = false
+
+if enable_continuation_patterns and pullback_completed
+    // Simple flag pattern detection
+    recent_highs = array.new<float>()
+    recent_lows = array.new<float>()
+    for i = 1 to 5
+        array.push(recent_highs, high[i])
+        array.push(recent_lows, low[i])
+    
+    high_range = array.max(recent_highs) - array.min(recent_highs)
+    low_range = array.max(recent_lows) - array.min(recent_lows)
+    
+    flag_pattern := high_range / (first_leg_end - first_leg_start) < 0.3 and low_range / (first_leg_end - first_leg_start) < 0.3
+    pennant_pattern := high_range < low_range * 1.5 and low_range < high_range * 1.5
+
+// Enhanced Signal Detection with Second Leg Integration
+btmm_m_signal_base = na(btmm_ema13) ? false : ta.crossunder(close, btmm_ema13) and close[1] > btmm_ema13
+btmm_w_signal_base = na(btmm_ema13) ? false : ta.crossover(close, btmm_ema13) and close[1] < btmm_ema13
+
+// Integrate second leg confirmation with traditional signals
+btmm_m_signal = btmm_signal_confirmation ? 
+               (btmm_m_signal_base and btmm_volume_confirmed) or second_leg_bearish_confirmed :
+               btmm_m_signal_base or second_leg_bearish_confirmed
+
+btmm_w_signal = btmm_signal_confirmation ? 
+               (btmm_w_signal_base and btmm_volume_confirmed) or second_leg_bullish_confirmed :
+               btmm_w_signal_base or second_leg_bullish_confirmed
+
+// System Health with Second Leg Factor
+system_health = (btmm_perfect_stack ? 1 : 0) + 
+               ((btmm_is_london or btmm_is_ny) ? 1 : 0) + 
+               (btmm_institutional_volume ? 1 : 0) +
+               ((second_leg_bullish_confirmed or second_leg_bearish_confirmed) ? 1 : 0)
+
+health_status = system_health >= 3 ? "EXCELLENT" : system_health >= 2 ? "GOOD" : system_health >= 1 ? "OK" : "POOR"
+health_color = system_health >= 3 ? color.new(color.lime, 50) : system_health >= 2 ? color.new(color.green, 70) : system_health >= 1 ? color.new(color.yellow, 70) : color.new(color.red, 70)
+
+// ============================================================================
+// ENHANCED DATA OUTPUTS - SECOND LEG FOCUSED
+// ============================================================================
+
+// Second leg tracking outputs
+plot(first_leg_completed ? 1 : 0, "First Leg Completed", color=color.orange, display=display.data_window)
+plot(pullback_completed ? 1 : 0, "Pullback Completed", color=color.yellow, display=display.data_window)
+plot(second_leg_bullish_confirmed ? 1 : 0, "Second Leg Bull Confirmed", color=color.lime, display=display.data_window)
+plot(second_leg_bearish_confirmed ? 1 : 0, "Second Leg Bear Confirmed", color=color.red, display=display.data_window)
+plot(first_leg_size_pips, "First Leg Size (pips)", color=color.blue, display=display.data_window)
+
+// Continuation pattern outputs
+plot(flag_pattern ? 1 : 0, "Flag Pattern", color=color.purple, display=display.data_window)
+plot(pennant_pattern ? 1 : 0, "Pennant Pattern", color=color.maroon, display=display.data_window)
+
+// Traditional BTMM outputs
+plot(btmm_bias_score, "BTMM Bias Score", color=btmm_bias_direction == "BULL" ? color.green : btmm_bias_direction == "BEAR" ? color.red : color.gray, display=display.data_window)
+plot(btmm_perfect_stack ? 1 : 0, "BTMM Perfect Stack", color=btmm_perfect_stack ? color.purple : color.gray, display=display.data_window)
+plot(system_health / 4.0, "BTMM Enhanced System Health", color=health_color, display=display.data_window)
+
+// Session data outputs with corrected Asian session
+plot(btmm_is_asian ? 1 : 0, "BTMM Asian Session (5PM-12AM)", color=color.yellow, display=display.data_window)
+plot(btmm_is_london ? 1 : 0, "BTMM London Session (2AM-9AM)", color=color.orange, display=display.data_window)
+plot(btmm_is_ny ? 1 : 0, "BTMM NY Session (9:30AM-5PM)", color=color.blue, display=display.data_window)
+
+// ============================================================================
+// ENHANCED ALERT SYSTEM - SECOND LEG FOCUSED
+// ============================================================================
+
+// Second leg confirmation alerts
+alertcondition(second_leg_bullish_confirmed and btmm_perfect_stack, "Second Leg Bullish Confirmation", "🚀📈 SECOND LEG BULLISH CONFIRMED + Perfect Stack - CONTINUATION TRADE SETUP")
+alertcondition(second_leg_bearish_confirmed and btmm_perfect_stack, "Second Leg Bearish Confirmation", "🔻📉 SECOND LEG BEARISH CONFIRMED + Perfect Stack - CONTINUATION TRADE SETUP")
+
+// Ultimate second leg confluence
+alertcondition(second_leg_bullish_confirmed and btmm_perfect_stack and btmm_institutional_volume and flag_pattern, "Ultimate Bullish Second Leg", "🚀🏦🎯 ULTIMATE BULLISH SECOND LEG - Perfect Stack + Institutional Volume + Flag Pattern")
+alertcondition(second_leg_bearish_confirmed and btmm_perfect_stack and btmm_institutional_volume and flag_pattern, "Ultimate Bearish Second Leg", "🔻🏦🎯 ULTIMATE BEARISH SECOND LEG - Perfect Stack + Institutional Volume + Flag Pattern")
+
+// Session-based second leg alerts
+alertcondition(second_leg_bullish_confirmed and (btmm_is_london or btmm_is_ny), "Second Leg in Active Session", "⏰🚀 SECOND LEG BULLISH in ACTIVE SESSION - High Probability Setup")
+alertcondition(second_leg_bearish_confirmed and (btmm_is_london or btmm_is_ny), "Second Leg in Active Session", "⏰🔻 SECOND LEG BEARISH in ACTIVE SESSION - High Probability Setup")
+
+// First leg completion alerts
+alertcondition(first_leg_completed and first_leg_size_pips >= first_leg_min_pips * 1.5, "Strong First Leg Completed", "📏✅ STRONG FIRST LEG COMPLETED - Watch for Pullback and Second Leg Entry")
+
+// ============================================================================
+// VISUAL ELEMENTS FOR SECOND LEG TRACKING
+// ============================================================================
+
+// Plot first leg levels
+plot(first_leg_start, "First Leg Start", color=color.new(color.blue, 70), style=plot.style_line, linewidth=2, display=display.pane)
+plot(first_leg_end, "First Leg End", color=color.new(color.orange, 70), style=plot.style_line, linewidth=2, display=display.pane)
+plot(pullback_level, "Pullback Target", color=color.new(color.yellow, 50), style=plot.style_line, linewidth=1, display=display.pane)
+
+// Background highlighting for second leg setups
+bgcolor(second_leg_bullish_confirmed ? color.new(color.green, 90) : na, title="Second Leg Bullish")
+bgcolor(second_leg_bearish_confirmed ? color.new(color.red, 90) : na, title="Second Leg Bearish")
+bgcolor(pullback_completed and not (second_leg_bullish_confirmed or second_leg_bearish_confirmed) ? color.new(color.yellow, 95) : na, title="Pullback Complete - Watch for Entry")
+
+// ============================================================================
+// PERFORMANCE MONITORING - SECOND LEG TRACKING
+// ============================================================================
+
+// Second leg performance counters
+var int second_leg_bull_count = 0
+var int second_leg_bear_count = 0
+var int first_leg_completion_count = 0
+var int pullback_completion_count = 0
+
+if second_leg_bullish_confirmed and barstate.isconfirmed
+    second_leg_bull_count += 1
+
+if second_leg_bearish_confirmed and barstate.isconfirmed
+    second_leg_bear_count += 1
+
+if first_leg_completed and barstate.isconfirmed
+    first_leg_completion_count += 1
+
+if pullback_completed and barstate.isconfirmed
+    pullback_completion_count += 1
+
+// Export second leg performance data
+plot(second_leg_bull_count, "Second Leg Bull Count", color=color.lime, display=display.data_window)
+plot(second_leg_bear_count, "Second Leg Bear Count", color=color.red, display=display.data_window)
+plot(first_leg_completion_count, "First Leg Completion Count", color=color.blue, display=display.data_window)
+plot(pullback_completion_count, "Pullback Completion Count", color=color.yellow, display=display.data_window)
+
+// Calculate second leg success rate (placeholder for future enhancement)
+total_second_leg_attempts = second_leg_bull_count + second_leg_bear_count
+second_leg_frequency = pullback_completion_count > 0 ? total_second_leg_attempts / pullback_completion_count * 100 : 0
+
+plot(second_leg_frequency, "Second Leg Success Rate %", color=color.purple, display=display.data_window) 

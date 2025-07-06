@@ -1,0 +1,229 @@
+//@version=5
+
+// =============================================================================
+// BTMM SECOND LEG CONFIRMATION ANALYSIS
+// =============================================================================
+// Purpose: Advanced second leg confirmation system for continuation trades
+// Sessions: Asian (5PM-12AM), London (2AM-9AM), NY (9:30AM-5PM)
+// Author: BTMM Development Team
+// Version: 1.0 - Second Leg Focus
+// =============================================================================
+
+indicator("BTMM Second Leg Confirmation", "BTMM 2L", overlay=true)
+
+// ============================================================================
+// SECOND LEG CONFIGURATION
+// ============================================================================
+
+// Session Settings - CORRECTED per user requirements
+asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", group="Sessions")
+london_session = input.session("0200-0900", "London Session (2AM-9AM)", group="Sessions") 
+ny_session = input.session("0930-1700", "NY Session (9:30AM-5PM)", group="Sessions")
+
+// Second Leg Parameters
+first_leg_min_pips = input.int(20, "First Leg Min Size (pips)", minval=10, maxval=100, group="Second Leg")
+pullback_max_percent = input.float(0.618, "Max Pullback %", minval=0.382, maxval=0.786, step=0.05, group="Second Leg")
+volume_threshold = input.float(1.5, "Volume Threshold", minval=1.1, maxval=3.0, step=0.1, group="Second Leg")
+confirmation_bars = input.int(3, "Confirmation Bars", minval=1, maxval=10, group="Second Leg")
+
+// EMA Settings
+ema_fast = input.int(13, "EMA Fast", minval=5, maxval=50, group="EMAs")
+ema_slow = input.int(50, "EMA Slow", minval=20, maxval=200, group="EMAs")
+
+// ============================================================================
+// SESSION DETECTION
+// ============================================================================
+
+is_asian = not na(time(timeframe.period, asian_session))
+is_london = not na(time(timeframe.period, london_session))
+is_ny = not na(time(timeframe.period, ny_session))
+
+session_phase = is_asian ? "ACCUMULATION" : is_london ? "MANIPULATION" : is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
+active_session = is_london or is_ny
+
+// ============================================================================
+// VOLUME AND TREND ANALYSIS
+// ============================================================================
+
+volume_ma = ta.sma(volume, 20)
+high_volume = volume > volume_ma * volume_threshold
+
+ema_13 = ta.ema(close, ema_fast)
+ema_50 = ta.ema(close, ema_slow)
+trend_bullish = close > ema_13 and ema_13 > ema_50
+trend_bearish = close < ema_13 and ema_13 < ema_50
+
+// ============================================================================
+// SECOND LEG DETECTION SYSTEM
+// ============================================================================
+
+// Variables for leg tracking
+var float leg1_start = na
+var float leg1_end = na
+var int leg_direction = 0  // 1=bullish, -1=bearish
+var bool leg1_complete = false
+var float pullback_target = na
+var bool pullback_done = false
+var int bars_since_pullback = 0
+
+// Pip calculation
+pip_size = syminfo.mintick * (syminfo.type == "forex" ? 10 : 1)
+
+// First leg detection
+bullish_impulse = close > close[3] and high_volume and trend_bullish
+bearish_impulse = close < close[3] and high_volume and trend_bearish
+
+// Start tracking new leg
+if not leg1_complete
+    if bullish_impulse and leg_direction != 1
+        leg1_start := low[1]
+        leg_direction := 1
+        leg1_complete := false
+        
+    if bearish_impulse and leg_direction != -1
+        leg1_start := high[1]
+        leg_direction := -1
+        leg1_complete := false
+
+// Check leg completion
+leg_size_pips = na
+if not na(leg1_start) and leg_direction != 0
+    if leg_direction == 1 and not leg1_complete
+        current_size = (high - leg1_start) / pip_size
+        if current_size >= first_leg_min_pips and close < high * 0.98
+            leg1_end := high
+            leg1_complete := true
+            leg_size_pips := current_size
+            pullback_target := leg1_start + (leg1_end - leg1_start) * pullback_max_percent
+    
+    if leg_direction == -1 and not leg1_complete
+        current_size = (leg1_start - low) / pip_size
+        if current_size >= first_leg_min_pips and close > low * 1.02
+            leg1_end := low
+            leg1_complete := true
+            leg_size_pips := current_size
+            pullback_target := leg1_start - (leg1_start - leg1_end) * pullback_max_percent
+
+// Pullback completion
+if leg1_complete and not pullback_done
+    if leg_direction == 1 and low <= pullback_target
+        pullback_done := true
+        bars_since_pullback := 0
+    if leg_direction == -1 and high >= pullback_target
+        pullback_done := true
+        bars_since_pullback := 0
+
+// Count bars since pullback
+if pullback_done
+    bars_since_pullback += 1
+
+// Second leg confirmation
+leg2_bull_confirmed = pullback_done and leg_direction == 1 and 
+                     close > leg1_end and high_volume and 
+                     bars_since_pullback <= confirmation_bars and active_session
+
+leg2_bear_confirmed = pullback_done and leg_direction == -1 and 
+                     close < leg1_end and high_volume and 
+                     bars_since_pullback <= confirmation_bars and active_session
+
+// Reset when confirmed or timeout
+if leg2_bull_confirmed or leg2_bear_confirmed or bars_since_pullback > 20
+    leg1_complete := false
+    pullback_done := false
+    leg_direction := 0
+    leg1_start := na
+    leg1_end := na
+    pullback_target := na
+    bars_since_pullback := 0
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Plot leg levels
+plot(leg1_start, "Leg 1 Start", color=color.blue, linewidth=2)
+plot(leg1_end, "Leg 1 End", color=color.orange, linewidth=2)
+plot(pullback_target, "Pullback Target", color=color.yellow, linewidth=1)
+
+// Background highlighting
+bgcolor(leg2_bull_confirmed ? color.new(color.green, 85) : na, title="Second Leg Bull")
+bgcolor(leg2_bear_confirmed ? color.new(color.red, 85) : na, title="Second Leg Bear")
+bgcolor(pullback_done and not (leg2_bull_confirmed or leg2_bear_confirmed) ? color.new(color.yellow, 95) : na, title="Ready for Leg 2")
+
+// Session backgrounds
+bgcolor(is_asian ? color.new(color.purple, 98) : na, title="Asian Session")
+bgcolor(is_london ? color.new(color.orange, 98) : na, title="London Session")
+bgcolor(is_ny ? color.new(color.blue, 98) : na, title="NY Session")
+
+// ============================================================================
+// DATA OUTPUTS
+// ============================================================================
+
+plot(leg1_complete ? 1 : 0, "Leg 1 Complete", color=color.orange, display=display.data_window)
+plot(pullback_done ? 1 : 0, "Pullback Done", color=color.yellow, display=display.data_window)
+plot(leg2_bull_confirmed ? 1 : 0, "Leg 2 Bull", color=color.green, display=display.data_window)
+plot(leg2_bear_confirmed ? 1 : 0, "Leg 2 Bear", color=color.red, display=display.data_window)
+plot(leg_size_pips, "Leg Size (pips)", color=color.blue, display=display.data_window)
+plot(active_session ? 1 : 0, "Active Session", color=color.white, display=display.data_window)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+alertcondition(leg2_bull_confirmed, "Second Leg Bullish", "🚀 SECOND LEG BULLISH CONFIRMED - Continuation Trade Setup")
+alertcondition(leg2_bear_confirmed, "Second Leg Bearish", "🔻 SECOND LEG BEARISH CONFIRMED - Continuation Trade Setup")
+alertcondition(pullback_done and active_session, "Pullback Complete", "⚠️ PULLBACK COMPLETE in ACTIVE SESSION - Watch for Second Leg")
+
+// ============================================================================
+// ENHANCED TABLE DASHBOARD
+// ============================================================================
+
+var table info_table = na
+
+if barstate.islast
+    if not na(info_table)
+        table.delete(info_table)
+    
+    info_table := table.new(position.top_left, 2, 8, bgcolor=color.white, border_width=1)
+    
+    // Headers
+    table.cell(info_table, 0, 0, "METRIC", bgcolor=color.navy, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 0, "STATUS", bgcolor=color.navy, text_color=color.white, text_size=size.small)
+    
+    // Session info
+    session_color = is_asian ? color.purple : is_london ? color.orange : is_ny ? color.blue : color.gray
+    table.cell(info_table, 0, 1, "SESSION", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 1, session_phase, bgcolor=session_color, text_color=color.white, text_size=size.small)
+    
+    // Leg 1 status
+    leg1_color = leg1_complete ? color.green : color.red
+    table.cell(info_table, 0, 2, "LEG 1", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 2, leg1_complete ? "COMPLETE" : "PENDING", bgcolor=leg1_color, text_color=color.white, text_size=size.small)
+    
+    // Pullback status
+    pb_color = pullback_done ? color.green : color.red
+    table.cell(info_table, 0, 3, "PULLBACK", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 3, pullback_done ? "DONE" : "PENDING", bgcolor=pb_color, text_color=color.white, text_size=size.small)
+    
+    // Leg 2 status
+    leg2_color = leg2_bull_confirmed or leg2_bear_confirmed ? color.lime : color.red
+    leg2_text = leg2_bull_confirmed ? "BULL" : leg2_bear_confirmed ? "BEAR" : "WAIT"
+    table.cell(info_table, 0, 4, "LEG 2", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 4, leg2_text, bgcolor=leg2_color, text_color=color.white, text_size=size.small)
+    
+    // Volume status
+    vol_color = high_volume ? color.green : color.red
+    table.cell(info_table, 0, 5, "VOLUME", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 5, high_volume ? "HIGH" : "LOW", bgcolor=vol_color, text_color=color.white, text_size=size.small)
+    
+    // Trend status
+    trend_color = trend_bullish ? color.green : trend_bearish ? color.red : color.gray
+    trend_text = trend_bullish ? "BULL" : trend_bearish ? "BEAR" : "NEUT"
+    table.cell(info_table, 0, 6, "TREND", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 6, trend_text, bgcolor=trend_color, text_color=color.white, text_size=size.small)
+    
+    // Leg size
+    size_color = leg_size_pips >= first_leg_min_pips * 1.5 ? color.green : color.yellow
+    size_text = not na(leg_size_pips) ? str.tostring(math.round(leg_size_pips)) + " pips" : "N/A"
+    table.cell(info_table, 0, 7, "LEG SIZE", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(info_table, 1, 7, size_text, bgcolor=size_color, text_color=color.white, text_size=size.small) 

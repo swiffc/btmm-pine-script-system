@@ -1,0 +1,253 @@
+# BTMM Pine Script v5 Development Rules for Cursor AI
+
+## Project Overview
+This is a comprehensive development template for creating custom TradingView Pine Script v5 indicators based on Steve Mauro's Beat The Market Maker (BTMM) methodology. The system is constrained to a MAXIMUM of 10 integrated Pine Script files that work together as a cohesive trading system.
+
+## CRITICAL CONSTRAINT: 10-Script Integration Architecture
+
+### Maximum 10 Pine Script Files (HARD LIMIT)
+The system must never exceed 10 Pine Script files. Each script must be part of an integrated system:
+
+1. **BTMM-Core-System.pine** - Main indicator with EMA system and bias calculations
+2. **MW-Pattern-Detector.pine** - M&W second leg pattern detection engine
+3. **OTE-Zone-Analysis.pine** - Optimal Trade Entry fibonacci zone calculator
+4. **Nameable-Patterns.pine** - Evening/Morning stars, Railroad tracks, Cordofwoods
+5. **Session-Manager.pine** - Market maker cycle and session timing
+6. **Volume-Institutional.pine** - Volume analysis and institutional detection
+7. **MTF-Dashboard.pine** - Multi-timeframe dashboard and monitoring
+8. **Alert-System.pine** - Comprehensive alert management and notifications
+9. **Risk-Manager.pine** - Risk/reward calculations and position sizing
+10. **Performance-Analytics.pine** - Trading performance tracking and analytics
+
+### Integration Requirements (MANDATORY)
+- All scripts must share common data structures and variable naming
+- Cross-script communication through study() references
+- Unified color schemes and visual standards (BTMM compliant)
+- Coordinated alert system across all modules
+- Performance optimization to prevent TradingView resource exhaustion
+
+## BTMM Methodology Implementation (Steve Mauro Standards)
+
+### 1. EMA Food System (MANDATORY for all scripts)
+```pinescript
+// Steve Mauro EMA Configuration (EXACT IMPLEMENTATION REQUIRED)
+ema_5 = ta.ema(close, 5)      // Mustard (Signal Line)
+ema_13 = ta.ema(close, 13)    // Ketchup (Confirmation Line) - CRITICAL
+ema_50 = ta.ema(close, 50)    // Water (Intraday Trend)
+ema_200 = ta.ema(close, 200)  // Mayo (Long Term Trend)
+ema_800 = ta.ema(close, 800)  // Blueberry Pie (HTF Reference)
+```
+
+**Color Scheme Requirements**:
+- Mustard: color.new(color.yellow, 0) / color.new(color.orange, 0)
+- Ketchup: color.new(color.red, 0) / color.new(color.maroon, 0)
+- Water: color.new(color.aqua, 0) / color.new(color.blue, 0)
+- Mayo: color.new(color.lime, 0) / color.new(color.gray, 0)
+- Blueberry: color.new(color.purple, 0) / color.new(color.navy, 0)
+
+### 2. BTMM Bias Scoring (MANDATORY Implementation)
+```pinescript
+// 8-Point BTMM Bias Calculation (Steve Mauro Algorithm)
+calculate_btmm_bias_score() =>
+    score_5 = close > ema_5 ? 1.0 : -1.0
+    score_13 = close > ema_13 ? 1.0 : -1.0
+    score_50 = close > ema_50 ? 1.0 : -1.0
+    score_200 = close > ema_200 ? 1.0 : -1.0
+    score_800 = close > ema_800 ? 1.0 : -1.0
+    
+    // Perfect Stack Alignment Bonus (±2.0)
+    bullish_alignment = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
+    bearish_alignment = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
+    alignment_bonus = bullish_alignment ? 2.0 : bearish_alignment ? -2.0 : 0.0
+    
+    // 50/200 Relationship (±1.0)
+    trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
+    
+    total_score = score_5 + score_13 + score_50 + score_200 + score_800 + alignment_bonus + trend_score
+    total_score
+```
+
+### 3. Session-Based Trading Windows (EXACT TIMING)
+```pinescript
+// Market Maker Cycle Sessions (EST Times)
+asian_session_time = input.session("1700-0500", "Asian Session (Accumulation)")
+london_session_time = input.session("0200-0900", "London Session (Manipulation)")
+ny_session_time = input.session("0930-1700", "NY Session (Distribution)")
+
+// Stop Hunt Windows (Trading Prohibited)
+pre_london_stop_hunt = (hour == 1 and minute >= 45) or (hour == 2 and minute <= 15)
+pre_ny_stop_hunt = (hour == 9 and minute >= 15 and minute <= 45)
+```
+
+### 4. M&W Pattern Detection (Second Leg Focus)
+```pinescript
+// M&W Pattern Validation (Steve Mauro Specifications)
+min_pattern_bars = 8                    // Minimum bars between pattern points
+pattern_tolerance = 0.002               // 0.002% symmetry tolerance
+require_13_ema_interaction = true       // Mandatory Ketchup line confirmation
+pattern_min_size = ta.atr(14) * 2.0    // ATR-based minimum size
+```
+
+### 5. Timeframe Enforcement (MANDATORY)
+```pinescript
+// 15-Minute Minimum Enforcement (Steve Mauro Rule)
+is_15m_or_higher = timeframe.in_seconds() >= 900
+
+if not is_15m_or_higher and enable_15m_bias_only
+    runtime.error("BTMM Bias analysis requires 15M+ timeframes (Steve Mauro rule)")
+```
+
+## Pine Script v5 Standards (MANDATORY)
+
+### 1. Script Header Requirements
+```pinescript
+//@version=5
+indicator("BTMM [Component Name]", 
+         shorttitle="BTMM-[Short]", 
+         overlay=true, 
+         max_boxes_count=200,
+         max_lines_count=300, 
+         max_labels_count=500)
+```
+
+### 2. Input Organization (BTMM Groups)
+```pinescript
+// === BTMM EMA SETTINGS ===
+ema_group = "🥪 BTMM EMA Configuration (Steve Mauro)"
+ema_5_length = input.int(5, "5 EMA (Mustard)", group=ema_group)
+ema_13_length = input.int(13, "13 EMA (Ketchup)", group=ema_group)
+// ... continue for all EMAs
+
+// === PATTERN DETECTION SETTINGS ===
+pattern_group = "📈 M&W Pattern Detection"
+// ... pattern inputs
+
+// === SESSION TIMING SETTINGS ===
+session_group = "⏰ Session Timing (Market Maker Cycle)"
+// ... session inputs
+```
+
+### 3. Error Prevention Framework
+- Always validate inputs with proper min/max ranges
+- Implement na checks for all calculations
+- Use proper variable scoping with var/varip keywords
+- Implement resource-efficient drawing limits
+- Add comprehensive tooltips for all inputs
+
+### 4. Alert System Integration
+```pinescript
+// Coordinated Alert System (Cross-Script Compatible)
+if enable_pattern_alerts and m_signal_valid
+    alert("🔴 BTMM M PATTERN SIGNAL!\n" +
+          "Pair: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "BTMM Bias: " + btmm_market_bias + "\n" +
+          "13 EMA: ✅ Confirmed Break", alert.freq_once_per_bar)
+```
+
+## Development Workflow Standards
+
+### 1. Template-Based Development
+- Always start with one of the 10 defined script templates
+- Maintain consistency across all scripts in the system
+- Use shared functions and libraries where possible
+- Implement proper version control for script updates
+
+### 2. Integration Testing
+- Ensure all scripts load without conflicts on same chart
+- Test cross-script study() references
+- Validate performance with all 10 scripts active
+- Confirm alert coordination across modules
+
+### 3. BTMM Compliance Validation
+- Verify EMA food system implementation
+- Confirm session timing accuracy
+- Validate pattern detection against Steve Mauro standards
+- Test bias scoring algorithm accuracy
+
+## Performance Optimization Rules
+
+### 1. Resource Management
+- Limit drawing objects per script (max 50 boxes, 100 lines, 200 labels)
+- Use efficient calculation methods
+- Implement proper barstate checks
+- Optimize multi-timeframe security calls
+
+### 2. Memory Efficiency
+- Use var for persistent variables only when necessary
+- Clear historical arrays when limits reached
+- Implement efficient pattern storage methods
+- Optimize dashboard table updates
+
+## Code Quality Standards
+
+### 1. Naming Conventions
+- Variables: `snake_case` (e.g., `btmm_bias_score`)
+- Constants: `UPPER_CASE` (e.g., `BTMM_THRESHOLD`)
+- Functions: `descriptive_action` (e.g., `calculate_ote_zone`)
+
+### 2. Documentation Requirements
+- Add header comment explaining script's role in 10-script system
+- Document all functions with parameter descriptions
+- Include BTMM methodology references
+- Add performance notes and limitations
+
+### 3. Visual Standards
+- Use BTMM-compliant color schemes
+- Ensure readability on dark/light backgrounds
+- Implement consistent sizing and positioning
+- Add clear labels and tooltips
+
+## Integration Architecture Rules
+
+### 1. Cross-Script Communication
+```pinescript
+// Example: Reference another script in the system
+btmm_core_bias = request.security(syminfo.tickerid, timeframe.period, 
+                                 source=close, 
+                                 lookahead=barmerge.lookahead_off)
+```
+
+### 2. Shared Data Structures
+- Use consistent variable naming across all scripts
+- Implement common color definitions
+- Share calculation methods through libraries
+- Coordinate alert message formatting
+
+### 3. System-Wide Configuration
+- Allow global enable/disable of script components
+- Implement unified visual theme switching
+- Support coordinated timeframe changes
+- Enable system-wide alert management
+
+## Forbidden Practices
+
+### 1. Never Exceed 10 Scripts
+- Do not create additional Pine Script files beyond the 10 defined
+- Consolidate similar functionality into existing scripts
+- Use script modularity within the 10-script constraint
+
+### 2. Never Break BTMM Standards
+- Do not modify EMA food system values (5,13,50,200,800)
+- Do not ignore session timing requirements
+- Do not skip 13 EMA confirmation requirements
+- Do not allow bias calculations below 15M timeframe
+
+### 3. Never Compromise Integration
+- Do not create standalone scripts that don't integrate
+- Do not use conflicting color schemes
+- Do not duplicate functionality across scripts
+- Do not ignore performance optimization requirements
+
+## Success Criteria
+
+1. All 10 scripts load simultaneously without conflicts
+2. Complete BTMM methodology implementation
+3. Steve Mauro standard compliance (100%)
+4. Cross-script integration functionality
+5. Performance optimization (< 2 second load time)
+6. Comprehensive alert system coordination
+7. Visual consistency across all components
+8. Professional documentation and user experience
+
+Remember: The goal is to create a comprehensive, integrated trading system that maximizes the power of Steve Mauro's BTMM methodology within TradingView's constraints, using exactly 10 optimized Pine Script files.

@@ -3,3 +3,383 @@ description:
 globs:
 alwaysApply: false
 ---
+# BTMM Modular Architecture Patterns
+
+## Core Architecture Principles
+
+### Library-Based Component Architecture
+The BTMM system follows a modular approach using Pine Script v5+ library capabilities:
+
+```pinescript
+//@version=5
+library("BTMMCore", overlay=true)
+
+// User-Defined Types for configuration
+export type TradingConfig
+    int length = 14
+    float riskPercent = 2.0
+    color bullColor = color.green
+    bool enableAlerts = true
+
+// Reusable component functions
+export method calculateMA(series float source, int length, string type) =>
+    switch type
+        "SMA" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+        "WMA" => ta.wma(source, length)
+        => ta.sma(source, length)
+```
+
+### 10-Script Architecture Mapping
+
+#### Tier 1: Foundation Layer (1 script)
+- **BTMMFoundation.pine**: Core library with shared functions and types
+
+#### Tier 2: Analysis Layer (4 scripts)
+- **BTMM_EMA_System.pine**: Moving average analysis and trend detection
+- **BTMM_Asian_Range.pine**: Session-based analysis and range detection
+- **BTMM_HTF_Bias.pine**: Higher timeframe bias and setup identification
+- **BTMM_Pattern_Detection.pine**: Chart pattern and harmonic pattern recognition
+
+#### Tier 3: Decision Layer (3 scripts)
+- **BTMM_Entry_System.pine**: Entry signal generation and confluence analysis
+- **BTMM_Risk_Management.pine**: Position sizing and risk management
+- **BTMM_Stop_Hunt_Detection.pine**: Liquidity analysis and stop hunt detection
+
+#### Tier 4: Interface Layer (2 scripts)
+- **BTMM_Master_Dashboard.pine**: Consolidated dashboard and visualization
+- **BTMM_Alert_System.pine**: Alert management and notifications
+
+## Design Patterns for Pine Script
+
+### Strategy Pattern Implementation
+```pinescript
+// Configurable strategy selection
+strategy_type = input.string("Trend Following", "Strategy Type", 
+    options=["Trend Following", "Mean Reversion", "Breakout"], 
+    group="Strategy Configuration")
+
+// Strategy interface
+calculateSignals(strategyType) =>
+    switch strategyType
+        "Trend Following" => trendFollowingSignals()
+        "Mean Reversion" => meanReversionSignals()
+        "Breakout" => breakoutSignals()
+        => [false, false]
+
+[longSignal, shortSignal] = calculateSignals(strategy_type)
+```
+
+### Builder Pattern for Complex Indicators
+```pinescript
+// Indicator builder for complex configurations
+type IndicatorBuilder
+    string name = ""
+    int period = 14
+    color bullColor = color.green
+    color bearColor = color.red
+    bool showSignals = true
+    bool enableAlerts = false
+
+// Builder methods
+method setPeriod(IndicatorBuilder this, int period) =>
+    this.period := period
+    this
+
+method setColors(IndicatorBuilder this, color bull, color bear) =>
+    this.bullColor := bull
+    this.bearColor := bear
+    this
+
+// Usage
+rsiBuilder = IndicatorBuilder.new()
+    .setPeriod(21)
+    .setColors(color.green, color.red)
+```
+
+### Observer Pattern for Cross-Script Communication
+```pinescript
+// Data provider interface
+type DataProvider
+    string name
+    series float value
+    bool hasUpdate
+
+// Data consumer interface  
+type DataConsumer
+    string subscribedTo
+    series bool triggered
+
+// Implementation in BTMMFoundation.pine
+export dataProviders = array.new<DataProvider>()
+export dataConsumers = array.new<DataConsumer>()
+```
+
+## Component Reusability Framework
+
+### Shared Function Library
+```pinescript
+// BTMMFoundation.pine - Core shared functions
+export sessionAndCycle() => [asian_session, london_session, newyork_session]
+export timeframeClassification() => [htf_bias, mtf_trend, ltf_signal]
+export emaStackAnalysis() => [bull_stack, bear_stack, stack_strength]
+export volumeAnalysis() => [volume_trend, volume_spike, volume_avg]
+```
+
+### Configuration Management
+```pinescript
+// Centralized configuration in BTMMFoundation.pine
+export type BTMMConfig
+    // EMA Configuration
+    int ema5_length = 5
+    int ema13_length = 13
+    int ema50_length = 50
+    int ema200_length = 200
+    
+    // Session Configuration
+    string asian_session = "2000-0800"
+    string london_session = "0800-1600"
+    string newyork_session = "1300-2200"
+    
+    // Risk Configuration
+    float max_risk_per_trade = 2.0
+    float portfolio_heat = 6.0
+    int max_concurrent_trades = 3
+```
+
+### Data Window Output Standardization
+```pinescript
+// Standardized output naming for cross-script integration
+plot(bullStack, "Bull_Stack", color=color.green, display=display.data_window)
+plot(bearStack, "Bear_Stack", color=color.red, display=display.data_window)
+plot(stackStrength, "Stack_Strength", color=color.blue, display=display.data_window)
+```
+
+## Integration Patterns
+
+### Input Source Chaining
+```pinescript
+// Standardized input source pattern
+htf_bias_src = input.source(close, "HTF Bias Source", group="Data Sources")
+bull_setup_src = input.source(close, "Bull Setup Source", group="Data Sources") 
+bear_setup_src = input.source(close, "Bear Setup Source", group="Data Sources")
+
+// Usage with validation
+htf_bias = request.security(syminfo.tickerid, "1D", htf_bias_src, lookahead=barmerge.lookahead_off)
+```
+
+### Dependency Injection Pattern
+```pinescript
+// Service locator for dependencies
+type ServiceLocator
+    BTMMFoundation foundation = na
+    EMASystem emaSystem = na
+    PatternDetection patterns = na
+
+// Dependency resolution
+resolveService(string serviceName) =>
+    switch serviceName
+        "foundation" => BTMMFoundation.new()
+        "ema" => EMASystem.new()
+        "patterns" => PatternDetection.new()
+        => na
+```
+
+### Event-Driven Architecture
+```pinescript
+// Event system for cross-script notifications
+type BTMMEvent
+    string eventType
+    float value
+    int timestamp
+    bool processed
+
+// Event handlers
+processSignalEvent(BTMMEvent event) =>
+    if event.eventType == "ENTRY_SIGNAL"
+        // Process entry signal
+        true
+    else if event.eventType == "EXIT_SIGNAL" 
+        // Process exit signal
+        true
+    else
+        false
+```
+
+## Performance Optimization Patterns
+
+### Lazy Loading Implementation
+```pinescript
+// Lazy initialization for expensive calculations
+var lazySMA = na
+var lazyEMA = na
+
+calculateLazyIndicators() =>
+    if na(lazySMA)
+        lazySMA := ta.sma(close, 200)
+    if na(lazyEMA)  
+        lazyEMA := ta.ema(close, 200)
+    [lazySMA, lazyEMA]
+```
+
+### Caching Pattern
+```pinescript
+// Result caching for expensive operations
+var cache = map.new<string, float>()
+
+getCachedValue(string key, function<float> calculator) =>
+    if map.contains(cache, key)
+        map.get(cache, key)
+    else
+        value = calculator()
+        map.put(cache, key, value)
+        value
+```
+
+### Batch Processing
+```pinescript
+// Batch processing for array operations
+processBatch(array<float> data, int batchSize) =>
+    result = array.new<float>()
+    for i = 0 to math.min(array.size(data) - 1, batchSize - 1)
+        value = array.get(data, i)
+        processedValue = value * 2  // Example processing
+        array.push(result, processedValue)
+    result
+```
+
+## Version Control and Migration
+
+### Version Management
+```pinescript
+// Version compatibility checking
+CURRENT_VERSION = "2.0.0"
+MIN_COMPATIBLE_VERSION = "1.5.0"
+
+checkVersionCompatibility(string requiredVersion) =>
+    // Version comparison logic
+    true  // Simplified for example
+```
+
+### Migration Patterns
+```pinescript
+// Data migration between versions
+migrateData(string fromVersion, string toVersion) =>
+    if fromVersion == "1.0.0" and toVersion == "2.0.0"
+        // Migrate old data format to new format
+        true
+    else
+        false
+```
+
+### Backward Compatibility
+```pinescript
+// Backward compatibility layer
+legacyFunction(float value) =>
+    // Deprecated function with compatibility wrapper
+    runtime.error("legacyFunction is deprecated, use newFunction instead")
+    newFunction(value)
+
+newFunction(float value) =>
+    // New implementation
+    value * 1.1
+```
+
+## Testing and Validation Architecture
+
+### Unit Testing Framework Integration
+```pinescript
+// Test harness for component validation
+type TestCase
+    string name
+    bool passed
+    string errorMessage
+
+runComponentTests() =>
+    tests = array.new<TestCase>()
+    
+    // Test EMA calculations
+    emaTest = TestCase.new()
+    emaTest.name := "EMA Calculation Test"
+    emaTest.passed := testEMACalculation()
+    array.push(tests, emaTest)
+    
+    tests
+```
+
+### Integration Testing
+```pinescript
+// Cross-script integration validation
+validateIntegration() =>
+    foundationAvailable = not na(BTMMFoundation.getVersion())
+    emaSystemActive = not na(EMASystem.getBullStack())
+    patternSystemActive = not na(PatternDetection.getActivePatterns())
+    
+    foundationAvailable and emaSystemActive and patternSystemActive
+```
+
+## Deployment and Configuration
+
+### Environment-Specific Configuration
+```pinescript
+// Environment detection and configuration
+ENVIRONMENT = input.string("PRODUCTION", "Environment", 
+    options=["DEVELOPMENT", "TESTING", "PRODUCTION"], 
+    group="Environment")
+
+getConfig(string environment) =>
+    switch environment
+        "DEVELOPMENT" => DevConfig.new()
+        "TESTING" => TestConfig.new() 
+        "PRODUCTION" => ProdConfig.new()
+        => ProdConfig.new()
+```
+
+### Feature Flags
+```pinescript
+// Feature flag system for gradual rollouts
+enableAdvancedPatterns = input.bool(false, "Enable Advanced Patterns", group="Feature Flags")
+enableExperimentalSignals = input.bool(false, "Enable Experimental Signals", group="Feature Flags")
+
+if enableAdvancedPatterns
+    // Advanced pattern detection logic
+    na
+
+if enableExperimentalSignals
+    // Experimental signal generation
+    na
+```
+
+## Documentation and Maintenance
+
+### Self-Documenting Code
+```pinescript
+// Comprehensive documentation within code
+// =============================================================================
+// COMPONENT: EMA Stack Analysis
+// PURPOSE: Analyzes exponential moving average relationships for trend bias
+// INPUTS: source (series float), lengths (array<int>), sensitivity (float)
+// OUTPUTS: bull_stack (bool), bear_stack (bool), stack_strength (float)
+// DEPENDENCIES: BTMMFoundation.pine
+// LAST_UPDATED: 2024-01-15
+// =============================================================================
+```
+
+### Maintenance Patterns
+```pinescript
+// Maintenance and monitoring hooks
+logComponentStatus(string component, string status) =>
+    // Log component status for monitoring
+    // Implementation depends on logging strategy
+    na
+
+checkComponentHealth(string component) =>
+    // Health check for component
+    switch component
+        "EMA" => checkEMAHealth()
+        "Patterns" => checkPatternHealth()
+        => true
+```
+
+**Remember**: This modular architecture ensures scalability within the 10-script constraint while maintaining clean separation of concerns, enabling efficient development and maintenance of the BTMM trading system.
+

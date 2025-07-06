@@ -1,54 +1,198 @@
 //@version=5
+indicator("BTMM Core System - Steve Mauro Method", 
+         shorttitle="BTMM-Core", 
+         overlay=true, 
+         max_boxes_count=200,
+         max_lines_count=300, 
+         max_labels_count=500,
+         max_tables_count=5)
 
-// =============================================================================
-// BTMM ALERT SYSTEM - COMPREHENSIVE INSTITUTIONAL ALERTS
-// =============================================================================
-// Purpose: Complete alert system for all BTMM signal types and conditions
-// Method: Multi-layered alert system with institutional-grade notifications
-// Author: BTMM Development Team
-// Version: 2.0 - Enhanced from Master System
-// Date: 2025-07-02
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎯 BTMM CORE SYSTEM - Steve Mauro Methodology Implementation
+// Part 1 of 10-Script Integrated System
+// ═══════════════════════════════════════════════════════════════════════════════════
 
-indicator("BTMM Alert System", "BTMM Alerts", overlay=true, shorttitle="BTMM Alerts")
+// === BTMM EMA FOOD SYSTEM (Steve Mauro Standard) ===
+ema_group = "🥪 BTMM EMA Configuration (Steve Mauro)"
+ema_5_length = input.int(5, "5 EMA (Mustard) - Signal Line", minval=1, maxval=20, group=ema_group, tooltip="Fast signal line for momentum")
+ema_13_length = input.int(13, "13 EMA (Ketchup) - Confirmation Line", minval=1, maxval=50, group=ema_group, tooltip="Critical confirmation line - must break for valid signals")
+ema_50_length = input.int(50, "50 EMA (Water) - Intraday Trend", minval=1, maxval=100, group=ema_group, tooltip="1HR timeframe trend line")
+ema_200_length = input.int(200, "200 EMA (Mayo) - Long Term Trend", minval=1, maxval=500, group=ema_group, tooltip="4HR timeframe trend line")
+ema_800_length = input.int(800, "800 EMA (Blueberry Pie)", minval=1, maxval=1000, group=ema_group, tooltip="Higher timeframe reference")
+show_emas = input.bool(true, "Show EMA Lines", group=ema_group)
+show_ema_labels = input.bool(true, "Show EMA Food Labels", group=ema_group)
 
-// ============================================================================
-// 🚨 ALERT CONFIGURATION
-// ============================================================================
+// === BTMM BIAS SETTINGS (15M+ Only) ===
+bias_group = "🎯 BTMM Bias Analysis (15M+ Timeframes)"
+auto_bias = input.bool(true, "Auto BTMM Bias Detection", group=bias_group)
+manual_bias = input.string("AUTO", "Manual Bias Override", options=["AUTO", "BULLISH", "BEARISH", "NEUTRAL"], group=bias_group)
+enable_15m_bias_only = input.bool(true, "Enforce 15M+ Bias Rule (Steve Mauro)", group=bias_group)
+show_bias_warning = input.bool(true, "Show Lower TF Warning", group=bias_group)
+btmm_bias_score_threshold = input.float(2.0, "BTMM Bias Score Threshold", minval=1.0, maxval=5.0, step=0.5, group=bias_group, tooltip="Score needed for strong bias (±2.0 recommended)")
+
+// === VISUAL SETTINGS ===
+visual_group = "🎨 Visual Configuration"
+show_bias_table = input.bool(true, "Show BTMM Bias Table", group=visual_group)
+show_perfect_stack = input.bool(true, "Show Perfect Stack Alerts", group=visual_group)
+line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
+label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
 
 // === ALERT SETTINGS ===
 alert_group = "🚨 Alert Configuration"
-enable_pattern_alerts = input.bool(true, "Pattern Completion Alerts", group=alert_group)
-enable_signal_alerts = input.bool(true, "Trading Signal Alerts", group=alert_group)
-enable_ote_alerts = input.bool(true, "OTE Second Leg Alerts", group=alert_group)
-enable_nameable_alerts = input.bool(true, "Nameable Pattern Alerts", group=alert_group)
-enable_ultimate_alerts = input.bool(true, "Ultimate Confluence Alerts", group=alert_group)
-enable_session_alerts = input.bool(true, "Session Transition Alerts", group=alert_group)
-enable_bias_alerts = input.bool(true, "Bias Change Alerts", group=alert_group)
+enable_bias_alerts = input.bool(true, "BTMM Bias Change Alerts", group=alert_group)
+enable_stack_alerts = input.bool(true, "Perfect Stack Alerts", group=alert_group)
+enable_ketchup_alerts = input.bool(true, "Ketchup Line Break Alerts", group=alert_group)
 alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close", "all"], group=alert_group)
 
-// === EMA SYSTEM INPUTS (for local calculations) ===
-ema_group = "🥪 EMA System"
-ema_5_length = input.int(5, "5 EMA (Mustard)", minval=1, maxval=20, group=ema_group)
-ema_13_length = input.int(13, "13 EMA (Ketchup)", minval=1, maxval=50, group=ema_group)
-ema_50_length = input.int(50, "50 EMA (Water)", minval=1, maxval=100, group=ema_group)
-ema_200_length = input.int(200, "200 EMA (Mayo)", minval=1, maxval=500, group=ema_group)
-ema_800_length = input.int(800, "800 EMA (Blueberry)", minval=1, maxval=1000, group=ema_group)
-btmm_bias_score_threshold = input.float(2.0, "BTMM Bias Score Threshold", minval=1.0, maxval=5.0, step=0.5, group=ema_group)
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 BTMM EMA CALCULATIONS (STEVE MAURO FOOD NAMES)
+// ═══════════════════════════════════════════════════════════════════════════════════
 
-// ============================================================================
-// 🔧 HELPER FUNCTIONS & CALCULATIONS
-// ============================================================================
+ema_5 = ta.ema(close, ema_5_length)      // Mustard (Signal Line)
+ema_13 = ta.ema(close, ema_13_length)    // Ketchup (Confirmation Line) - CRITICAL
+ema_50 = ta.ema(close, ema_50_length)    // Water (Intraday Trend)
+ema_200 = ta.ema(close, ema_200_length)  // Mayo (Long Term Trend)
+ema_800 = ta.ema(close, ema_800_length)  // Blueberry Pie (HTF Reference)
 
-// ATR and volatility calculations
-atr_14 = ta.atr(14)
-atr_21 = ta.atr(21)
+// BTMM Color Scheme (Steve Mauro Standard)
+ema_5_color = close > ema_5 ? color.new(color.yellow, 0) : color.new(color.orange, 0)
+ema_13_color = close > ema_13 ? color.new(color.red, 0) : color.new(color.maroon, 0)
+ema_50_color = close > ema_50 ? color.new(color.aqua, 0) : color.new(color.blue, 0)
+ema_200_color = close > ema_200 ? color.new(color.lime, 0) : color.new(color.gray, 0)
+ema_800_color = close > ema_800 ? color.new(color.purple, 0) : color.new(color.navy, 0)
 
-// Volume calculations
-volume_ma = ta.sma(volume, 20)
-institutional_threshold = 1.5
-volume_spike_threshold = volume_ma * institutional_threshold
-institutional_support = volume > volume_spike_threshold and math.abs(close - open) > atr_14 * 0.5
+// Plot EMAs with BTMM styling
+plot(show_emas ? ema_5 : na, "5 EMA (Mustard)", color=ema_5_color, linewidth=1)
+plot(show_emas ? ema_13 : na, "13 EMA (Ketchup)", color=ema_13_color, linewidth=line_width)
+plot(show_emas ? ema_50 : na, "50 EMA (Water)", color=ema_50_color, linewidth=line_width)
+plot(show_emas ? ema_200 : na, "200 EMA (Mayo)", color=ema_200_color, linewidth=line_width + 1)
+plot(show_emas ? ema_800 : na, "800 EMA (Blueberry)", color=ema_800_color, linewidth=line_width + 1)
+
+// EMA Food Labels
+if show_ema_labels and barstate.islast
+    label.new(bar_index + 2, ema_5, "🟡 Mustard", style=label.style_label_left, color=color.yellow, textcolor=color.black, size=size.tiny)
+    label.new(bar_index + 2, ema_13, "🔴 Ketchup", style=label.style_label_left, color=color.red, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + 2, ema_50, "💧 Water", style=label.style_label_left, color=color.aqua, textcolor=color.black, size=size.tiny)
+    label.new(bar_index + 2, ema_200, "🟢 Mayo", style=label.style_label_left, color=color.lime, textcolor=color.black, size=size.tiny)
+    label.new(bar_index + 2, ema_800, "🫐 Blueberry", style=label.style_label_left, color=color.purple, textcolor=color.white, size=size.tiny)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎯 BTMM BIAS CALCULATION SYSTEM (15M+ TIMEFRAMES ONLY)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Check if current timeframe is 15M or higher
+is_15m_or_higher = timeframe.in_seconds() >= 900
+
+// BTMM Bias Scoring Algorithm (Steve Mauro Verified Method)
+calculate_btmm_bias_score() =>
+    // Price position relative to each EMA (5 EMAs = 5 points max)
+    score_5 = close > ema_5 ? 1.0 : -1.0
+    score_13 = close > ema_13 ? 1.0 : -1.0
+    score_50 = close > ema_50 ? 1.0 : -1.0
+    score_200 = close > ema_200 ? 1.0 : -1.0
+    score_800 = close > ema_800 ? 1.0 : -1.0
+    
+    // EMA Alignment Scoring (Perfect Stack Bonus)
+    bullish_alignment = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
+    bearish_alignment = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
+    alignment_bonus = bullish_alignment ? 2.0 : bearish_alignment ? -2.0 : 0.0
+    
+    // 50/200 Relationship (Critical BTMM Rule)
+    trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
+    
+    // Total BTMM Bias Score (-8 to +8 range)
+    total_score = score_5 + score_13 + score_50 + score_200 + score_800 + alignment_bonus + trend_score
+    total_score
+
+// Determine Market Bias
+determine_btmm_market_bias() =>
+    var string current_bias = "NEUTRAL"
+    
+    if not is_15m_or_higher and enable_15m_bias_only
+        current_bias := "LOWER_TF_WARNING"
+    else
+        bias_score = calculate_btmm_bias_score()
+        
+        if bias_score >= btmm_bias_score_threshold
+            current_bias := "BULLISH"
+        else if bias_score <= -btmm_bias_score_threshold
+            current_bias := "BEARISH"
+        else
+            current_bias := "NEUTRAL"
+    
+    if manual_bias != "AUTO"
+        current_bias := manual_bias
+    
+    current_bias
+
+// Get current bias and score
+btmm_market_bias = determine_btmm_market_bias()
+btmm_bias_score = calculate_btmm_bias_score()
+
+// Perfect Stack Detection
+btmm_perfect_bull_stack = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
+btmm_perfect_bear_stack = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
+btmm_perfect_stack = btmm_perfect_bull_stack or btmm_perfect_bear_stack
+
+// Ketchup Line Breaks (Critical BTMM Signals)
+ketchup_break_bullish = ta.crossover(close, ema_13)
+ketchup_break_bearish = ta.crossunder(close, ema_13)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 BTMM BIAS TABLE
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+if show_bias_table and barstate.islast
+    var table bias_table = table.new(position.top_right, 3, 8, bgcolor=color.new(color.white, 10), border_width=2, border_color=color.gray)
+    
+    // Headers
+    table.cell(bias_table, 0, 0, "BTMM CORE", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(bias_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    table.cell(bias_table, 2, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    
+    // Bias Score
+    table.cell(bias_table, 0, 1, "Bias Score", bgcolor=color.blue, text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 1, 1, str.tostring(btmm_bias_score, "#.#"), 
+              bgcolor=btmm_bias_score > 0 ? color.new(color.green, 70) : btmm_bias_score < 0 ? color.new(color.red, 70) : color.new(color.gray, 70), 
+              text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 2, 1, btmm_market_bias, 
+              bgcolor=btmm_market_bias == "BULLISH" ? color.new(color.green, 70) : btmm_market_bias == "BEARISH" ? color.new(color.red, 70) : color.new(color.gray, 70), 
+              text_color=color.white, text_size=size.small)
+    
+    // Perfect Stack
+    table.cell(bias_table, 0, 2, "Perfect Stack", bgcolor=color.purple, text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 1, 2, btmm_perfect_stack ? "YES" : "NO", 
+              bgcolor=btmm_perfect_stack ? color.new(color.purple, 50) : color.new(color.gray, 80), 
+              text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 2, 2, btmm_perfect_bull_stack ? "🔥 BULL" : btmm_perfect_bear_stack ? "🔥 BEAR" : "❌", 
+              bgcolor=btmm_perfect_stack ? color.new(color.purple, 50) : color.new(color.gray, 80), 
+              text_color=color.white, text_size=size.small)
+    
+    // Ketchup Line
+    table.cell(bias_table, 0, 3, "Ketchup (13)", bgcolor=color.red, text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 1, 3, str.tostring(ema_13, "#.#####"), bgcolor=color.new(color.red, 70), text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 2, 3, close > ema_13 ? "✅ ABOVE" : "❌ BELOW", 
+              bgcolor=close > ema_13 ? color.new(color.green, 70) : color.new(color.red, 70), 
+              text_color=color.white, text_size=size.small)
+    
+    // Timeframe Check
+    table.cell(bias_table, 0, 4, "Timeframe", bgcolor=color.orange, text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 1, 4, timeframe.period, bgcolor=color.new(color.orange, 70), text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 2, 4, is_15m_or_higher ? "✅ VALID" : "⚠️ LOW", 
+              bgcolor=is_15m_or_higher ? color.new(color.green, 70) : color.new(color.orange, 70), 
+              text_color=color.white, text_size=size.small)
+    
+    // Current Price vs EMAs
+    table.cell(bias_table, 0, 5, "Price Position", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    above_emas = (close > ema_5 ? 1 : 0) + (close > ema_13 ? 1 : 0) + (close > ema_50 ? 1 : 0) + (close > ema_200 ? 1 : 0) + (close > ema_800 ? 1 : 0)
+    table.cell(bias_table, 1, 5, str.tostring(above_emas) + "/5", bgcolor=color.new(color.gray, 70), text_color=color.white, text_size=size.small)
+    table.cell(bias_table, 2, 5, above_emas >= 4 ? "💪 STRONG" : above_emas >= 3 ? "📊 DECENT" : above_emas <= 1 ? "💪 WEAK" : "📊 MIXED", 
+              bgcolor=above_emas >= 4 ? color.new(color.green, 70) : above_emas <= 1 ? color.new(color.red, 70) : color.new(color.yellow, 70), 
+              text_color=color.black, text_size=size.small)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🚨 BTMM CORE ALERTS
+// ═══════════════════════════════════════════════════════════════════════════════════
 
 // Alert frequency setting
 alert_freq = switch alert_frequency
@@ -57,122 +201,64 @@ alert_freq = switch alert_frequency
     "all" => alert.freq_all
     => alert.freq_once_per_bar
 
-// Session detection
-london_session = time(timeframe.period, "0200-0900")
-ny_session = time(timeframe.period, "0930-1700")
-asian_session = time(timeframe.period, "1700-0500")
+// Bias Change Alerts
+if enable_bias_alerts
+    var string prev_bias = btmm_market_bias
+    if prev_bias != btmm_market_bias and barstate.isconfirmed
+        alert("🎯 BTMM BIAS CHANGE!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Previous Bias: " + prev_bias + "\n" +
+              "NEW BIAS: " + btmm_market_bias + "\n" +
+              "Bias Score: " + str.tostring(btmm_bias_score, "#.#") + "\n" +
+              "Perfect Stack: " + (btmm_perfect_stack ? "YES 🔥" : "NO") + "\n" +
+              "Time: " + str.format_time(time), alert_freq)
+        prev_bias := btmm_market_bias
 
-is_london = not na(london_session)
-is_ny = not na(ny_session)
-is_asian = not na(asian_session)
-
-// Market Maker Phase
-get_market_maker_phase() =>
-    phase = is_asian ? "ACCUMULATION" : 
-            is_london ? "MANIPULATION" : 
-            is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
-    phase
-
-current_mm_phase = get_market_maker_phase()
-
-// ============================================================================
-// 📊 BTMM BIAS CALCULATION & MONITORING
-// ============================================================================
-
-// EMA calculations
-ema_5 = ta.ema(close, ema_5_length)
-ema_13 = ta.ema(close, ema_13_length)
-ema_50 = ta.ema(close, ema_50_length)
-ema_200 = ta.ema(close, ema_200_length)
-ema_800 = ta.ema(close, ema_800_length)
-
-// BTMM Bias Scoring Algorithm
-calculate_btmm_bias_score() =>
-    score_5 = close > ema_5 ? 1.0 : -1.0
-    score_13 = close > ema_13 ? 1.0 : -1.0
-    score_50 = close > ema_50 ? 1.0 : -1.0
-    score_200 = close > ema_200 ? 1.0 : -1.0
-    score_800 = close > ema_800 ? 1.0 : -1.0
-    
-    bullish_alignment = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
-    bearish_alignment = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
-    alignment_bonus = bullish_alignment ? 2.0 : bearish_alignment ? -2.0 : 0.0
-    
-    trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
-    total_score = score_5 + score_13 + score_50 + score_200 + score_800 + alignment_bonus + trend_score
-    total_score
-
-btmm_bias_score = calculate_btmm_bias_score()
-
-// Determine Market Bias
-determine_btmm_market_bias() =>
-    bias_score = calculate_btmm_bias_score()
-    
-    if bias_score >= btmm_bias_score_threshold
-        "BULLISH"
-    else if bias_score <= -btmm_bias_score_threshold
-        "BEARISH"
-    else
-        "NEUTRAL"
-
-btmm_market_bias = determine_btmm_market_bias()
-
-// Perfect Stack Detection
-btmm_perfect_bull_stack = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
-btmm_perfect_bear_stack = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
-btmm_perfect_stack = btmm_perfect_bull_stack or btmm_perfect_bear_stack
-
-// ============================================================================
-// 🎯 SIGNAL DETECTION & PATTERN RECOGNITION
-// ============================================================================
-
-// M Pattern simulation
-m_signal_valid = ta.crossunder(close, ema_13) and close[1] > ema_13 and volume > volume_spike_threshold and btmm_market_bias == "BEARISH"
-
-// W Pattern simulation  
-w_signal_valid = ta.crossover(close, ema_13) and close[1] < ema_13 and volume > volume_spike_threshold and btmm_market_bias == "BULLISH"
-
-// Enhanced signals with confluence
-ultimate_bearish = m_signal_valid and btmm_perfect_bear_stack and institutional_support
-ultimate_bullish = w_signal_valid and btmm_perfect_bull_stack and institutional_support
-
-// ============================================================================
-// 🚨 STANDARD M&W PATTERN ALERTS
-// ============================================================================
-
-if enable_pattern_alerts and m_signal_valid
-    alert("🔴 BTMM M PATTERN SIGNAL!\n" +
-          "Pair: " + syminfo.ticker + "\n" +
+// Perfect Stack Alerts
+if enable_stack_alerts and btmm_perfect_stack and not btmm_perfect_stack[1]
+    alert("🔥 BTMM PERFECT STACK ACHIEVED!\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
           "Timeframe: " + timeframe.period + "\n" +
-          "Pattern: M Bearish Reversal\n" +
-          "Entry: " + str.tostring(close, "#.#####") + "\n" +
-          "BTMM Bias: " + btmm_market_bias + " (" + str.tostring(btmm_bias_score, "#.#") + ")\n" +
-          "Session: " + current_mm_phase + "\n" +
-          "13 EMA: ✅ Confirmed Break\n" +
-          "Perfect Stack: " + (btmm_perfect_stack ? "YES 🔥" : "NO") + "\n" +
-          "Institutional: " + (institutional_support ? "YES 🏦" : "NO") + "\n" +
+          "Stack Type: " + (btmm_perfect_bull_stack ? "BULLISH 🔥" : "BEARISH 🔥") + "\n" +
+          "Bias Score: " + str.tostring(btmm_bias_score, "#.#") + "\n" +
+          "Current Bias: " + btmm_market_bias + "\n" +
+          "All EMAs aligned in perfect order!\n" +
           "Time: " + str.format_time(time), alert_freq)
 
-if enable_pattern_alerts and w_signal_valid
-    alert("🟢 BTMM W PATTERN SIGNAL!\n" +
-          "Pair: " + syminfo.ticker + "\n" +
+// Ketchup Line Break Alerts
+if enable_ketchup_alerts and ketchup_break_bullish
+    alert("🔴 KETCHUP LINE BREAK - BULLISH!\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
           "Timeframe: " + timeframe.period + "\n" +
-          "Pattern: W Bullish Reversal\n" +
+          "Price broke above 13 EMA (Ketchup)\n" +
           "Entry: " + str.tostring(close, "#.#####") + "\n" +
-          "BTMM Bias: " + btmm_market_bias + " (" + str.tostring(btmm_bias_score, "#.#") + ")\n" +
-          "Session: " + current_mm_phase + "\n" +
-          "13 EMA: ✅ Confirmed Break\n" +
+          "BTMM Bias: " + btmm_market_bias + "\n" +
           "Perfect Stack: " + (btmm_perfect_stack ? "YES 🔥" : "NO") + "\n" +
-          "Institutional: " + (institutional_support ? "YES 🏦" : "NO") + "\n" +
           "Time: " + str.format_time(time), alert_freq)
 
-// ============================================================================
-// 📊 DATA WINDOW OUTPUTS (FOR INTEGRATION)
-// ============================================================================
+if enable_ketchup_alerts and ketchup_break_bearish
+    alert("🔴 KETCHUP LINE BREAK - BEARISH!\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Price broke below 13 EMA (Ketchup)\n" +
+          "Entry: " + str.tostring(close, "#.#####") + "\n" +
+          "BTMM Bias: " + btmm_market_bias + "\n" +
+          "Perfect Stack: " + (btmm_perfect_stack ? "YES 🔥" : "NO") + "\n" +
+          "Time: " + str.format_time(time), alert_freq)
 
-plot(m_signal_valid ? 1 : 0, "M_Signal_Valid", display=display.data_window)
-plot(w_signal_valid ? 1 : 0, "W_Signal_Valid", display=display.data_window)
-plot(ultimate_bearish ? 1 : 0, "Ultimate_Bearish", display=display.data_window)
-plot(ultimate_bullish ? 1 : 0, "Ultimate_Bullish", display=display.data_window)
-plot(btmm_bias_score, "BTMM_Bias_Score", display=display.data_window)
-plot(institutional_support ? 1 : 0, "Institutional_Support", display=display.data_window) 
+// Lower Timeframe Warning
+if show_bias_warning and not is_15m_or_higher and barstate.islast
+    label.new(bar_index, high + ta.atr(14), 
+              "⚠️ BTMM BIAS REQUIRES 15M+\nCurrent: " + timeframe.period, 
+              style=label.style_label_down, 
+              color=color.orange, 
+              textcolor=color.white, 
+              size=size.normal)
+
+// Export variables for other scripts in the 10-script system
+export btmm_market_bias
+export btmm_bias_score
+export btmm_perfect_stack
+export ema_13
+export is_15m_or_higher

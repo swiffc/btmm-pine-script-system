@@ -1,0 +1,120 @@
+name: Auto Commit and Push Changes
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: 'Custom commit message'
+        required: false
+        default: 'Auto-commit: Template development updates'
+
+jobs:
+  auto-commit-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git config --local pull.rebase false
+
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git status --porcelain
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          fi
+
+      - name: Commit changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git add .
+          
+          # Use custom commit message if provided, otherwise generate one
+          if [ -n "${{ github.event.inputs.commit_message }}" ]; then
+            COMMIT_MSG="${{ github.event.inputs.commit_message }}"
+          else
+            # Generate commit message based on changed files
+            CHANGED_FILES=$(git diff --cached --name-only)
+            
+            if echo "$CHANGED_FILES" | grep -q "\.pine$\|indicators/"; then
+              COMMIT_MSG="feat: Update Pine Script templates and indicators"
+            elif echo "$CHANGED_FILES" | grep -q "client/\|src/"; then
+              COMMIT_MSG="feat: Update development template interface"
+            elif echo "$CHANGED_FILES" | grep -q "\.cursorrules\|windsurf\.config\.json"; then
+              COMMIT_MSG="config: Update AI development guidelines"
+            elif echo "$CHANGED_FILES" | grep -q "\.github/\|devops/"; then
+              COMMIT_MSG="ci: Update DevOps and automation configuration"
+            elif echo "$CHANGED_FILES" | grep -q "docs/\|README\.md\|replit\.md"; then
+              COMMIT_MSG="docs: Update project documentation"
+            else
+              COMMIT_MSG="chore: General project updates and improvements"
+            fi
+          fi
+          
+          # Add timestamp and environment info
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          FULL_MSG="$COMMIT_MSG
+
+          Auto-committed on: $TIMESTAMP
+          Branch: ${{ github.ref_name }}
+          Workflow: ${{ github.workflow }}
+          
+          Changes include:
+          $(echo "$CHANGED_FILES" | sed 's/^/- /')"
+          
+          git commit -m "$FULL_MSG"
+
+      - name: Push changes
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          # Pull latest changes to avoid conflicts
+          git pull origin ${{ github.ref_name }} || true
+          
+          # Push changes
+          git push origin ${{ github.ref_name }}
+
+      - name: Create summary
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          echo "## Auto-Commit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully committed and pushed changes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changed Files:" >> $GITHUB_STEP_SUMMARY
+          git diff HEAD~1 --name-only | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Commit Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit Hash:** $(git rev-parse HEAD)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+
+  notify-completion:
+    needs: auto-commit-push
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notification
+        run: |
+          if [ "${{ needs.auto-commit-push.result }}" == "success" ]; then
+            echo "✅ Auto-commit workflow completed successfully"
+          else
+            echo "❌ Auto-commit workflow failed"
+            exit 1
+          fi

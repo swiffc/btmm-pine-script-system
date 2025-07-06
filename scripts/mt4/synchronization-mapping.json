@@ -1,0 +1,122 @@
+{
+  "version": "1.00",
+  "buildDate": "2025-07-06",
+  "synchronization": {
+    "BTMM_Session_Analysis": {
+      "pineScript": "BTMM_Session_Analysis.pine",
+      "description": "Session-Based Analysis and Range Detection",
+      "purpose": "Asian/London/NY session analysis and ranges",
+      "buffers": 6,
+      "features": [
+        "Session range detection",
+        "Breakout analysis",
+        "Volume confirmation",
+        "Session overlap detection"
+      ]
+    },
+    "BTMM_HTF_Bias": {
+      "pineScript": "BTMM_HTF_Bias.pine",
+      "description": "Higher Timeframe Bias Analysis",
+      "purpose": "Multi-timeframe institutional bias detection",
+      "buffers": 4,
+      "features": [
+        "HTF trend analysis",
+        "Bias confirmation",
+        "Multi-timeframe alignment",
+        "Institutional flow detection"
+      ]
+    },
+    "BTMM_Pattern_Detection": {
+      "pineScript": "BTMM_Pattern_Detection.pine",
+      "description": "Pattern Recognition System",
+      "purpose": "CHoCH, BOS, and market structure analysis",
+      "buffers": 5,
+      "features": [
+        "Change of Character detection",
+        "Break of Structure detection",
+        "Market structure analysis",
+        "Pattern recognition"
+      ]
+    },
+    "BTMM_Entry_System": {
+      "pineScript": "BTMM_Entry_System.pine",
+      "description": "Entry Signal Generation System",
+      "purpose": "Confluence-based entry signals",
+      "buffers": 7,
+      "features": [
+        "Confluence analysis",
+        "Entry signal generation",
+        "Risk-reward calculation",
+        "Signal validation"
+      ]
+    },
+    "BTMM_Risk_Management": {
+      "pineScript": "BTMM_Risk_Management.pine",
+      "description": "Risk Management System",
+      "purpose": "Position sizing and risk calculations",
+      "buffers": 4,
+      "features": [
+        "Position sizing",
+        "Risk calculation",
+        "Portfolio management",
+        "Drawdown protection"
+      ]
+    },
+    "BTMM_Stop_Hunt_Detection": {
+      "pineScript": "BTMM_Stop_Hunt_Detection.pine",
+      "description": "Stop Hunt Analysis System",
+      "purpose": "Liquidity sweep and stop hunt detection",
+      "buffers": 3,
+      "features": [
+        "Liquidity level detection",
+        "Stop hunt identification",
+        "False breakout detection",
+        "Sweep analysis"
+      ]
+    },
+    "BTMM_Signal_Dashboard": {
+      "pineScript": "BTMM_Signal_Dashboard.pine",
+      "description": "Signal Dashboard System",
+      "purpose": "Consolidated signal display and analysis",
+      "buffers": 8,
+      "features": [
+        "Signal consolidation",
+        "Dashboard display",
+        "Alert management",
+        "Performance tracking"
+      ]
+    },
+    "BTMM_Master_Controller": {
+      "pineScript": "BTMM_Master_Controller.pine",
+      "description": "Master Controller System",
+      "purpose": "System coordination and management",
+      "buffers": 10,
+      "features": [
+        "System coordination",
+        "Health monitoring",
+        "Performance tracking",
+        "Master control panel"
+      ]
+    }
+  },
+  "architecture": {
+    "tier1": [
+      "BTMM_Foundation"
+    ],
+    "tier2": [
+      "BTMM_EMA_System",
+      "BTMM_Session_Analysis",
+      "BTMM_HTF_Bias",
+      "BTMM_Pattern_Detection"
+    ],
+    "tier3": [
+      "BTMM_Entry_System",
+      "BTMM_Risk_Management",
+      "BTMM_Stop_Hunt_Detection"
+    ],
+    "tier4": [
+      "BTMM_Signal_Dashboard",
+      "BTMM_Master_Controller"
+    ]
+  }
+}

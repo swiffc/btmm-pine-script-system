@@ -1,0 +1,378 @@
+//@version=5
+indicator("BTMM M&W Pattern Detection - Script 3/10", 
+         shorttitle="BTMM-MW", 
+         overlay=true, 
+         max_boxes_count=100,
+         max_lines_count=150, 
+         max_labels_count=200,
+         max_tables_count=2)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📈 BTMM M&W PATTERN DETECTION - SCRIPT 3 OF 10
+// Steve Mauro's Beat The Market Maker Methodology
+// Focus: Second Leg M&W Patterns, 13 EMA Confirmation, Pattern Validation
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+import TradingView/ta/7 as ta
+
+// === M&W PATTERN CONFIGURATION ===
+pattern_group = "📈 M&W Pattern Detection"
+enable_m_patterns = input.bool(true, "Enable M Patterns (Bearish)", group=pattern_group)
+enable_w_patterns = input.bool(true, "Enable W Patterns (Bullish)", group=pattern_group)
+enable_second_leg_only = input.bool(true, "Second Leg Focus (Steve Mauro)", group=pattern_group)
+pattern_lookback = input.int(15, "Pattern Detection Lookback", minval=8, maxval=30, group=pattern_group)
+pattern_tolerance = input.float(0.002, "Pattern Tolerance %", minval=0.001, maxval=0.01, step=0.001, group=pattern_group)
+
+// === CONFIRMATION SETTINGS ===
+confirmation_group = "✅ Pattern Confirmation"
+require_ema13_confirmation = input.bool(true, "Require 13 EMA Confirmation", group=confirmation_group)
+require_volume_confirmation = input.bool(true, "Require Volume Confirmation", group=confirmation_group)
+min_pattern_height = input.float(0.5, "Minimum Pattern Height (ATR)", minval=0.2, maxval=2.0, step=0.1, group=confirmation_group)
+confluence_factors = input.int(2, "Required Confluence Factors", minval=1, maxval=4, group=confirmation_group)
+
+// === VISUAL SETTINGS ===
+visual_group = "🎨 Visual Configuration"
+show_pattern_labels = input.bool(true, "Show Pattern Labels", group=visual_group)
+show_entry_zones = input.bool(true, "Show Entry Zones", group=visual_group)
+show_pattern_structure = input.bool(true, "Show Pattern Structure Lines", group=visual_group)
+label_size_setting = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large"], group=visual_group)
+pattern_line_width = input.int(2, "Pattern Line Width", minval=1, maxval=5, group=visual_group)
+
+// === ALERT CONFIGURATION ===
+alert_group = "🚨 M&W Alert Settings"
+enable_pattern_alerts = input.bool(true, "Pattern Formation Alerts", group=alert_group)
+enable_second_leg_alerts = input.bool(true, "Second Leg Entry Alerts", group=alert_group)
+enable_confirmation_alerts = input.bool(true, "Pattern Confirmation Alerts", group=alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 HELPER FUNCTIONS AND CALCULATIONS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// EMA 13 for confirmation (Ketchup Line)
+ema_13 = ta.ema(close, 13)
+
+// ATR for pattern height validation
+atr_value = ta.atr(14)
+
+// Volume analysis
+avg_volume = ta.sma(volume, 20)
+volume_spike = volume > avg_volume * 1.5
+
+// Pivot detection
+pivot_high = ta.pivothigh(high, pattern_lookback, pattern_lookback)
+pivot_low = ta.pivotlow(low, pattern_lookback, pattern_lookback)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📈 M PATTERN DETECTION (BEARISH REVERSAL)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+detect_m_pattern() =>
+    var float left_shoulder_high = na
+    var float head_high = na
+    var float right_shoulder_high = na
+    var int left_shoulder_bar = na
+    var int head_bar = na
+    var int right_shoulder_bar = na
+    var bool m_pattern_active = false
+    var bool second_leg_triggered = false
+    
+    // Look for pivot highs to form M pattern
+    if not na(pivot_high)
+        current_high = pivot_high
+        current_bar = bar_index[pattern_lookback]
+        
+        // Initialize or update pattern points
+        if na(left_shoulder_high)
+            left_shoulder_high := current_high
+            left_shoulder_bar := current_bar
+        else if na(head_high) and current_high > left_shoulder_high
+            head_high := current_high
+            head_bar := current_bar
+        else if na(right_shoulder_high) and not na(head_high) and current_high < head_high
+            right_shoulder_high := current_high
+            right_shoulder_bar := current_bar
+            
+            // Validate M pattern structure
+            shoulder_symmetry = math.abs(left_shoulder_high - right_shoulder_high) / head_high <= pattern_tolerance
+            pattern_height = head_high - math.min(left_shoulder_high, right_shoulder_high)
+            sufficient_height = pattern_height >= atr_value * min_pattern_height
+            
+            if shoulder_symmetry and sufficient_height
+                m_pattern_active := true
+    
+    // Second leg detection (Steve Mauro focus)
+    if m_pattern_active and enable_second_leg_only and not second_leg_triggered
+        neckline_level = math.min(left_shoulder_high, right_shoulder_high)
+        if close < neckline_level and (not require_ema13_confirmation or close < ema_13)
+            second_leg_triggered := true
+    
+    // Reset pattern if invalidated
+    if m_pattern_active and high > head_high
+        left_shoulder_high := na
+        head_high := na
+        right_shoulder_high := na
+        m_pattern_active := false
+        second_leg_triggered := false
+    
+    [m_pattern_active, second_leg_triggered, left_shoulder_high, head_high, right_shoulder_high, left_shoulder_bar, head_bar, right_shoulder_bar]
+
+[m_pattern_formed, m_second_leg_active, m_left_shoulder, m_head, m_right_shoulder, m_left_bar, m_head_bar, m_right_bar] = detect_m_pattern()
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📉 W PATTERN DETECTION (BULLISH REVERSAL)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+detect_w_pattern() =>
+    var float left_shoulder_low = na
+    var float head_low = na
+    var float right_shoulder_low = na
+    var int left_shoulder_bar = na
+    var int head_bar = na
+    var int right_shoulder_bar = na
+    var bool w_pattern_active = false
+    var bool second_leg_triggered = false
+    
+    // Look for pivot lows to form W pattern
+    if not na(pivot_low)
+        current_low = pivot_low
+        current_bar = bar_index[pattern_lookback]
+        
+        // Initialize or update pattern points
+        if na(left_shoulder_low)
+            left_shoulder_low := current_low
+            left_shoulder_bar := current_bar
+        else if na(head_low) and current_low < left_shoulder_low
+            head_low := current_low
+            head_bar := current_bar
+        else if na(right_shoulder_low) and not na(head_low) and current_low > head_low
+            right_shoulder_low := current_low
+            right_shoulder_bar := current_bar
+            
+            // Validate W pattern structure
+            shoulder_symmetry = math.abs(left_shoulder_low - right_shoulder_low) / head_low <= pattern_tolerance
+            pattern_height = math.max(left_shoulder_low, right_shoulder_low) - head_low
+            sufficient_height = pattern_height >= atr_value * min_pattern_height
+            
+            if shoulder_symmetry and sufficient_height
+                w_pattern_active := true
+    
+    // Second leg detection (Steve Mauro focus)
+    if w_pattern_active and enable_second_leg_only and not second_leg_triggered
+        neckline_level = math.max(left_shoulder_low, right_shoulder_low)
+        if close > neckline_level and (not require_ema13_confirmation or close > ema_13)
+            second_leg_triggered := true
+    
+    // Reset pattern if invalidated
+    if w_pattern_active and low < head_low
+        left_shoulder_low := na
+        head_low := na
+        right_shoulder_low := na
+        w_pattern_active := false
+        second_leg_triggered := false
+    
+    [w_pattern_active, second_leg_triggered, left_shoulder_low, head_low, right_shoulder_low, left_shoulder_bar, head_bar, right_shoulder_bar]
+
+[w_pattern_formed, w_second_leg_active, w_left_shoulder, w_head, w_right_shoulder, w_left_bar, w_head_bar, w_right_bar] = detect_w_pattern()
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// ✅ PATTERN CONFIRMATION AND CONFLUENCE
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+calculate_confluence_score(pattern_type) =>
+    score = 0
+    
+    // EMA 13 Confirmation
+    if pattern_type == "M" and close < ema_13
+        score += 1
+    else if pattern_type == "W" and close > ema_13
+        score += 1
+    
+    // Volume Confirmation
+    if require_volume_confirmation and volume_spike
+        score += 1
+    
+    // Price action confluence
+    if pattern_type == "M" and close < open  // Bearish candle
+        score += 1
+    else if pattern_type == "W" and close > open  // Bullish candle
+        score += 1
+    
+    // Additional confluence (momentum, trend alignment, etc.)
+    rsi = ta.rsi(close, 14)
+    if pattern_type == "M" and rsi > 70  // Overbought
+        score += 1
+    else if pattern_type == "W" and rsi < 30  // Oversold
+        score += 1
+    
+    score
+
+m_confluence_score = m_pattern_formed ? calculate_confluence_score("M") : 0
+w_confluence_score = w_pattern_formed ? calculate_confluence_score("W") : 0
+
+m_pattern_confirmed = m_pattern_formed and m_confluence_score >= confluence_factors
+w_pattern_confirmed = w_pattern_formed and w_confluence_score >= confluence_factors
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL PATTERN DISPLAY
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+label_size = switch label_size_setting
+    "tiny" => size.tiny
+    "small" => size.small
+    "normal" => size.normal
+    "large" => size.large
+    => size.normal
+
+// M Pattern Visualization
+if show_pattern_structure and enable_m_patterns and m_pattern_formed and not na(m_left_shoulder) and not na(m_head) and not na(m_right_shoulder)
+    // Draw pattern structure lines
+    line.new(m_left_bar, m_left_shoulder, m_head_bar, m_head, color=color.red, width=pattern_line_width, style=line.style_solid)
+    line.new(m_head_bar, m_head, m_right_bar, m_right_shoulder, color=color.red, width=pattern_line_width, style=line.style_solid)
+    
+    // Draw neckline
+    neckline = math.min(m_left_shoulder, m_right_shoulder)
+    line.new(m_left_bar, neckline, m_right_bar, neckline, color=color.orange, width=1, style=line.style_dashed)
+
+// W Pattern Visualization
+if show_pattern_structure and enable_w_patterns and w_pattern_formed and not na(w_left_shoulder) and not na(w_head) and not na(w_right_shoulder)
+    // Draw pattern structure lines
+    line.new(w_left_bar, w_left_shoulder, w_head_bar, w_head, color=color.green, width=pattern_line_width, style=line.style_solid)
+    line.new(w_head_bar, w_head, w_right_bar, w_right_shoulder, color=color.green, width=pattern_line_width, style=line.style_solid)
+    
+    // Draw neckline
+    neckline = math.max(w_left_shoulder, w_right_shoulder)
+    line.new(w_left_bar, neckline, w_right_bar, neckline, color=color.lime, width=1, style=line.style_dashed)
+
+// Pattern Labels
+if show_pattern_labels
+    if m_pattern_confirmed and not m_pattern_confirmed[1]
+        label.new(bar_index, high + atr_value, 
+                  "🔻 M PATTERN\n" + (m_second_leg_active ? "2ND LEG" : "FORMING") + 
+                  "\nConfluence: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_factors), 
+                  style=label.style_label_down, color=color.red, textcolor=color.white, size=label_size)
+    
+    if w_pattern_confirmed and not w_pattern_confirmed[1]
+        label.new(bar_index, low - atr_value, 
+                  "🔺 W PATTERN\n" + (w_second_leg_active ? "2ND LEG" : "FORMING") + 
+                  "\nConfluence: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_factors), 
+                  style=label.style_label_up, color=color.green, textcolor=color.white, size=label_size)
+
+// Entry Zone Visualization
+if show_entry_zones
+    if m_second_leg_active and not na(m_right_shoulder)
+        entry_zone_top = m_right_shoulder
+        entry_zone_bottom = m_right_shoulder * (1 - pattern_tolerance)
+        box.new(bar_index - 5, entry_zone_top, bar_index + 5, entry_zone_bottom, 
+                bgcolor=color.new(color.red, 80), border_color=color.red, border_width=1)
+    
+    if w_second_leg_active and not na(w_right_shoulder)
+        entry_zone_bottom = w_right_shoulder
+        entry_zone_top = w_right_shoulder * (1 + pattern_tolerance)
+        box.new(bar_index - 5, entry_zone_top, bar_index + 5, entry_zone_bottom, 
+                bgcolor=color.new(color.green, 80), border_color=color.green, border_width=1)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 M&W PATTERN STATUS TABLE
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+if barstate.islast
+    var table pattern_table = table.new(position.bottom_right, 3, 6, bgcolor=color.new(color.white, 10), border_width=2)
+    
+    // Header
+    table.cell(pattern_table, 0, 0, "M&W PATTERNS", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(pattern_table, 1, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    table.cell(pattern_table, 2, 0, "CONFLUENCE", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    
+    // M Pattern Status
+    m_status_color = m_pattern_confirmed ? color.new(color.red, 50) : m_pattern_formed ? color.new(color.orange, 70) : color.new(color.gray, 80)
+    m_status_text = m_pattern_confirmed ? "✅ CONFIRMED" : m_pattern_formed ? "⏳ FORMING" : "❌ NONE"
+    table.cell(pattern_table, 0, 1, "M Pattern", bgcolor=color.red, text_color=color.white)
+    table.cell(pattern_table, 1, 1, m_status_text, bgcolor=m_status_color, text_color=color.white)
+    table.cell(pattern_table, 2, 1, str.tostring(m_confluence_score) + "/" + str.tostring(confluence_factors), bgcolor=m_status_color, text_color=color.white)
+    
+    // W Pattern Status
+    w_status_color = w_pattern_confirmed ? color.new(color.green, 50) : w_pattern_formed ? color.new(color.lime, 70) : color.new(color.gray, 80)
+    w_status_text = w_pattern_confirmed ? "✅ CONFIRMED" : w_pattern_formed ? "⏳ FORMING" : "❌ NONE"
+    table.cell(pattern_table, 0, 2, "W Pattern", bgcolor=color.green, text_color=color.white)
+    table.cell(pattern_table, 1, 2, w_status_text, bgcolor=w_status_color, text_color=color.white)
+    table.cell(pattern_table, 2, 2, str.tostring(w_confluence_score) + "/" + str.tostring(confluence_factors), bgcolor=w_status_color, text_color=color.white)
+    
+    // Second Leg Status
+    second_leg_status = m_second_leg_active ? "🔻 M 2ND LEG" : w_second_leg_active ? "🔺 W 2ND LEG" : "❌ NO ACTIVE"
+    second_leg_color = m_second_leg_active ? color.new(color.red, 50) : w_second_leg_active ? color.new(color.green, 50) : color.new(color.gray, 80)
+    table.cell(pattern_table, 0, 3, "Second Leg", bgcolor=color.purple, text_color=color.white)
+    table.cell(pattern_table, 1, 3, second_leg_status, bgcolor=second_leg_color, text_color=color.white)
+    table.cell(pattern_table, 2, 3, enable_second_leg_only ? "✅ ENABLED" : "❌ DISABLED", bgcolor=second_leg_color, text_color=color.white)
+    
+    // EMA 13 Confirmation
+    ema_status = close > ema_13 ? "🔺 ABOVE" : "🔻 BELOW"
+    ema_color = close > ema_13 ? color.new(color.green, 70) : color.new(color.red, 70)
+    table.cell(pattern_table, 0, 4, "EMA 13", bgcolor=color.orange, text_color=color.white)
+    table.cell(pattern_table, 1, 4, ema_status, bgcolor=ema_color, text_color=color.white)
+    table.cell(pattern_table, 2, 4, str.tostring(ema_13, "#.#####"), bgcolor=ema_color, text_color=color.white)
+    
+    // Volume Analysis
+    vol_status = volume_spike ? "🔥 SPIKE" : "📊 NORMAL"
+    vol_color = volume_spike ? color.new(color.yellow, 50) : color.new(color.gray, 70)
+    table.cell(pattern_table, 0, 5, "Volume", bgcolor=color.blue, text_color=color.white)
+    table.cell(pattern_table, 1, 5, vol_status, bgcolor=vol_color, text_color=color.white)
+    table.cell(pattern_table, 2, 5, str.tostring(volume / avg_volume, "#.#") + "x Avg", bgcolor=vol_color, text_color=color.white)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🚨 M&W PATTERN ALERTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+alert_freq = alert_frequency == "once_per_bar" ? alert.freq_once_per_bar : alert.freq_once_per_bar_close
+
+// Pattern Formation Alerts
+if enable_pattern_alerts
+    if m_pattern_confirmed and not m_pattern_confirmed[1]
+        alert("🔻 M PATTERN CONFIRMED!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Pattern Type: BEARISH M\n" +
+              "Confluence Score: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_factors) + "\n" +
+              "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+              "Second Leg: " + (m_second_leg_active ? "ACTIVE" : "PENDING"), alert_freq)
+    
+    if w_pattern_confirmed and not w_pattern_confirmed[1]
+        alert("🔺 W PATTERN CONFIRMED!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Pattern Type: BULLISH W\n" +
+              "Confluence Score: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_factors) + "\n" +
+              "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+              "Second Leg: " + (w_second_leg_active ? "ACTIVE" : "PENDING"), alert_freq)
+
+// Second Leg Entry Alerts
+if enable_second_leg_alerts
+    if m_second_leg_active and not m_second_leg_active[1]
+        alert("🎯 M PATTERN SECOND LEG TRIGGERED!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Entry Signal: BEARISH\n" +
+              "Price: " + str.tostring(close, "#.#####") + "\n" +
+              "Pattern: M Formation\n" +
+              "Action: Consider short entry", alert_freq)
+    
+    if w_second_leg_active and not w_second_leg_active[1]
+        alert("🎯 W PATTERN SECOND LEG TRIGGERED!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Entry Signal: BULLISH\n" +
+              "Price: " + str.tostring(close, "#.#####") + "\n" +
+              "Pattern: W Formation\n" +
+              "Action: Consider long entry", alert_freq)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+export m_pattern_formed
+export w_pattern_formed
+export m_pattern_confirmed
+export w_pattern_confirmed
+export m_second_leg_active
+export w_second_leg_active
+export m_confluence_score
+export w_confluence_score
+export ema_13

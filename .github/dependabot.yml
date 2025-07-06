@@ -1,67 +1,34 @@
 version: 2
 updates:
-  # NPM Dependencies
+  # Enable version updates for npm
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "09:00"
     open-pull-requests-limit: 5
-    target-branch: "develop"
     reviewers:
-      - "swiffc"
+      - "btmm-maintainers"
     assignees:
-      - "swiffc"
+      - "btmm-maintainers"
     commit-message:
-      prefix: "deps"
-      prefix-development: "deps-dev"
+      prefix: "npm"
       include: "scope"
     labels:
       - "dependencies"
       - "automated"
-    ignore:
-      # Ignore major version updates for critical dependencies
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      # Group development dependencies
-      development-dependencies:
-        patterns:
-          - "@types/*"
-          - "eslint*"
-          - "prettier*"
-          - "husky*"
-          - "lint-staged*"
-        update-types:
-          - "minor"
-          - "patch"
-      # Group automation dependencies
-      automation-dependencies:
-        patterns:
-          - "fs-extra"
-          - "chalk"
-          - "inquirer"
-          - "commander"
-        update-types:
-          - "minor"
-          - "patch"
-
-  # GitHub Actions
+    
+  # Monitor GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
-    target-branch: "develop"
-    reviewers:
-      - "swiffc"
-    assignees:
-      - "swiffc"
+      time: "09:00"
     commit-message:
       prefix: "ci"
       include: "scope"
     labels:
-      - "ci/cd"
       - "github-actions"
-      - "automated" 
+      - "automated"

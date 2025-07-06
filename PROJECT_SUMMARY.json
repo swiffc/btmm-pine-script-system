@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-07-06T19:34:07.553Z",
+  "structure": {},
+  "files": {
+    "pineScript": 42,
+    "mt4": 17,
+    "documentation": 20,
+    "automation": 37,
+    "total": 116
+  },
+  "synchronization": {
+    "mapped": 10,
+    "issues": []
+  }
+}

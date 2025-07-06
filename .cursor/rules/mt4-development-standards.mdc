@@ -1,0 +1,590 @@
+# BTMM MT4 Development Standards
+
+## 🚀 Core Philosophy
+MT4 development in the BTMM system must maintain perfect synchronization with Pine Script implementations while following MetaTrader 4 best practices for institutional-grade trading systems.
+
+## 📋 MT4 System Architecture Rules
+
+### 🔒 **MANDATORY RULE: 10-File MT4 System Limit**
+**Priority: P0 - CRITICAL**
+
+The MT4 system MUST maintain exactly 10 files corresponding to the Pine Script architecture:
+
+```
+Tier 1: Foundation Layer
+├── BTMM_Foundation.mq4 (Core functions and utilities)
+
+Tier 2: Analysis Layer  
+├── BTMM_EMA_System.mq4 (EMA stack analysis)
+├── BTMM_Session_Analysis.mq4 (Session-based analysis)
+├── BTMM_HTF_Bias.mq4 (Higher timeframe bias)
+├── BTMM_Pattern_Detection.mq4 (Pattern recognition)
+
+Tier 3: Signal Generation
+├── BTMM_Entry_System.mq4 (Entry signals)
+├── BTMM_Risk_Management.mq4 (Risk management)
+├── BTMM_Stop_Hunt_Detection.mq4 (Stop hunt detection)
+
+Tier 4: Interface Layer
+├── BTMM_Signal_Dashboard.mq4 (Signal dashboard)
+├── BTMM_Master_Controller.mq4 (Master controller)
+```
+
+### 🔄 **MANDATORY RULE: Pine Script Synchronization**
+**Priority: P0 - CRITICAL**
+
+Every MT4 file MUST have a corresponding Pine Script file with identical:
+- Calculation algorithms
+- Input parameters  
+- Output values
+- Signal timing
+- Performance metrics
+
+**Synchronization Mapping:**
+```mq4
+// REQUIRED: Synchronization header in every MT4 file
+//| Synchronized with [PineScriptFile].pine v1.0
+//| Last sync: [YYYY-MM-DD]
+//| Sync verification: [PASSED/FAILED]
+```
+
+## 🎯 MT4 Code Quality Standards
+
+### File Structure Requirements
+```mq4
+//+------------------------------------------------------------------+
+//| REQUIRED: Standard MT4 header with sync info
+//+------------------------------------------------------------------+
+#property copyright "BTMM Trading System"
+#property link      "https://github.com/btmm-trading-system"
+#property version   "1.00"
+#property strict
+#property indicator_chart_window
+#property indicator_buffers [N]
+
+// REQUIRED: Include foundation
+#include <BTMM_Foundation.mqh>
+
+// REQUIRED: Input parameters with Pine Script matching
+input string SystemSettings = "=== [System] Settings ===";
+input bool EnableSystem = true;
+input bool EnableAlerts = true;
+input bool EnableLogging = true;
+
+// REQUIRED: Indicator buffers
+double Buffer1[];
+double Buffer2[];
+// ... additional buffers
+
+// REQUIRED: Global variables
+datetime g_lastBarTime = 0;
+bool g_systemInitialized = false;
+
+// REQUIRED: Standard initialization
+int OnInit() { /* Implementation */ }
+
+// REQUIRED: Standard calculation
+int OnCalculate(/* Standard parameters */) { /* Implementation */ }
+
+// REQUIRED: Standard cleanup
+void OnDeinit(const int reason) { /* Implementation */ }
+```
+
+### Naming Conventions
+- **Variables**: `camelCase` (e.g., `fastEMA`, `sessionActive`, `signalStrength`)
+- **Constants**: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_PERIOD = 14`, `MAX_SIGNALS = 10`)
+- **Functions**: `PascalCase` (e.g., `CalculateEMAStack`, `UpdateSignalBuffer`)
+- **Global Variables**: `g_` prefix (e.g., `g_systemHealthy`, `g_lastSignalTime`)
+- **Buffers**: `Buffer` suffix (e.g., `EMA_Fast_Buffer`, `Signal_Strength_Buffer`)
+
+### Input Parameter Standards
+```mq4
+// REQUIRED: Input structure with Pine Script synchronization
+input string SystemSettings = "=== [System Name] Settings ===";
+input bool EnableSystem = true;                    // Enable [System Name]
+input bool EnableAlerts = true;                    // Enable alerts
+input bool EnableLogging = true;                   // Enable logging
+input bool ShowOnChart = true;                     // Show on chart
+
+input string CalculationSettings = "=== Calculation Settings ===";
+input int Period = 14;                             // Calculation period
+input double Threshold = 70.0;                     // Signal threshold
+input ENUM_MA_METHOD Method = MODE_EMA;            // Calculation method
+
+input string DisplaySettings = "=== Display Settings ===";
+input bool ShowLabels = true;                      // Show labels
+input bool ShowValues = true;                      // Show values
+input color SystemColor = clrDodgerBlue;           // System color
+input int FontSize = 10;                           // Font size
+
+input string AlertSettings = "=== Alert Settings ===";
+input bool AlertOnSignal = true;                   // Alert on signal
+input bool SendEmail = false;                      // Send email alerts
+input bool SendPush = false;                       // Send push notifications
+input string AlertSoundFile = "alert.wav";         // Alert sound file
+```
+
+## 🔧 MT4-Specific Implementation Rules
+
+### Buffer Management
+```mq4
+// REQUIRED: Buffer setup in OnInit()
+int OnInit()
+{
+    // Set up indicator buffers
+    SetIndexBuffer(0, Buffer1);
+    SetIndexBuffer(1, Buffer2);
+    // ... additional buffers
+    
+    // Set buffer labels (must match Pine Script outputs)
+    SetIndexLabel(0, "Signal Strength");
+    SetIndexLabel(1, "Trend Direction");
+    
+    // Set buffer styles
+    SetIndexStyle(0, DRAW_LINE, STYLE_SOLID, 2);
+    SetIndexStyle(1, DRAW_HISTOGRAM, STYLE_SOLID, 1);
+    
+    return INIT_SUCCEEDED;
+}
+
+// REQUIRED: Buffer calculations in OnCalculate()
+int OnCalculate(/* parameters */)
+{
+    // Calculate from last unprocessed bar
+    int start_pos = prev_calculated;
+    if(start_pos < minimumBars)
+        start_pos = minimumBars;
+    
+    // Main calculation loop
+    for(int i = start_pos; i < rates_total; i++)
+    {
+        int bar_index = rates_total - 1 - i;
+        
+        // Perform calculations
+        Buffer1[bar_index] = CalculateValue1(bar_index);
+        Buffer2[bar_index] = CalculateValue2(bar_index);
+    }
+    
+    return rates_total;
+}
+```
+
+### Global Variable Synchronization
+```mq4
+// REQUIRED: Global variables for cross-indicator communication
+void UpdateGlobalVariables(int bar_index)
+{
+    // System status
+    GlobalVariableSet("BTMM_[System]_Active", EnableSystem ? 1 : 0);
+    GlobalVariableSet("BTMM_[System]_Healthy", g_systemHealthy ? 1 : 0);
+    
+    // Signal values (must match Pine Script data window outputs)
+    GlobalVariableSet("BTMM_[System]_Signal", currentSignal);
+    GlobalVariableSet("BTMM_[System]_Strength", signalStrength);
+    
+    // Timing
+    GlobalVariableSet("BTMM_[System]_LastUpdate", TimeCurrent());
+}
+
+// REQUIRED: Global variable cleanup in OnDeinit()
+void OnDeinit(const int reason)
+{
+    // Clean up global variables
+    GlobalVariableDel("BTMM_[System]_Active");
+    GlobalVariableDel("BTMM_[System]_Healthy");
+    GlobalVariableDel("BTMM_[System]_Signal");
+    GlobalVariableDel("BTMM_[System]_Strength");
+    GlobalVariableDel("BTMM_[System]_LastUpdate");
+}
+```
+
+### Error Handling and Logging
+```mq4
+// REQUIRED: Error handling with foundation logging
+bool ValidateInputs()
+{
+    if(Period < 1 || Period > 1000)
+    {
+        LogBTMMError("ValidateInputs", "Invalid Period: " + IntegerToString(Period));
+        return false;
+    }
+    
+    if(Threshold < 0 || Threshold > 100)
+    {
+        LogBTMMError("ValidateInputs", "Invalid Threshold: " + DoubleToString(Threshold, 2));
+        return false;
+    }
+    
+    return true;
+}
+
+// REQUIRED: Safe calculations with error handling
+double CalculateValue(int bar_index)
+{
+    // Validate bar index
+    if(bar_index < 0 || bar_index >= Bars)
+    {
+        LogBTMMError("CalculateValue", "Invalid bar index: " + IntegerToString(bar_index));
+        return 0.0;
+    }
+    
+    // Validate data
+    if(Close[bar_index] <= 0)
+    {
+        LogBTMMError("CalculateValue", "Invalid price data at bar: " + IntegerToString(bar_index));
+        return 0.0;
+    }
+    
+    // Perform calculation
+    double result = 0.0;
+    // ... calculation logic
+    
+    return result;
+}
+```
+
+## 📊 Performance Optimization Rules
+
+### Memory Management
+```mq4
+// REQUIRED: Efficient memory usage
+void OnDeinit(const int reason)
+{
+    // Clean up arrays
+    ArrayFree(localArray);
+    
+    // Clean up global variables
+    GlobalVariableDel("BTMM_[System]_*");
+    
+    // Clean up objects
+    ObjectsDeleteAll(0, "BTMM_[System]_");
+    
+    LogBTMMInfo("OnDeinit", "System cleaned up successfully");
+}
+
+// REQUIRED: Array size management
+void InitializeArrays()
+{
+    // Set appropriate array sizes
+    ArraySetAsSeries(Buffer1, true);
+    ArraySetAsSeries(Buffer2, true);
+    
+    // Initialize with empty values
+    ArrayInitialize(Buffer1, EMPTY_VALUE);
+    ArrayInitialize(Buffer2, EMPTY_VALUE);
+}
+```
+
+### Calculation Efficiency
+```mq4
+// REQUIRED: Efficient calculations
+double CalculateEMA(double price, double prevEMA, int period)
+{
+    // Use efficient EMA calculation
+    double alpha = 2.0 / (period + 1);
+    return alpha * price + (1 - alpha) * prevEMA;
+}
+
+// REQUIRED: Cached calculations
+double GetCachedValue(string key, int bar_index)
+{
+    static double cache[][2]; // [bar_index][value]
+    static int cache_size = 0;
+    
+    // Check cache first
+    for(int i = 0; i < cache_size; i++)
+    {
+        if(cache[i][0] == bar_index)
+            return cache[i][1];
+    }
+    
+    // Calculate and cache
+    double value = PerformExpensiveCalculation(bar_index);
+    
+    // Add to cache
+    ArrayResize(cache, cache_size + 1);
+    cache[cache_size][0] = bar_index;
+    cache[cache_size][1] = value;
+    cache_size++;
+    
+    return value;
+}
+```
+
+## 🚨 Alert and Notification Standards
+
+### Alert Implementation
+```mq4
+// REQUIRED: Alert system with rate limiting
+void SendSystemAlert(string message, bool playSound = true)
+{
+    // Rate limiting
+    static datetime lastAlertTime = 0;
+    if(TimeCurrent() - lastAlertTime < 60) // 1 minute minimum
+        return;
+    
+    // Format alert message
+    string formattedMessage = StringFormat("[BTMM %s] %s - %s %s",
+        "[System]",
+        message,
+        Symbol(),
+        TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES)
+    );
+    
+    // Send alert
+    if(AlertOnSignal)
+        Alert(formattedMessage);
+    
+    // Play sound
+    if(playSound && AlertSoundFile != "")
+        PlaySound(AlertSoundFile);
+    
+    // Send email
+    if(SendEmail)
+        SendMail("BTMM Alert", formattedMessage);
+    
+    // Send push notification
+    if(SendPush)
+        SendNotification(formattedMessage);
+    
+    // Log alert
+    LogBTMMInfo("SendSystemAlert", formattedMessage);
+    
+    lastAlertTime = TimeCurrent();
+}
+
+// REQUIRED: Alert conditions
+void CheckForAlerts()
+{
+    // Check for signal conditions
+    if(signalStrength > Threshold && previousSignalStrength <= Threshold)
+    {
+        SendSystemAlert("Signal strength exceeded threshold: " + DoubleToString(signalStrength, 2));
+    }
+    
+    // Check for system health
+    if(!g_systemHealthy)
+    {
+        SendSystemAlert("System health check failed!", false);
+    }
+}
+```
+
+## 🔄 Synchronization Verification
+
+### Automated Sync Checks
+```mq4
+// REQUIRED: Synchronization verification
+bool VerifySynchronization()
+{
+    // Check global variables from Pine Script equivalent
+    double pineSignal = GlobalVariableGet("PINE_[System]_Signal");
+    double mt4Signal = GlobalVariableGet("BTMM_[System]_Signal");
+    
+    // Allow small tolerance for floating point differences
+    double tolerance = 0.0001;
+    
+    if(MathAbs(pineSignal - mt4Signal) > tolerance)
+    {
+        LogBTMMError("VerifySynchronization", 
+            StringFormat("Sync mismatch: Pine=%.4f, MT4=%.4f", pineSignal, mt4Signal));
+        return false;
+    }
+    
+    return true;
+}
+
+// REQUIRED: Periodic sync verification
+void PerformSyncCheck()
+{
+    static datetime lastSyncCheck = 0;
+    
+    // Check every 5 minutes
+    if(TimeCurrent() - lastSyncCheck < 300)
+        return;
+    
+    if(!VerifySynchronization())
+    {
+        LogBTMMError("PerformSyncCheck", "Synchronization verification failed");
+        g_systemHealthy = false;
+    }
+    
+    lastSyncCheck = TimeCurrent();
+}
+```
+
+## 📝 Documentation Requirements
+
+### Code Documentation
+```mq4
+//+------------------------------------------------------------------+
+//| REQUIRED: Function documentation
+//| Description: [Brief description of function purpose]
+//| Parameters: [Parameter descriptions]
+//| Returns: [Return value description]
+//| Pine Script Sync: [Corresponding Pine Script function]
+//+------------------------------------------------------------------+
+double CalculateSignalStrength(int bar_index)
+{
+    // REQUIRED: Document complex calculations
+    // This calculation follows Steve Mauro's BTMM methodology
+    // Synchronized with Pine Script function: btmm_signal_strength()
+    
+    double result = 0.0;
+    // ... implementation
+    
+    return result;
+}
+```
+
+### System Documentation
+```mq4
+// REQUIRED: System overview header
+//+------------------------------------------------------------------+
+//| System: [System Name]
+//| Purpose: [System purpose and methodology]
+//| Pine Script Sync: [Corresponding Pine Script file]
+//| Dependencies: BTMM_Foundation.mqh, [other dependencies]
+//| Author: BTMM Development Team
+//| Version: 1.00
+//| Last Updated: [YYYY-MM-DD]
+//+------------------------------------------------------------------+
+```
+
+## 🛡️ Quality Assurance
+
+### Testing Requirements
+```mq4
+// REQUIRED: Built-in testing functions
+bool RunSystemTests()
+{
+    LogBTMMInfo("RunSystemTests", "Starting system tests...");
+    
+    // Test 1: Input validation
+    if(!ValidateInputs())
+    {
+        LogBTMMError("RunSystemTests", "Input validation failed");
+        return false;
+    }
+    
+    // Test 2: Calculation accuracy
+    if(!TestCalculationAccuracy())
+    {
+        LogBTMMError("RunSystemTests", "Calculation accuracy test failed");
+        return false;
+    }
+    
+    // Test 3: Synchronization
+    if(!VerifySynchronization())
+    {
+        LogBTMMError("RunSystemTests", "Synchronization test failed");
+        return false;
+    }
+    
+    LogBTMMInfo("RunSystemTests", "All system tests passed");
+    return true;
+}
+```
+
+### Performance Monitoring
+```mq4
+// REQUIRED: Performance metrics
+void UpdatePerformanceMetrics()
+{
+    static int calculationCount = 0;
+    static datetime startTime = 0;
+    
+    if(startTime == 0)
+        startTime = TimeCurrent();
+    
+    calculationCount++;
+    
+    // Calculate performance metrics
+    double uptime = TimeCurrent() - startTime;
+    double calculationsPerSecond = calculationCount / MathMax(uptime, 1);
+    
+    // Update global metrics
+    GlobalVariableSet("BTMM_[System]_Uptime", uptime);
+    GlobalVariableSet("BTMM_[System]_CalcPerSec", calculationsPerSecond);
+    GlobalVariableSet("BTMM_[System]_TotalCalc", calculationCount);
+}
+```
+
+## 🔒 Security and Compliance
+
+### Security Standards
+```mq4
+// REQUIRED: Security checks
+bool ValidateSecuritySettings()
+{
+    // Check for dangerous settings
+    if(EnableSystem && IsOptimization())
+    {
+        LogBTMMError("ValidateSecuritySettings", "System disabled during optimization");
+        return false;
+    }
+    
+    // Validate permissions
+    if(!IsTradeAllowed())
+    {
+        LogBTMMError("ValidateSecuritySettings", "Trading not allowed");
+        return false;
+    }
+    
+    return true;
+}
+
+// REQUIRED: Safe trading checks
+bool IsSafeToTrade()
+{
+    // Check market conditions
+    if(MarketInfo(Symbol(), MODE_SPREAD) > 50)
+    {
+        LogBTMMError("IsSafeToTrade", "Spread too high: " + DoubleToString(MarketInfo(Symbol(), MODE_SPREAD), 0));
+        return false;
+    }
+    
+    // Check account balance
+    if(AccountBalance() <= 0)
+    {
+        LogBTMMError("IsSafeToTrade", "Insufficient account balance");
+        return false;
+    }
+    
+    return true;
+}
+```
+
+## 📋 Pre-Deployment Checklist
+
+### Required Validations
+- [ ] All input parameters match Pine Script equivalent
+- [ ] Global variables synchronized with Pine Script
+- [ ] Buffer calculations produce identical results
+- [ ] Error handling implemented for all functions
+- [ ] Logging integrated with BTMM Foundation
+- [ ] Performance metrics tracked
+- [ ] Security validations implemented
+- [ ] Documentation complete
+- [ ] Testing functions implemented
+- [ ] Synchronization verification working
+
+### Deployment Steps
+1. **Compile**: Ensure clean compilation without errors
+2. **Test**: Run built-in system tests
+3. **Validate**: Verify synchronization with Pine Script
+4. **Deploy**: Install to MT4 Indicators folder
+5. **Monitor**: Check system health and performance
+6. **Verify**: Confirm signals match Pine Script version
+
+---
+
+**Remember**: MT4 development in the BTMM system is not standalone - it must maintain perfect synchronization with Pine Script implementations while providing institutional-grade reliability and performance. Every MT4 indicator is part of a larger synchronized trading system architecture.
+
+**Last Updated**: 2025-01-06
+**Version**: 1.0.0
+**Sync Status**: Verified with Pine Script Standards
+description:
+globs:
+alwaysApply: false
+---

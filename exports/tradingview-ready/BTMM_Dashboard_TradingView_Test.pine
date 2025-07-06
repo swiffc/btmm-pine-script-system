@@ -1,0 +1,265 @@
+//@version=5
+
+// =============================================================================
+// BTMM MASTER DASHBOARD - TRADINGVIEW TEST VERSION
+// =============================================================================
+// Purpose: Complete dashboard with multi-timeframe analysis and system status
+// Method: Real-time monitoring of all BTMM system components (standalone)
+// Author: BTMM Development Team
+// Version: 2.0 - TradingView Ready Test Version
+// Date: 2025-07-02
+// =============================================================================
+
+indicator("BTMM Master Dashboard", "BTMM Dashboard", overlay=true, shorttitle="BTMM Dash",
+         max_tables_count=15, max_boxes_count=50, max_labels_count=100)
+
+// ============================================================================
+// 📊 DASHBOARD CONFIGURATION
+// ============================================================================
+
+dashboard_group = "📊 Multi-Timeframe Dashboard"
+enable_dashboard = input.bool(true, "Enable MTF Dashboard", group=dashboard_group)
+dashboard_position = input.string("top_right", "Dashboard Position", 
+                                 options=["top_left", "top_center", "top_right", 
+                                         "middle_left", "middle_center", "middle_right", 
+                                         "bottom_left", "bottom_center", "bottom_right"], 
+                                 group=dashboard_group)
+dashboard_size = input.string("normal", "Dashboard Size", 
+                             options=["tiny", "small", "normal", "large"], 
+                             group=dashboard_group)
+
+monitoring_group = "🔍 System Monitoring"
+show_performance_stats = input.bool(true, "Show Performance Statistics", 
+                                   group=monitoring_group)
+
+ema_group = "🥪 EMA System"
+ema_5_length = input.int(5, "5 EMA (Mustard)", minval=1, maxval=20,
+                        group=ema_group)
+ema_13_length = input.int(13, "13 EMA (Ketchup)", minval=1, maxval=50,
+                         group=ema_group)
+ema_50_length = input.int(50, "50 EMA (Water)", minval=1, maxval=100,
+                         group=ema_group)
+ema_200_length = input.int(200, "200 EMA (Mayo)", minval=1, maxval=500,
+                          group=ema_group)
+
+// ============================================================================
+// CALCULATIONS
+// ============================================================================
+
+// Session detection
+london_session = time(timeframe.period, "0200-0900")
+ny_session = time(timeframe.period, "0930-1700")
+asian_session = time(timeframe.period, "1700-0500")
+
+is_london = not na(london_session)
+is_ny = not na(ny_session)
+is_asian = not na(asian_session)
+
+// Market Maker Phase
+current_mm_phase = is_asian ? "ACCUMULATION" : 
+                  is_london ? "MANIPULATION" : 
+                  is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
+
+// Volume analysis
+volume_ma = ta.sma(volume, 20)
+institutional_support = volume > volume_ma * 1.5
+
+// Multi-timeframe bias
+get_mtf_bias(tf) =>
+    [mtf_close, mtf_ema5, mtf_ema13, mtf_ema50, mtf_ema200] = 
+        request.security(syminfo.tickerid, tf, 
+            [close, ta.ema(close, ema_5_length), ta.ema(close, ema_13_length), 
+             ta.ema(close, ema_50_length), ta.ema(close, ema_200_length)], 
+             lookahead=barmerge.lookahead_off)
+    
+    score_5 = mtf_close > mtf_ema5 ? 1.0 : -1.0
+    score_13 = mtf_close > mtf_ema13 ? 1.0 : -1.0
+    score_50 = mtf_close > mtf_ema50 ? 1.0 : -1.0
+    score_200 = mtf_close > mtf_ema200 ? 1.0 : -1.0
+    
+    bullish_alignment = mtf_ema5 > mtf_ema13 and mtf_ema13 > mtf_ema50 and mtf_ema50 > mtf_ema200
+    bearish_alignment = mtf_ema5 < mtf_ema13 and mtf_ema13 < mtf_ema50 and mtf_ema50 < mtf_ema200
+    
+    total_score = score_5 + score_13 + score_50 + score_200
+    bias = total_score >= 2.0 ? "BULL" : total_score <= -2.0 ? "BEAR" : "NEUT"
+    
+    [bias, total_score, bullish_alignment or bearish_alignment]
+
+// Get MTF data
+[bias_15m, score_15m, stack_15m] = get_mtf_bias("15")
+[bias_1h, score_1h, stack_1h] = get_mtf_bias("60")
+[bias_4h, score_4h, stack_4h] = get_mtf_bias("240")
+[bias_1d, score_1d, stack_1d] = get_mtf_bias("1D")
+
+// Current timeframe
+ema_13 = ta.ema(close, ema_13_length)
+[btmm_current_bias, btmm_bias_score, btmm_perfect_stack] = get_mtf_bias(timeframe.period)
+
+// Signal detection
+m_signal_detected = ta.crossunder(close, ema_13) and close[1] > ema_13 and volume > volume_ma * 1.5
+w_signal_detected = ta.crossover(close, ema_13) and close[1] < ema_13 and volume > volume_ma * 1.5
+
+// ============================================================================
+// DASHBOARD CREATION
+// ============================================================================
+
+var table dashboard = na
+
+if enable_dashboard and barstate.islast
+    if not na(dashboard)
+        table.delete(dashboard)
+    
+    table_position = switch dashboard_position
+        "top_left" => position.top_left
+        "top_center" => position.top_center
+        "top_right" => position.top_right
+        "middle_left" => position.middle_left
+        "middle_center" => position.middle_center
+        "middle_right" => position.middle_right
+        "bottom_left" => position.bottom_left
+        "bottom_center" => position.bottom_center
+        "bottom_right" => position.bottom_right
+        => position.top_right
+    
+    text_size = switch dashboard_size
+        "tiny" => size.tiny
+        "small" => size.small
+        "normal" => size.normal
+        "large" => size.large
+        => size.normal
+    
+    dashboard := table.new(table_position, 6, 6, 
+                          bgcolor=color.new(color.white, 10), 
+                          border_width=2, border_color=color.gray)
+    
+    // HEADERS
+    table.cell(dashboard, 0, 0, "BTMM SYSTEM", 
+              bgcolor=color.navy, text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 1, 0, "15M", 
+              bgcolor=color.gray, text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 2, 0, "1H", 
+              bgcolor=color.gray, text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 3, 0, "4H", 
+              bgcolor=color.gray, text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 4, 0, "1D", 
+              bgcolor=color.gray, text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 5, 0, "CURR", 
+              bgcolor=color.gray, text_color=color.white, text_size=text_size)
+    
+    // SIGNALS ROW
+    table.cell(dashboard, 0, 1, "SIGNALS", 
+              bgcolor=color.blue, text_color=color.white, text_size=text_size)
+    
+    current_signal = m_signal_detected ? "🔴M" : w_signal_detected ? "🟢W" : "❌"
+    signal_color = m_signal_detected ? color.new(color.red, 30) : 
+                  w_signal_detected ? color.new(color.green, 30) : 
+                  color.new(color.gray, 80)
+    
+    table.cell(dashboard, 5, 1, current_signal, 
+              bgcolor=signal_color, text_color=color.white, text_size=text_size)
+    
+    // BIAS ROW
+    table.cell(dashboard, 0, 2, "BIAS", 
+              bgcolor=color.orange, text_color=color.white, text_size=text_size)
+    
+    // 15M Bias
+    bias_15m_color = bias_15m == "BULL" ? color.new(color.green, 70) : 
+                    bias_15m == "BEAR" ? color.new(color.red, 70) : 
+                    color.new(color.gray, 70)
+    table.cell(dashboard, 1, 2, bias_15m + "\n" + str.tostring(score_15m, "#.#"), 
+              bgcolor=bias_15m_color, text_color=color.white, text_size=text_size)
+    
+    // 1H Bias
+    bias_1h_color = bias_1h == "BULL" ? color.new(color.green, 70) : 
+                   bias_1h == "BEAR" ? color.new(color.red, 70) : 
+                   color.new(color.gray, 70)
+    table.cell(dashboard, 2, 2, bias_1h + "\n" + str.tostring(score_1h, "#.#"), 
+              bgcolor=bias_1h_color, text_color=color.white, text_size=text_size)
+    
+    // 4H Bias
+    bias_4h_color = bias_4h == "BULL" ? color.new(color.green, 70) : 
+                   bias_4h == "BEAR" ? color.new(color.red, 70) : 
+                   color.new(color.gray, 70)
+    table.cell(dashboard, 3, 2, bias_4h + "\n" + str.tostring(score_4h, "#.#"), 
+              bgcolor=bias_4h_color, text_color=color.white, text_size=text_size)
+    
+    // Daily Bias
+    bias_1d_color = bias_1d == "BULL" ? color.new(color.green, 70) : 
+                   bias_1d == "BEAR" ? color.new(color.red, 70) : 
+                   color.new(color.gray, 70)
+    table.cell(dashboard, 4, 2, bias_1d + "\n" + str.tostring(score_1d, "#.#"), 
+              bgcolor=bias_1d_color, text_color=color.white, text_size=text_size)
+    
+    // Current Bias
+    current_bias_color = btmm_current_bias == "BULL" ? color.new(color.green, 70) : 
+                        btmm_current_bias == "BEAR" ? color.new(color.red, 70) : 
+                        color.new(color.gray, 70)
+    table.cell(dashboard, 5, 2, btmm_current_bias + "\n" + str.tostring(btmm_bias_score, "#.#"), 
+              bgcolor=current_bias_color, text_color=color.white, text_size=text_size)
+    
+    // PERFECT STACK ROW
+    table.cell(dashboard, 0, 3, "STACK", 
+              bgcolor=color.purple, text_color=color.white, text_size=text_size)
+    
+    stack_color_active = color.new(color.purple, 50)
+    stack_color_inactive = color.new(color.gray, 80)
+    
+    table.cell(dashboard, 1, 3, stack_15m ? "🔥" : "❌", 
+              bgcolor=stack_15m ? stack_color_active : stack_color_inactive, 
+              text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 2, 3, stack_1h ? "🔥" : "❌", 
+              bgcolor=stack_1h ? stack_color_active : stack_color_inactive, 
+              text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 3, 3, stack_4h ? "🔥" : "❌", 
+              bgcolor=stack_4h ? stack_color_active : stack_color_inactive, 
+              text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 4, 3, stack_1d ? "🔥" : "❌", 
+              bgcolor=stack_1d ? stack_color_active : stack_color_inactive, 
+              text_color=color.white, text_size=text_size)
+    table.cell(dashboard, 5, 3, btmm_perfect_stack ? "🔥" : "❌", 
+              bgcolor=btmm_perfect_stack ? stack_color_active : stack_color_inactive, 
+              text_color=color.white, text_size=text_size)
+    
+    // SESSION ROW
+    table.cell(dashboard, 0, 4, "SESSION", 
+              bgcolor=color.blue, text_color=color.white, text_size=text_size)
+    
+    // Market Maker Phase
+    table.cell(dashboard, 1, 4, current_mm_phase, 
+              bgcolor=color.new(color.blue, 70), 
+              text_color=color.white, text_size=text_size)
+    
+    // Trading Status
+    trading_allowed = is_london or is_ny
+    trading_status = trading_allowed ? "✅ TRADE" : "📊 ANALYSIS"
+    table.cell(dashboard, 2, 4, trading_status, 
+              bgcolor=trading_allowed ? color.new(color.green, 70) : color.new(color.yellow, 70), 
+              text_color=color.white, text_size=text_size)
+    
+    // Institutional Support
+    institutional_status = institutional_support ? "🏦" : "❌"
+    institutional_color = institutional_support ? color.new(color.blue, 70) : color.new(color.gray, 80)
+    table.cell(dashboard, 3, 4, institutional_status, 
+              bgcolor=institutional_color, text_color=color.white, text_size=text_size)
+    
+    // System Health
+    system_health = (btmm_perfect_stack ? 1 : 0) + (trading_allowed ? 1 : 0) + (institutional_support ? 1 : 0)
+    system_status = system_health >= 2 ? "🟢" : system_health >= 1 ? "🟡" : "🔴"
+    system_status_color = system_health >= 2 ? color.new(color.green, 70) : 
+                         system_health >= 1 ? color.new(color.yellow, 70) : 
+                         color.new(color.red, 70)
+    table.cell(dashboard, 4, 4, system_status, 
+              bgcolor=system_status_color, text_color=color.white, text_size=text_size)
+    
+    // Overall Score
+    overall_score = str.tostring(math.round((system_health / 3.0) * 100), "#") + "%"
+    table.cell(dashboard, 5, 4, overall_score, 
+              bgcolor=system_status_color, text_color=color.white, text_size=text_size)
+
+// Data window outputs
+plot(btmm_bias_score, "BTMM_Bias_Score", display=display.data_window)
+plot(btmm_perfect_stack ? 1 : 0, "Perfect_Stack", display=display.data_window)
+
+// Alert conditions
+alertcondition(m_signal_detected and btmm_perfect_stack, "M Pattern + Perfect Stack", "🔴M Pattern with Perfect Stack!")
+alertcondition(w_signal_detected and btmm_perfect_stack, "W Pattern + Perfect Stack", "🟢W Pattern with Perfect Stack!") 

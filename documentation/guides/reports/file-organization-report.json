@@ -1,0 +1,254 @@
+{
+  "timestamp": "2025-07-03T01:39:45.027Z",
+  "summary": {
+    "scanned": 142,
+    "moved": 31,
+    "deleted": 0,
+    "archived": 0,
+    "created_folders": 14,
+    "errors": []
+  },
+  "folderStructure": {
+    ".cursor": {
+      "rules": {
+        "_files": [
+          "ai-development-workflow.mdc",
+          "learned-practices.mdc",
+          "modular-architecture.mdc",
+          "pinescript-standards.mdc",
+          "product-requirements.mdc",
+          "testing-quality-control.mdc"
+        ]
+      }
+    },
+    "automation": {
+      "backup": {
+        "_files": [
+          "backup-system.js",
+          "rollback-system.js"
+        ]
+      },
+      "deployment": {
+        "_files": [
+          "cicd-auto-enhancer.js",
+          "deploy-to-tradingview.js"
+        ]
+      },
+      "devops": {
+        "_files": [
+          "code-refactor-optimizer.js",
+          "file-organizer.js"
+        ]
+      },
+      "generators": {
+        "_files": [
+          "template-generator.js"
+        ]
+      },
+      "git": {
+        "_files": [
+          "auto-commit-system.js",
+          "commit-enforcer.js",
+          "git-manager.js"
+        ]
+      },
+      "learning": {
+        "_files": [
+          "learning-updater.js"
+        ]
+      },
+      "management": {
+        "_files": [
+          "dependency-tracker.js",
+          "script-limit-enforcer.js",
+          "smart-merger.js"
+        ]
+      },
+      "_files": [
+        "pine-script-validator.js",
+        "prd-synchronizer.js"
+      ],
+      "validation": {
+        "_files": [
+          "integration-health-check.js",
+          "pre-save-validation.js"
+        ]
+      }
+    },
+    "backups": {
+      "_files": [
+        "BTMMFoundation.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMMFoundation.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMMFoundation.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMMFoundation.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMMFoundation.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMMFoundation.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_Advanced_Patterns.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Alert_System.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Alert_System.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Alert_System.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Alert_System.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Alert_System.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Alert_System.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_Asian_Range.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Asian_Range.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Asian_Range.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Asian_Range.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Asian_Range.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_Asian_Range.pine.pre-merge-2025-07-02T01-46-52-474Z",
+        "BTMM_Core_Signals_v2.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_EMA_Asian_Range.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_EMA_System.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_EMA_System.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_EMA_System.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_EMA_System.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_EMA_System.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_Entry_System.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Entry_System.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Entry_System.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Entry_System.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Entry_System.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_HTF_Bias.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_HTF_Bias.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_HTF_Bias.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_HTF_Bias.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_HTF_Bias.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_HTF_Bias_Setups.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Level_Detection.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_MarketStructure_Liquidity.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Master_Dashboard.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Master_Dashboard.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Master_Dashboard.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Master_Dashboard.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Master_Dashboard.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Master_Dashboard.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_MM_Weekly_Cycle.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Patterns_Entries.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Pattern_Detection.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Pattern_Detection.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Pattern_Detection.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Pattern_Detection.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Pattern_Detection.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_Performance_Analytics.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Position_Management.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Risk_Management.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Risk_Management.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Risk_Management.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Risk_Management.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Risk_Management.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_StopHunt_Detection.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Stop_Hunt_Detection.pine.pre-commit-2025-07-02T02-25-22-054Z",
+        "BTMM_Stop_Hunt_Detection.pine.pre-commit-2025-07-02T02-25-45-754Z",
+        "BTMM_Stop_Hunt_Detection.pine.pre-commit-2025-07-02T02-33-45-003Z",
+        "BTMM_Stop_Hunt_Detection.pine.pre-commit-2025-07-02T02-33-52-152Z",
+        "BTMM_Stop_Hunt_Detection.pine.pre-deployment-2025-07-02T02-02-34-575Z",
+        "BTMM_Utility_Tools.pine.pre-consolidation-2025-07-02T01-42-36-208Z",
+        "BTMM_Visual_Separators.pine.pre-consolidation-2025-07-02T01-42-36-208Z"
+      ]
+    },
+    "configs": {
+      "_files": [
+        "parameters.json",
+        "settings.json"
+      ]
+    },
+    "_files": [
+      "deployment-log.json",
+      "package-lock.json",
+      "package.json"
+    ],
+    "docs": {
+      "api-reference": {
+        "_files": [
+          "api-reference.md"
+        ]
+      },
+      "_files": [
+        "btmm-development-guide.md",
+        "cursor-integration-guide.md",
+        "documentation-index.md",
+        "installation-guide.md",
+        "market-maker-cycle-enhancements.md",
+        "mm-weekly-cycle-implementation.md",
+        "pine-script-v5-guidelines.md",
+        "README.md",
+        "user-manual.md"
+      ],
+      "reports": {
+        "_files": [
+          "BTMM_BUILDER_SUCCESS_SUMMARY.md",
+          "CONTINUOUS_LEARNING_INTEGRATION_SUCCESS.md",
+          "CURSOR_INTEGRATION_SUMMARY.md",
+          "file-organization-report.json",
+          "GIT_GITHUB_INTEGRATION_SUMMARY.md"
+        ]
+      }
+    },
+    "exports": {
+      "tradingview-ready": {}
+    },
+    "scripts": {
+      "alerts": {
+        "_files": [
+          "BTMM_Alert_System.pine",
+          "BTMM_Alert_System.pine.backup-1751423122050",
+          "BTMM_Alert_System.pine.backup-1751423624997"
+        ]
+      },
+      "_files": [
+        "BTMM_Asian_Range.pine.backup-1751423122031",
+        "BTMM_Asian_Range.pine.backup-1751423624972",
+        "BTMM_EMA_System.pine.backup-1751423122028",
+        "BTMM_EMA_System.pine.backup-1751423624967",
+        "BTMM_Entry_System.pine.backup-1751423122039",
+        "BTMM_Entry_System.pine.backup-1751423624982",
+        "BTMM_HTF_Bias.pine.backup-1751423122034",
+        "BTMM_HTF_Bias.pine.backup-1751423624975",
+        "BTMM_Pattern_Detection.pine.backup-1751423122037",
+        "BTMM_Pattern_Detection.pine.backup-1751423624979",
+        "BTMM_Risk_Management.pine.backup-1751423122041",
+        "BTMM_Risk_Management.pine.backup-1751423624985",
+        "BTMM_Stop_Hunt_Detection.pine.backup-1751423122044",
+        "BTMM_Stop_Hunt_Detection.pine.backup-1751423624988"
+      ],
+      "core": {
+        "_files": [
+          "BTMM_Asian_Range.pine",
+          "BTMM_EMA_System.pine",
+          "BTMM_Entry_System.pine",
+          "BTMM_HTF_Bias.pine",
+          "BTMM_Pattern_Detection.pine",
+          "BTMM_Risk_Management.pine",
+          "BTMM_Stop_Hunt_Detection.pine"
+        ]
+      },
+      "dashboard": {
+        "_files": [
+          "BTMM_Master_Dashboard.pine",
+          "BTMM_Master_Dashboard.pine.backup-1751423122047",
+          "BTMM_Master_Dashboard.pine.backup-1751423624992"
+        ]
+      },
+      "foundation": {
+        "_files": [
+          "BTMMFoundation.pine",
+          "BTMMFoundation.pine.backup-1751423122023",
+          "BTMMFoundation.pine.backup-1751423624961"
+        ]
+      },
+      "templates": {
+        "_files": [
+          "script-template.pine"
+        ]
+      }
+    },
+    "tests": {
+      "validation-scripts": {}
+    }
+  },
+  "recommendations": [
+    "Consider implementing automated file watching for continuous organization",
+    "Set up pre-commit hooks to enforce organization standards",
+    "Create documentation for team on file organization standards"
+  ]
+}

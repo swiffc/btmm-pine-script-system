@@ -1,0 +1,393 @@
+//@version=5
+indicator("BTMM Master Dashboard - Script 8/10", 
+         shorttitle="BTMM-Dashboard", 
+         overlay=true, 
+         max_boxes_count=20,
+         max_lines_count=50, 
+         max_labels_count=50,
+         max_tables_count=5)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎯 BTMM MASTER DASHBOARD - SCRIPT 8 OF 10
+// Steve Mauro's Beat The Market Maker Methodology
+// Focus: Unified System Overview, Signal Integration, Real-time Status Monitoring
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+import TradingView/ta/7 as ta
+
+// === DASHBOARD CONFIGURATION ===
+dashboard_group = "🎯 Dashboard Configuration"
+show_system_overview = input.bool(true, "Show System Overview Table", group=dashboard_group)
+show_signal_summary = input.bool(true, "Show Signal Summary", group=dashboard_group)
+show_market_clock = input.bool(true, "Show Market Clock", group=dashboard_group)
+show_key_levels = input.bool(true, "Show Key Levels", group=dashboard_group)
+dashboard_position = input.string("TOP_LEFT", "Dashboard Position", options=["TOP_LEFT", "TOP_RIGHT", "BOTTOM_LEFT", "BOTTOM_RIGHT"], group=dashboard_group)
+
+// === SIGNAL INTEGRATION ===
+signal_group = "📡 Signal Integration"
+enable_signal_fusion = input.bool(true, "Enable Signal Fusion", group=signal_group)
+confluence_threshold = input.int(3, "Signal Confluence Threshold", minval=2, maxval=5, group=signal_group)
+signal_strength_weight = input.float(1.0, "Signal Strength Weight", minval=0.5, maxval=2.0, group=signal_group)
+auto_trade_mode = input.bool(false, "Auto Trade Mode (Demo)", group=signal_group)
+
+// === VISUAL SETTINGS ===
+visual_group = "🎨 Visual Configuration"
+dashboard_transparency = input.int(85, "Dashboard Transparency", minval=70, maxval=95, group=visual_group)
+bullish_theme_color = input.color(color.new(color.green, dashboard_transparency), "Bullish Theme", group=visual_group)
+bearish_theme_color = input.color(color.new(color.red, dashboard_transparency), "Bearish Theme", group=visual_group)
+neutral_theme_color = input.color(color.new(color.gray, dashboard_transparency), "Neutral Theme", group=visual_group)
+show_system_health = input.bool(true, "Show System Health Monitor", group=visual_group)
+
+// === ALERT CONFIGURATION ===
+alert_group = "🚨 Master Alert Settings"
+enable_master_alerts = input.bool(true, "Enable Master System Alerts", group=alert_group)
+signal_fusion_alerts = input.bool(true, "Signal Fusion Alerts", group=alert_group)
+system_health_alerts = input.bool(true, "System Health Alerts", group=alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 SYSTEM DATA INTEGRATION (Simulated - would import from other scripts)
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Core Foundation Data (Script 1)
+ema_5 = ta.ema(close, 5)
+ema_13 = ta.ema(close, 13)
+ema_50 = ta.ema(close, 50)
+ema_200 = ta.ema(close, 200)
+is_15m_or_higher = timeframe.in_seconds() >= 900
+
+// Calculate BTMM Bias Score
+calculate_bias_score() =>
+    score_5 = close > ema_5 ? 1.0 : -1.0
+    score_13 = close > ema_13 ? 1.0 : -1.0
+    score_50 = close > ema_50 ? 1.0 : -1.0
+    score_200 = close > ema_200 ? 1.0 : -1.0
+    bullish_stack = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200
+    bearish_stack = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200
+    stack_bonus = bullish_stack ? 2.0 : bearish_stack ? -2.0 : 0.0
+    trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
+    score_5 + score_13 + score_50 + score_200 + stack_bonus + trend_score
+
+btmm_bias_score = calculate_bias_score()
+btmm_market_bias = btmm_bias_score >= 2.0 ? "BULLISH" : btmm_bias_score <= -2.0 ? "BEARISH" : "NEUTRAL"
+
+// Session Analysis Data (Script 2)
+asian_session = time(timeframe.period, "1700-0500")
+asian_bg_session = time(timeframe.period, "1700-0000")  // Background color timing
+london_session = time(timeframe.period, "0200-0900")
+ny_session = time(timeframe.period, "0930-1700")
+current_session = asian_session ? "ASIAN" : london_session ? "LONDON" : ny_session ? "NY" : "OFF-HOURS"
+
+// M&W Pattern Data (Script 3)
+rsi_14 = ta.rsi(close, 14)
+// Simplified pattern detection
+m_pattern_signal = rsi_14 > 70 and close < ema_13
+w_pattern_signal = rsi_14 < 30 and close > ema_13
+
+// TDI Divergence Data (Script 4)
+rsi_smoothed = ta.sma(ta.rsi(close, 13), 2)
+signal_line = ta.sma(rsi_smoothed, 7)
+tdi_bullish = rsi_smoothed > signal_line and rsi_smoothed < 30
+tdi_bearish = rsi_smoothed < signal_line and rsi_smoothed > 70
+
+// Risk Management Data (Script 5)
+atr_value = ta.atr(14)
+long_sl = close - (atr_value * 2.0)
+short_sl = close + (atr_value * 2.0)
+
+// OTE Zone Data (Script 6)
+// Simplified OTE detection
+high_20 = ta.highest(high, 20)
+low_20 = ta.lowest(low, 20)
+range_position = (close - low_20) / (high_20 - low_20) * 100
+in_ote_zone = range_position >= 70.5 and range_position <= 79.0
+in_premium_zone = range_position >= 70.0
+in_discount_zone = range_position <= 30.0
+
+// Performance Data (Script 7)
+// Simplified performance metrics
+var float simulated_win_rate = 65.0
+var float simulated_profit_factor = 1.8
+var int total_signals_today = 0
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎯 SIGNAL FUSION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+calculate_signal_fusion() =>
+    var int bullish_signals = 0
+    var int bearish_signals = 0
+    var float signal_strength = 0.0
+    
+    // Core Foundation Signals
+    if btmm_market_bias == "BULLISH"
+        bullish_signals += 1
+        signal_strength += 1.0
+    else if btmm_market_bias == "BEARISH"
+        bearish_signals += 1
+        signal_strength += 1.0
+    
+    // Session Analysis Signals
+    if current_session == "LONDON" or current_session == "NY"
+        signal_strength += 0.5
+    
+    // Pattern Signals
+    if w_pattern_signal
+        bullish_signals += 1
+        signal_strength += 1.0
+    if m_pattern_signal
+        bearish_signals += 1
+        signal_strength += 1.0
+    
+    // TDI Signals
+    if tdi_bullish
+        bullish_signals += 1
+        signal_strength += 0.8
+    if tdi_bearish
+        bearish_signals += 1
+        signal_strength += 0.8
+    
+    // OTE Zone Signals
+    if in_ote_zone
+        signal_strength += 1.2
+        if in_discount_zone
+            bullish_signals += 1
+        else if in_premium_zone
+            bearish_signals += 1
+    
+    // Timeframe Validation
+    if not is_15m_or_higher
+        signal_strength *= 0.5
+    
+    // Determine overall signal
+    net_bullish = bullish_signals - bearish_signals
+    overall_signal = net_bullish >= confluence_threshold ? "STRONG_BULLISH" : 
+                    net_bullish >= 2 ? "BULLISH" : 
+                    net_bullish <= -confluence_threshold ? "STRONG_BEARISH" : 
+                    net_bullish <= -2 ? "BEARISH" : "NEUTRAL"
+    
+    [overall_signal, signal_strength, bullish_signals, bearish_signals]
+
+[fusion_signal, fusion_strength, bull_count, bear_count] = calculate_signal_fusion()
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🏥 SYSTEM HEALTH MONITORING
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+calculate_system_health() =>
+    var int health_score = 0
+    var array<string> health_issues = array.new<string>()
+    
+    // Check timeframe validity
+    if is_15m_or_higher
+        health_score += 20
+    else
+        array.push(health_issues, "Low Timeframe")
+    
+    // Check session timing
+    if current_session == "LONDON" or current_session == "NY"
+        health_score += 15
+    
+    # Check EMA alignment
+    if math.abs(btmm_bias_score) >= 2.0
+        health_score += 20
+    else
+        array.push(health_issues, "Weak Bias")
+    
+    # Check market volatility
+    if atr_value > ta.sma(atr_value, 20) * 0.8
+        health_score += 15
+    else
+        array.push(health_issues, "Low Volatility")
+    
+    # Check signal quality
+    if fusion_strength >= 3.0
+        health_score += 20
+    else if fusion_strength >= 2.0
+        health_score += 10
+    else
+        array.push(health_issues, "Weak Signals")
+    
+    # Check performance metrics
+    if simulated_win_rate >= 60
+        health_score += 10
+    else
+        array.push(health_issues, "Low Win Rate")
+    
+    health_status = health_score >= 80 ? "EXCELLENT" : 
+                   health_score >= 60 ? "GOOD" : 
+                   health_score >= 40 ? "FAIR" : "POOR"
+    
+    [health_status, health_score, health_issues]
+
+[system_health, health_score, health_issues] = calculate_system_health()
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎨 MASTER DASHBOARD DISPLAY
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Determine dashboard position
+dash_position = switch dashboard_position
+    "TOP_LEFT" => position.top_left
+    "TOP_RIGHT" => position.top_right
+    "BOTTOM_LEFT" => position.bottom_left
+    "BOTTOM_RIGHT" => position.bottom_right
+    => position.top_left
+
+// System Overview Table
+if show_system_overview and barstate.islast
+    var table overview_table = table.new(dash_position, 3, 8, bgcolor=color.new(color.white, 10), border_width=2)
+    
+    // Header
+    table.cell(overview_table, 0, 0, "BTMM MASTER SYSTEM", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(overview_table, 1, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    table.cell(overview_table, 2, 0, "STRENGTH", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    
+    // Market Bias
+    bias_color = btmm_market_bias == "BULLISH" ? bullish_theme_color : btmm_market_bias == "BEARISH" ? bearish_theme_color : neutral_theme_color
+    table.cell(overview_table, 0, 1, "Market Bias", bgcolor=color.blue, text_color=color.white)
+    table.cell(overview_table, 1, 1, btmm_market_bias, bgcolor=bias_color, text_color=color.white)
+    table.cell(overview_table, 2, 1, str.tostring(btmm_bias_score, "#.#"), bgcolor=bias_color, text_color=color.white)
+    
+    // Signal Fusion
+    fusion_color = fusion_signal == "STRONG_BULLISH" or fusion_signal == "BULLISH" ? bullish_theme_color : 
+                  fusion_signal == "STRONG_BEARISH" or fusion_signal == "BEARISH" ? bearish_theme_color : neutral_theme_color
+    table.cell(overview_table, 0, 2, "Signal Fusion", bgcolor=color.purple, text_color=color.white)
+    table.cell(overview_table, 1, 2, fusion_signal, bgcolor=fusion_color, text_color=color.white)
+    table.cell(overview_table, 2, 2, str.tostring(fusion_strength, "#.#"), bgcolor=fusion_color, text_color=color.white)
+    
+    // Current Session
+    session_color = current_session == "LONDON" or current_session == "NY" ? color.new(color.green, dashboard_transparency) : color.new(color.orange, dashboard_transparency)
+    table.cell(overview_table, 0, 3, "Session", bgcolor=color.orange, text_color=color.white)
+    table.cell(overview_table, 1, 3, current_session, bgcolor=session_color, text_color=color.white)
+    session_rating = current_session == "LONDON" or current_session == "NY" ? "ACTIVE" : "QUIET"
+    table.cell(overview_table, 2, 3, session_rating, bgcolor=session_color, text_color=color.white)
+    
+    // OTE Zone Status
+    ote_color = in_ote_zone ? color.new(color.yellow, 50) : color.new(color.gray, dashboard_transparency)
+    ote_status = in_ote_zone ? "IN ZONE" : in_premium_zone ? "PREMIUM" : in_discount_zone ? "DISCOUNT" : "NEUTRAL"
+    table.cell(overview_table, 0, 4, "OTE Zone", bgcolor=color.yellow, text_color=color.black)
+    table.cell(overview_table, 1, 4, ote_status, bgcolor=ote_color, text_color=in_ote_zone ? color.black : color.white)
+    table.cell(overview_table, 2, 4, str.tostring(range_position, "#.#") + "%", bgcolor=ote_color, text_color=in_ote_zone ? color.black : color.white)
+    
+    // System Health
+    health_color = system_health == "EXCELLENT" ? color.new(color.green, 50) : 
+                  system_health == "GOOD" ? color.new(color.green, 70) : 
+                  system_health == "FAIR" ? color.new(color.orange, 70) : color.new(color.red, 70)
+    table.cell(overview_table, 0, 5, "System Health", bgcolor=color.red, text_color=color.white)
+    table.cell(overview_table, 1, 5, system_health, bgcolor=health_color, text_color=color.white)
+    table.cell(overview_table, 2, 5, str.tostring(health_score) + "/100", bgcolor=health_color, text_color=color.white)
+    
+    // Timeframe Check
+    tf_color = is_15m_or_higher ? color.new(color.green, 70) : color.new(color.red, 70)
+    tf_status = is_15m_or_higher ? "✅ VALID" : "⚠️ LOW TF"
+    table.cell(overview_table, 0, 6, "Timeframe", bgcolor=color.teal, text_color=color.white)
+    table.cell(overview_table, 1, 6, timeframe.period, bgcolor=color.new(color.teal, 70), text_color=color.white)
+    table.cell(overview_table, 2, 6, tf_status, bgcolor=tf_color, text_color=color.white)
+    
+    // Performance Summary
+    perf_color = simulated_win_rate >= 60 ? color.new(color.green, 70) : simulated_win_rate >= 50 ? color.new(color.orange, 70) : color.new(color.red, 70)
+    table.cell(overview_table, 0, 7, "Performance", bgcolor=color.lime, text_color=color.black)
+    table.cell(overview_table, 1, 7, str.tostring(simulated_win_rate, "#.#") + "%", bgcolor=perf_color, text_color=color.white)
+    pf_status = simulated_profit_factor >= 1.5 ? "💪 STRONG" : simulated_profit_factor >= 1.0 ? "📊 BREAK-EVEN" : "❌ WEAK"
+    table.cell(overview_table, 2, 7, pf_status, bgcolor=perf_color, text_color=color.white)
+
+// Signal Summary Panel
+if show_signal_summary and barstate.islast
+    var table signal_table = table.new(position.middle_right, 2, 6, bgcolor=color.new(color.white, 10), border_width=2)
+    
+    // Header
+    table.cell(signal_table, 0, 0, "SIGNAL SUMMARY", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(signal_table, 1, 0, "COUNT", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    
+    // Bullish Signals
+    table.cell(signal_table, 0, 1, "Bullish Signals", bgcolor=color.green, text_color=color.white)
+    table.cell(signal_table, 1, 1, str.tostring(bull_count), bgcolor=color.new(color.green, 70), text_color=color.white)
+    
+    // Bearish Signals
+    table.cell(signal_table, 0, 2, "Bearish Signals", bgcolor=color.red, text_color=color.white)
+    table.cell(signal_table, 1, 2, str.tostring(bear_count), bgcolor=color.new(color.red, 70), text_color=color.white)
+    
+    // Net Signal
+    net_signals = bull_count - bear_count
+    net_color = net_signals > 0 ? color.new(color.green, 70) : net_signals < 0 ? color.new(color.red, 70) : color.new(color.gray, 70)
+    table.cell(signal_table, 0, 3, "Net Signal", bgcolor=color.purple, text_color=color.white)
+    table.cell(signal_table, 1, 3, str.tostring(net_signals), bgcolor=net_color, text_color=color.white)
+    
+    // Confluence Level
+    confluence_met = math.max(bull_count, bear_count) >= confluence_threshold
+    conf_color = confluence_met ? color.new(color.yellow, 50) : color.new(color.gray, 80)
+    table.cell(signal_table, 0, 4, "Confluence", bgcolor=color.orange, text_color=color.white)
+    conf_status = confluence_met ? "✅ MET" : "❌ NOT MET"
+    table.cell(signal_table, 1, 4, conf_status, bgcolor=conf_color, text_color=confluence_met ? color.black : color.white)
+    
+    # Action Recommendation
+    action = fusion_signal == "STRONG_BULLISH" ? "🚀 STRONG BUY" : 
+            fusion_signal == "BULLISH" ? "📈 BUY" : 
+            fusion_signal == "STRONG_BEARISH" ? "🚀 STRONG SELL" : 
+            fusion_signal == "BEARISH" ? "📉 SELL" : "⏸️ WAIT"
+    action_color = str.contains(action, "BUY") ? color.new(color.green, 60) : 
+                  str.contains(action, "SELL") ? color.new(color.red, 60) : color.new(color.gray, 70)
+    table.cell(signal_table, 0, 5, "Action", bgcolor=color.navy, text_color=color.white)
+    table.cell(signal_table, 1, 5, action, bgcolor=action_color, text_color=color.white)
+
+// Key Levels Display
+if show_key_levels and barstate.islast
+    label.new(bar_index + 5, ema_13, "Ketchup: " + str.tostring(ema_13, "#.#####"), style=label.style_label_left, color=color.red, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + 5, long_sl, "Long SL: " + str.tostring(long_sl, "#.#####"), style=label.style_label_left, color=color.orange, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + 5, short_sl, "Short SL: " + str.tostring(short_sl, "#.#####"), style=label.style_label_left, color=color.orange, textcolor=color.white, size=size.tiny)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🚨 MASTER SYSTEM ALERTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+alert_freq = alert_frequency == "once_per_bar" ? alert.freq_once_per_bar : alert.freq_once_per_bar_close
+
+// Signal Fusion Alerts
+if enable_master_alerts and signal_fusion_alerts
+    if fusion_signal == "STRONG_BULLISH" and fusion_signal[1] != "STRONG_BULLISH"
+        alert("🚀 BTMM STRONG BULLISH SIGNAL!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Signal Strength: " + str.tostring(fusion_strength, "#.#") + "\n" +
+              "Bullish Signals: " + str.tostring(bull_count) + "\n" +
+              "Market Bias: " + btmm_market_bias + "\n" +
+              "Session: " + current_session + "\n" +
+              "System Health: " + system_health, alert_freq)
+    
+    if fusion_signal == "STRONG_BEARISH" and fusion_signal[1] != "STRONG_BEARISH"
+        alert("🚀 BTMM STRONG BEARISH SIGNAL!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Timeframe: " + timeframe.period + "\n" +
+              "Signal Strength: " + str.tostring(fusion_strength, "#.#") + "\n" +
+              "Bearish Signals: " + str.tostring(bear_count) + "\n" +
+              "Market Bias: " + btmm_market_bias + "\n" +
+              "Session: " + current_session + "\n" +
+              "System Health: " + system_health, alert_freq)
+
+// System Health Alerts
+if enable_master_alerts and system_health_alerts
+    if system_health == "POOR" and system_health[1] != "POOR"
+        issues_text = ""
+        if array.size(health_issues) > 0
+            for i = 0 to array.size(health_issues) - 1
+                issues_text += array.get(health_issues, i) + ", "
+        
+        alert("⚠️ BTMM SYSTEM HEALTH WARNING!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Health Score: " + str.tostring(health_score) + "/100\n" +
+              "Status: " + system_health + "\n" +
+              "Issues: " + issues_text + "\n" +
+              "Recommendation: Review system settings", alert_freq)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+export fusion_signal
+export fusion_strength
+export system_health
+export health_score
+export bull_count
+export bear_count
+export current_session

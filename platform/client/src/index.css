@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+
+  /* Trading Platform Colors */
+  --dark-bg: hsl(240, 10%, 3.9%);
+  --dark-surface: hsl(239, 17%, 12%);
+  --dark-border: hsl(240, 8%, 20%);
+  --dark-text: hsl(213, 31%, 91%);
+  --dark-muted: hsl(240, 5%, 64.9%);
+  --dark-deep: hsl(237, 32%, 6%);
+  
+  /* Accent Colors */
+  --accent-blue: hsl(207, 90%, 54%);
+  --accent-green: hsl(142, 76%, 73%);
+  --accent-red: hsl(343, 81%, 75%);
+  --accent-orange: hsl(31, 80%, 70%);
+  --accent-purple: hsl(267, 84%, 81%);
+  --accent-yellow: hsl(54, 95%, 86%);
+}
+
+.light {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--dark-surface);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--dark-border);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-muted);
+  }
+}
+
+@layer components {
+  /* Trading platform specific components */
+  .trading-sidebar {
+    background-color: var(--dark-surface);
+    border-right: 1px solid var(--dark-border);
+  }
+
+  .trading-header {
+    background-color: var(--dark-deep);
+    border-bottom: 1px solid var(--dark-border);
+  }
+
+  .code-editor {
+    background-color: var(--dark-deep);
+    border: 1px solid var(--dark-border);
+    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+  }
+
+  .template-card {
+    background-color: var(--dark-border);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+  }
+
+  .template-card:hover {
+    background-color: var(--dark-bg);
+    border-color: var(--accent-blue);
+  }
+
+  .session-asian {
+    background-color: hsla(54, 95%, 86%, 0.1);
+  }
+
+  .session-london {
+    background-color: hsla(207, 90%, 54%, 0.1);
+  }
+
+  .session-newyork {
+    background-color: hsla(142, 76%, 73%, 0.1);
+  }
+
+  /* Pine Script syntax highlighting classes */
+  .pine-keyword {
+    color: var(--accent-purple);
+  }
+
+  .pine-string {
+    color: var(--accent-green);
+  }
+
+  .pine-number {
+    color: var(--accent-orange);
+  }
+
+  .pine-comment {
+    color: var(--dark-muted);
+    font-style: italic;
+  }
+
+  .pine-function {
+    color: var(--accent-blue);
+  }
+
+  .pine-operator {
+    color: var(--accent-red);
+  }
+
+  /* Status indicators */
+  .status-valid {
+    color: var(--accent-green);
+  }
+
+  .status-warning {
+    color: var(--accent-orange);
+  }
+
+  .status-error {
+    color: var(--accent-red);
+  }
+
+  /* Floating action buttons */
+  .fab {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .fab:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@layer utilities {
+  .text-dark-bg { color: var(--dark-bg); }
+  .text-dark-surface { color: var(--dark-surface); }
+  .text-dark-border { color: var(--dark-border); }
+  .text-dark-text { color: var(--dark-text); }
+  .text-dark-muted { color: var(--dark-muted); }
+  .text-dark-deep { color: var(--dark-deep); }
+  
+  .bg-dark-bg { background-color: var(--dark-bg); }
+  .bg-dark-surface { background-color: var(--dark-surface); }
+  .bg-dark-border { background-color: var(--dark-border); }
+  .bg-dark-text { background-color: var(--dark-text); }
+  .bg-dark-muted { background-color: var(--dark-muted); }
+  .bg-dark-deep { background-color: var(--dark-deep); }
+  
+  .text-accent-blue { color: var(--accent-blue); }
+  .text-accent-green { color: var(--accent-green); }
+  .text-accent-red { color: var(--accent-red); }
+  .text-accent-orange { color: var(--accent-orange); }
+  .text-accent-purple { color: var(--accent-purple); }
+  .text-accent-yellow { color: var(--accent-yellow); }
+  
+  .bg-accent-blue { background-color: var(--accent-blue); }
+  .bg-accent-green { background-color: var(--accent-green); }
+  .bg-accent-red { background-color: var(--accent-red); }
+  .bg-accent-orange { background-color: var(--accent-orange); }
+  .bg-accent-purple { background-color: var(--accent-purple); }
+  .bg-accent-yellow { background-color: var(--accent-yellow); }
+  
+  .border-dark-border { border-color: var(--dark-border); }
+  .border-accent-blue { border-color: var(--accent-blue); }
+  .border-accent-green { border-color: var(--accent-green); }
+  .border-accent-red { border-color: var(--accent-red); }
+}

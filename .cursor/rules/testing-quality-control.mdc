@@ -3,3 +3,603 @@ description:
 globs:
 alwaysApply: false
 ---
+# BTMM Testing and Quality Control Framework
+
+## Core Testing Philosophy
+
+### Testing Pyramid for Pine Script
+```
+                 /\
+                /  \
+               /End-\
+              /to-End\
+             /________\
+            /          \
+           / Integration \
+          /______________\
+         /                \
+        /   Unit Testing   \
+       /____________________\
+```
+
+1. **Unit Testing**: Individual function and calculation validation
+2. **Integration Testing**: Cross-script communication and data flow
+3. **End-to-End Testing**: Complete trading workflow validation
+
+### Quality Gates
+All code must pass these quality gates before deployment:
+- **Syntax Validation**: 100% compliance with Pine Script v5 standards
+- **Anti-Repainting Check**: Zero repainting issues detected
+- **Performance Validation**: Sub-500 calculations per bar
+- **Integration Testing**: 100% cross-script communication integrity
+- **Security Validation**: No unauthorized data access
+
+## Unit Testing Framework
+
+### Pine Script Testing Patterns
+```pinescript
+// Test harness for individual functions
+testEMACalculation() =>
+    // Test data
+    testPrice = 100.0
+    testLength = 14
+    
+    // Expected vs actual
+    expected = ta.ema(testPrice, testLength)
+    actual = customEMAFunction(testPrice, testLength)
+    
+    // Validation with tolerance
+    tolerance = 0.001
+    math.abs(expected - actual) < tolerance
+
+// Test runner integration
+type TestResult
+    string testName
+    bool passed
+    string errorMessage
+    float executionTime
+
+runAllTests() =>
+    results = array.new<TestResult>()
+    
+    // EMA Tests
+    emaResult = TestResult.new()
+    emaResult.testName := "EMA Calculation"
+    startTime = timenow
+    emaResult.passed := testEMACalculation()
+    emaResult.executionTime := timenow - startTime
+    array.push(results, emaResult)
+    
+    results
+```
+
+### Automated Test Execution
+```javascript
+// automation/test-runner.js
+class PineScriptTestRunner {
+    constructor() {
+        this.testResults = [];
+        this.qualityMetrics = {};
+    }
+    
+    async runUnitTests() {
+        console.log('🧪 Running Pine Script unit tests...');
+        
+        const testFiles = this.findTestFiles();
+        for (const testFile of testFiles) {
+            const result = await this.executeTest(testFile);
+            this.testResults.push(result);
+        }
+        
+        return this.generateTestReport();
+    }
+    
+    validateAntiRepainting(scriptPath) {
+        const content = fs.readFileSync(scriptPath, 'utf8');
+        
+        // Check for repainting patterns
+        const repaintingIssues = [
+            /lookahead\s*=\s*barmerge\.lookahead_on/,
+            /(?<!barstate\.isconfirmed\s+and\s+)request\.security/,
+            /ta\.valuewhen.*(?<!barstate\.isconfirmed)/
+        ];
+        
+        return repaintingIssues.every(pattern => !pattern.test(content));
+    }
+}
+```
+
+## Integration Testing Framework
+
+### Cross-Script Communication Testing
+```pinescript
+// Integration test for data window outputs
+testDataWindowIntegrity() =>
+    // Test all required outputs are available
+    bullStackAvailable = not na(input.source(close, "Bull Stack"))
+    bearStackAvailable = not na(input.source(close, "Bear Stack"))
+    htfBiasAvailable = not na(input.source(close, "HTF Bias"))
+    
+    // Test data consistency
+    dataConsistent = bullStackAvailable and bearStackAvailable and htfBiasAvailable
+    
+    // Log results
+    if not dataConsistent
+        runtime.error("Integration test failed: Missing required data outputs")
+    
+    dataConsistent
+```
+
+### Dependency Validation
+```javascript
+// automation/dependency-validator.js
+class DependencyValidator {
+    validateScriptDependencies() {
+        const dependencies = this.analyzeDependencies();
+        
+        // Check for circular dependencies
+        const circularDeps = this.detectCircularDependencies(dependencies);
+        if (circularDeps.length > 0) {
+            throw new Error(`Circular dependencies detected: ${circularDeps.join(', ')}`);
+        }
+        
+        // Validate required outputs
+        const missingOutputs = this.validateRequiredOutputs(dependencies);
+        if (missingOutputs.length > 0) {
+            throw new Error(`Missing required outputs: ${missingOutputs.join(', ')}`);
+        }
+        
+        return true;
+    }
+    
+    validateRequiredOutputs(dependencies) {
+        const requiredOutputs = [
+            'Bull_Stack', 'Bear_Stack', 'Stack_Strength',
+            'HTF_Bias', 'Bullish_Setup', 'Bearish_Setup',
+            'Asian_Range', 'Session_Active',
+            'Pattern_Detected', 'Pattern_Type',
+            'Entry_Signal', 'Signal_Strength'
+        ];
+        
+        const availableOutputs = this.getAvailableOutputs();
+        return requiredOutputs.filter(output => !availableOutputs.includes(output));
+    }
+}
+```
+
+## Performance Testing and Optimization
+
+### Performance Benchmarking
+```pinescript
+// Performance testing utilities
+var performanceMetrics = map.new<string, float>()
+
+benchmarkFunction(string functionName, function<float> testFunction) =>
+    startTime = timenow
+    result = testFunction()
+    endTime = timenow
+    executionTime = endTime - startTime
+    
+    map.put(performanceMetrics, functionName, executionTime)
+    
+    // Performance thresholds
+    if executionTime > 100  // milliseconds
+        runtime.error("Performance threshold exceeded for " + functionName)
+    
+    result
+
+// Example usage
+emaResult = benchmarkFunction("EMA_Calculation", () => ta.ema(close, 21))
+```
+
+### Resource Usage Monitoring
+```javascript
+// automation/performance-monitor.js
+class PerformanceMonitor {
+    monitorScriptPerformance(scriptPath) {
+        const content = fs.readFileSync(scriptPath, 'utf8');
+        
+        // Count calculations per bar
+        const calculations = this.countCalculations(content);
+        if (calculations > 500) {
+            console.warn(`⚠️ High calculation count in ${scriptPath}: ${calculations}`);
+        }
+        
+        // Check for expensive operations
+        const expensiveOps = this.findExpensiveOperations(content);
+        if (expensiveOps.length > 0) {
+            console.warn(`⚠️ Expensive operations found: ${expensiveOps.join(', ')}`);
+        }
+        
+        return {
+            calculationCount: calculations,
+            expensiveOperations: expensiveOps,
+            performanceScore: this.calculatePerformanceScore(calculations, expensiveOps)
+        };
+    }
+    
+    calculatePerformanceScore(calculations, expensiveOps) {
+        let score = 100;
+        
+        // Deduct for high calculation count
+        if (calculations > 300) score -= (calculations - 300) * 0.1;
+        
+        // Deduct for expensive operations
+        score -= expensiveOps.length * 5;
+        
+        return Math.max(0, score);
+    }
+}
+```
+
+## Quality Metrics and Reporting
+
+### Code Quality Metrics
+```javascript
+// automation/quality-metrics.js
+class QualityMetrics {
+    calculateQualityScore(scriptPath) {
+        const metrics = {
+            syntaxCompliance: this.checkSyntaxCompliance(scriptPath),
+            documentationCoverage: this.calculateDocumentationCoverage(scriptPath),
+            testCoverage: this.calculateTestCoverage(scriptPath),
+            performanceScore: this.getPerformanceScore(scriptPath),
+            antiRepaintingCompliance: this.checkAntiRepainting(scriptPath)
+        };
+        
+        // Weighted scoring
+        const weights = {
+            syntaxCompliance: 0.25,
+            documentationCoverage: 0.15,
+            testCoverage: 0.20,
+            performanceScore: 0.20,
+            antiRepaintingCompliance: 0.20
+        };
+        
+        let totalScore = 0;
+        for (const [metric, value] of Object.entries(metrics)) {
+            totalScore += value * weights[metric];
+        }
+        
+        return {
+            overallScore: Math.round(totalScore),
+            breakdown: metrics,
+            recommendations: this.generateRecommendations(metrics)
+        };
+    }
+    
+    generateRecommendations(metrics) {
+        const recommendations = [];
+        
+        if (metrics.syntaxCompliance < 90) {
+            recommendations.push("Improve syntax compliance by following Pine Script v5 standards");
+        }
+        
+        if (metrics.documentationCoverage < 70) {
+            recommendations.push("Add more comprehensive documentation and comments");
+        }
+        
+        if (metrics.testCoverage < 80) {
+            recommendations.push("Increase test coverage for better reliability");
+        }
+        
+        if (metrics.performanceScore < 75) {
+            recommendations.push("Optimize performance using built-in functions");
+        }
+        
+        if (metrics.antiRepaintingCompliance < 100) {
+            recommendations.push("Fix repainting issues using barstate.isconfirmed");
+        }
+        
+        return recommendations;
+    }
+}
+```
+
+### Continuous Integration Dashboard
+```javascript
+// automation/ci-dashboard.js
+class CIDashboard {
+    generateQualityReport() {
+        const scripts = this.getAllScripts();
+        const report = {
+            timestamp: new Date().toISOString(),
+            overallHealth: 0,
+            scriptResults: [],
+            trends: this.calculateTrends(),
+            alerts: []
+        };
+        
+        let totalScore = 0;
+        for (const script of scripts) {
+            const result = this.analyzeScript(script);
+            report.scriptResults.push(result);
+            totalScore += result.qualityScore;
+            
+            if (result.qualityScore < 70) {
+                report.alerts.push(`Low quality score for ${script}: ${result.qualityScore}/100`);
+            }
+        }
+        
+        report.overallHealth = Math.round(totalScore / scripts.length);
+        
+        return report;
+    }
+    
+    exportToHTML(report) {
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>BTMM Quality Dashboard</title>
+            <style>
+                .score-excellent { color: #28a745; }
+                .score-good { color: #ffc107; }
+                .score-poor { color: #dc3545; }
+            </style>
+        </head>
+        <body>
+            <h1>BTMM System Quality Report</h1>
+            <h2>Overall Health: ${this.getScoreClass(report.overallHealth)}</h2>
+            ${this.generateScriptTable(report.scriptResults)}
+            ${this.generateRecommendations(report)}
+        </body>
+        </html>
+        `;
+        
+        fs.writeFileSync('quality-report.html', html);
+    }
+}
+```
+
+## Automated Testing Workflows
+
+### Pre-Commit Testing
+```yaml
+# .github/workflows/pre-commit.yml
+name: BTMM Pre-Commit Validation
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Run Pine Script validation
+        run: npm run validate
+        
+      - name: Run integration health check
+        run: npm run integration-health
+        
+      - name: Run performance tests
+        run: npm run performance-test
+        
+      - name: Generate quality report
+        run: npm run quality-report
+        
+      - name: Upload quality report
+        uses: actions/upload-artifact@v3
+        with:
+          name: quality-report
+          path: quality-report.html
+```
+
+### Automated Regression Testing
+```javascript
+// automation/regression-tester.js
+class RegressionTester {
+    async runRegressionTests() {
+        console.log('🔄 Running regression tests...');
+        
+        const baselineResults = this.loadBaselineResults();
+        const currentResults = await this.runCurrentTests();
+        
+        const regressions = this.detectRegressions(baselineResults, currentResults);
+        
+        if (regressions.length > 0) {
+            console.error('❌ Regressions detected:');
+            regressions.forEach(regression => {
+                console.error(`  - ${regression.test}: ${regression.description}`);
+            });
+            return false;
+        }
+        
+        console.log('✅ No regressions detected');
+        return true;
+    }
+    
+    detectRegressions(baseline, current) {
+        const regressions = [];
+        
+        // Performance regression check
+        for (const [test, baseTime] of Object.entries(baseline.performance)) {
+            const currentTime = current.performance[test];
+            if (currentTime > baseTime * 1.1) { // 10% slower
+                regressions.push({
+                    test: test,
+                    description: `Performance regression: ${currentTime}ms vs ${baseTime}ms`
+                });
+            }
+        }
+        
+        // Quality score regression check
+        for (const [script, baseScore] of Object.entries(baseline.quality)) {
+            const currentScore = current.quality[script];
+            if (currentScore < baseScore - 5) { // 5 point drop
+                regressions.push({
+                    test: script,
+                    description: `Quality regression: ${currentScore} vs ${baseScore}`
+                });
+            }
+        }
+        
+        return regressions;
+    }
+}
+```
+
+## Testing Best Practices
+
+### Test Data Management
+```pinescript
+// Test data generation for consistent testing
+generateTestData(int bars, float startPrice) =>
+    testData = array.new<float>()
+    price = startPrice
+    
+    for i = 0 to bars - 1
+        // Generate realistic price movement
+        change = math.random(-0.02, 0.02) // 2% max change
+        price := price * (1 + change)
+        array.push(testData, price)
+    
+    testData
+
+// Test fixture setup
+setupTestEnvironment() =>
+    // Reset global state
+    clearAllArrays()
+    clearAllMaps()
+    
+    // Initialize test data
+    testPrices = generateTestData(1000, 100.0)
+    testVolumes = generateTestVolumes(1000)
+    
+    [testPrices, testVolumes]
+```
+
+### Mock Data and Simulation
+```pinescript
+// Mock data provider for testing
+type MockDataProvider
+    array<float> prices
+    array<float> volumes
+    int currentIndex
+
+method getNext(MockDataProvider this) =>
+    if this.currentIndex < array.size(this.prices)
+        price = array.get(this.prices, this.currentIndex)
+        volume = array.get(this.volumes, this.currentIndex)
+        this.currentIndex += 1
+        [price, volume]
+    else
+        [na, na]
+
+// Test doubles for external dependencies
+mockRequest(symbol, timeframe, expression) =>
+    // Return predictable test data instead of real market data
+    switch timeframe
+        "1D" => generateDailyTestData()
+        "4H" => generate4HTestData()
+        => generateDefaultTestData()
+```
+
+### Test Coverage Measurement
+```javascript
+// automation/coverage-analyzer.js
+class CoverageAnalyzer {
+    analyzeFunctionCoverage(scriptPath) {
+        const content = fs.readFileSync(scriptPath, 'utf8');
+        
+        // Extract all functions
+        const functions = this.extractFunctions(content);
+        
+        // Find test references
+        const testedFunctions = this.findTestedFunctions(content);
+        
+        // Calculate coverage
+        const coverage = (testedFunctions.length / functions.length) * 100;
+        
+        return {
+            totalFunctions: functions.length,
+            testedFunctions: testedFunctions.length,
+            coverage: Math.round(coverage),
+            untestedFunctions: functions.filter(f => !testedFunctions.includes(f))
+        };
+    }
+    
+    generateCoverageReport(scripts) {
+        const report = {
+            overallCoverage: 0,
+            scriptCoverage: {},
+            recommendations: []
+        };
+        
+        let totalCoverage = 0;
+        for (const script of scripts) {
+            const coverage = this.analyzeFunctionCoverage(script);
+            report.scriptCoverage[script] = coverage;
+            totalCoverage += coverage.coverage;
+            
+            if (coverage.coverage < 80) {
+                report.recommendations.push(
+                    `Increase test coverage for ${script}: ${coverage.coverage}%`
+                );
+            }
+        }
+        
+        report.overallCoverage = Math.round(totalCoverage / scripts.length);
+        return report;
+    }
+}
+```
+
+## Quality Assurance Integration
+
+### Automated Quality Gates
+```javascript
+// automation/quality-gate.js
+class QualityGate {
+    async validateQualityGates() {
+        console.log('🚪 Validating quality gates...');
+        
+        const gates = [
+            { name: 'Syntax Validation', threshold: 100, check: this.validateSyntax },
+            { name: 'Anti-Repainting', threshold: 100, check: this.validateAntiRepainting },
+            { name: 'Performance', threshold: 80, check: this.validatePerformance },
+            { name: 'Integration', threshold: 95, check: this.validateIntegration },
+            { name: 'Test Coverage', threshold: 75, check: this.validateTestCoverage }
+        ];
+        
+        const results = [];
+        for (const gate of gates) {
+            const score = await gate.check();
+            const passed = score >= gate.threshold;
+            
+            results.push({
+                name: gate.name,
+                score: score,
+                threshold: gate.threshold,
+                passed: passed
+            });
+            
+            console.log(`${passed ? '✅' : '❌'} ${gate.name}: ${score}/${gate.threshold}`);
+        }
+        
+        const allPassed = results.every(result => result.passed);
+        
+        if (!allPassed) {
+            const failed = results.filter(result => !result.passed);
+            throw new Error(`Quality gates failed: ${failed.map(f => f.name).join(', ')}`);
+        }
+        
+        return results;
+    }
+}
+```
+
+**Remember**: This testing framework ensures the reliability and quality of the BTMM trading system through comprehensive validation, automated testing, and continuous quality monitoring. All tests must pass before code deployment to maintain system integrity.
+

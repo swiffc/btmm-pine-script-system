@@ -3,3 +3,194 @@ description:
 globs:
 alwaysApply: false
 ---
+# BTMM Pine Script Development Standards
+
+## Core Requirements
+
+### Version and Script Declaration
+- **ALWAYS** use `//@version=5` as the first line
+- Include descriptive script declaration: `indicator("Descriptive Name", shorttitle="Short")` 
+- Set appropriate `overlay=true/false` based on plot type
+- Use descriptive titles (minimum 5 characters, avoid generic names)
+
+### BTMM System Architecture Rules
+- **CRITICAL**: Maintain exactly 10 scripts maximum (current: 10/10)
+- Never create new `.pine` files - use merge-only strategy
+- Preserve all existing data window outputs for cross-script communication
+- Maintain compatibility with BTMMFoundation.pine core library
+
+## Code Quality Standards
+
+### Naming Conventions
+- **Variables**: `camelCase` (e.g., `fastLength`, `slowEma`, `rsiValue`)
+- **Constants**: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_LENGTH = 14`, `OVERBOUGHT_LEVEL = 70`)
+- **Input Parameters**: Descriptive prefixes (`maLength`, `rsiPeriod`, `signalThreshold`)
+- **Functions**: Descriptive purpose (`priceAboveMa` not `flag1`)
+- **FORBIDDEN**: `flag1`, `temp`, `x`, `y`, `data`, `val`, `num`
+
+### Input Parameter Best Practices
+```pinescript
+// GOOD: Comprehensive input with validation
+maLength = input.int(20, "MA Length", minval=1, maxval=200, group="Moving Average", tooltip="Period for moving average calculation")
+
+// REQUIRED: Input validation
+if maLength < 1
+    runtime.error("MA Length must be greater than 0")
+```
+
+### Anti-Repainting and Look-Ahead Bias Prevention
+- **REQUIRED**: Use `barstate.isconfirmed` for historical accuracy
+- **FORBIDDEN**: `lookahead=barmerge.lookahead_on` 
+- Use proper series declarations: `var`, `varip`, `series`
+- Validate `ta.valuewhen()` and `ta.barssince()` usage
+- Ensure calculations don't change on historical bars
+
+### Performance Optimization
+- Use built-in functions: `ta.sma()`, `ta.ema()`, `ta.rsi()`, `math.max()`, `math.min()`
+- Use `var` for variables that don't need recalculation on every bar
+- Cache expensive calculations when used multiple times
+- Limit calculations per bar (max 500)
+- Use `array.*` and `map.*` for data structures
+
+## Documentation Requirements
+
+### Mandatory Header Template
+```pinescript
+//@version=5
+// =============================================================================
+// [SCRIPT NAME] - BTMM Trading System Component
+// =============================================================================
+// Purpose: [Describe the specific purpose and functionality]
+// Method: [Technical analysis methodology and calculations used]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: [YYYY-MM-DD]
+// Dependencies: BTMMFoundation.pine, [other dependencies]
+// Data Outputs: [List all plot/output variables for cross-script usage]
+// =============================================================================
+```
+
+### Inline Documentation
+- Comment all complex mathematical formulas
+- Explain non-standard calculations and methodologies
+- Document parameter choices and reasoning
+- Include references to technical analysis sources
+- Add TODO comments for future improvements
+
+## Visual and Plotting Standards
+
+### Color Management
+```pinescript
+// REQUIRED: Use color.new() for consistency and transparency
+bullishColor = color.new(color.green, 0)
+bearishColor = color.new(color.red, 0)
+neutralColor = color.new(color.gray, 50)
+
+// GOOD: Dynamic colors based on conditions
+plotColor = bullCondition ? bullishColor : bearishColor
+```
+
+### Plotting Best Practices
+- Add descriptive titles to all `plot()` functions
+- Specify `linewidth` for visual clarity
+- Use appropriate `location` for shapes and labels
+- Ensure plots are distinguishable from price action
+
+## Alert Implementation Standards
+
+### Alert Message Template
+```pinescript
+alertMessage = "Signal Name\n" +
+               "Symbol: " + syminfo.ticker + "\n" +
+               "Price: " + str.tostring(close, "#.##") + "\n" +
+               "Indicator: " + str.tostring(indicatorValue, "#.##") + "\n" +
+               "Timeframe: " + timeframe.period + "\n" +
+               "Time: " + str.tostring(time, "yyyy-MM-dd HH:mm")
+
+if alertCondition
+    alert(alertMessage, alert.freq_once_per_bar)
+```
+
+### Alert Requirements
+- Include symbol, price, and timeframe context
+- Use `alert.freq_once_per_bar` to prevent spam
+- Provide actionable information in messages
+- Test alert logic thoroughly before deployment
+
+## Error Handling and Validation
+
+### Required Error Handling Patterns
+```pinescript
+// Division by zero protection
+rsiValue = denominator != 0 ? numerator / denominator : na
+
+// Sufficient data validation
+hasSufficientData = bar_index >= lookbackPeriod
+
+// Safe historical references
+prevClose = bar_index > 0 ? close[1] : close
+
+// Input validation
+if invalidInput
+    runtime.error("Specific error message describing the issue")
+```
+
+### Data Validation
+- Always validate inputs at script start
+- Handle `na` values appropriately with `nz()` or conditional checks
+- Check for sufficient historical data before calculations
+- Implement bounds checking for array/historical references
+
+## BTMM System Integration Rules
+
+### Data Window Output Requirements
+All scripts MUST maintain these critical outputs for cross-script communication:
+- `Bull_Stack`, `Bear_Stack`, `Stack_Strength` (EMA System)
+- `HTF_Bias`, `Bullish_Setup`, `Bearish_Setup` (HTF Bias)
+- `Asian_Range`, `Session_Active` (Asian Range)
+- `Pattern_Detected`, `Pattern_Type` (Pattern Detection)
+- `Entry_Signal`, `Signal_Strength` (Entry System)
+
+### Protected Functions
+Never modify these core functions without system-wide validation:
+- `session_and_cycle()` - Session and cycle analysis
+- `timeframe_classification()` - Timeframe categorization
+- `ema_stack_analysis()` - EMA stack calculations
+- `volume_analysis()` - Volume analysis functions
+
+## Code Review Checklist
+
+### Before Committing Code
+- [ ] `//@version=5` declaration present
+- [ ] Descriptive script title and shorttitle
+- [ ] Input validation implemented
+- [ ] Anti-repainting measures in place
+- [ ] Performance optimization applied
+- [ ] Comprehensive documentation header
+- [ ] Error handling for edge cases
+- [ ] Visual elements properly configured
+- [ ] Alert logic tested and validated
+- [ ] Integration with BTMM system verified
+- [ ] No new scripts created (merge-only policy)
+
+## AI Assistant Guidelines
+
+When working with Cursor AI:
+1. Always reference these standards in prompts
+2. Request validation against BTMM system requirements
+3. Ensure anti-repainting and performance optimization
+4. Verify integration with existing 10-script architecture
+5. Maintain all existing data window outputs
+6. Follow merge-only strategy for new functionality
+
+## Automated Quality Enforcement
+
+The system automatically enforces these standards through:
+- Real-time validation via `pine-script-validator.js`
+- Auto-fix capabilities in `auto-commit-system.js`
+- Pre-commit hooks preventing non-compliant code
+- Integration health monitoring
+- GitHub workflow automation
+
+**Remember**: These standards ensure trading system reliability, prevent repainting issues, and maintain the integrity of the BTMM 10-script architecture. Compliance is not optional - it's essential for system stability and trading performance.
+
