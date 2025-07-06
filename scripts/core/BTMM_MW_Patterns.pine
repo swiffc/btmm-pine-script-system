@@ -15,7 +15,11 @@ indicator("BTMM M&W Pattern Detection - Script 3/10",
 
 import TradingView/ta/7 as ta
 
-// === M&W PATTERN CONFIGURATION ===
+// === M&W PATTERN DETECTION WITH SIMPLIFIED 13 EMA CONFIRMATION
+// User's Method: Clean close above/below 13 EMA at second leg top/bottom
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// === ENHANCED PATTERN CONFIGURATION ===
 pattern_group = "📈 M&W Pattern Detection"
 enable_m_patterns = input.bool(true, "Enable M Patterns (Bearish)", group=pattern_group)
 enable_w_patterns = input.bool(true, "Enable W Patterns (Bullish)", group=pattern_group)
@@ -23,12 +27,11 @@ enable_second_leg_only = input.bool(true, "Second Leg Focus (Steve Mauro)", grou
 pattern_lookback = input.int(15, "Pattern Detection Lookback", minval=8, maxval=30, group=pattern_group)
 pattern_tolerance = input.float(0.002, "Pattern Tolerance %", minval=0.001, maxval=0.01, step=0.001, group=pattern_group)
 
-// === CONFIRMATION SETTINGS ===
-confirmation_group = "✅ Pattern Confirmation"
-require_ema13_confirmation = input.bool(true, "Require 13 EMA Confirmation", group=confirmation_group)
+// === USER'S SIMPLIFIED CONFIRMATION METHOD ===
+confirmation_group = "✅ User's Simplified Method"
+simple_ema_confirmation = input.bool(true, "Simple 13 EMA Close Confirmation", group=confirmation_group, tooltip="User's method: Clean close above/below 13 EMA")
 require_volume_confirmation = input.bool(true, "Require Volume Confirmation", group=confirmation_group)
 min_pattern_height = input.float(0.5, "Minimum Pattern Height (ATR)", minval=0.2, maxval=2.0, step=0.1, group=confirmation_group)
-confluence_factors = input.int(2, "Required Confluence Factors", minval=1, maxval=4, group=confirmation_group)
 
 // === VISUAL SETTINGS ===
 visual_group = "🎨 Visual Configuration"
@@ -44,6 +47,15 @@ enable_pattern_alerts = input.bool(true, "Pattern Formation Alerts", group=alert
 enable_second_leg_alerts = input.bool(true, "Second Leg Entry Alerts", group=alert_group)
 enable_confirmation_alerts = input.bool(true, "Pattern Confirmation Alerts", group=alert_group)
 alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+
+// === EARLY ENTRY NAMABLE PATTERNS ===
+early_entry_group = "🔍 Early Entry Namable Patterns"
+enable_early_entries = input.bool(true, "Enable Early Entry Patterns", group=early_entry_group)
+enable_flag_patterns = input.bool(true, "Flag Patterns", group=early_entry_group)
+enable_pennant_patterns = input.bool(true, "Pennant Patterns", group=early_entry_group)
+enable_rectangle_patterns = input.bool(true, "Rectangle/Channel Patterns", group=early_entry_group)
+enable_triangle_patterns = input.bool(true, "Triangle Patterns", group=early_entry_group)
+early_entry_bars = input.int(8, "Early Entry Pattern Bars", minval=4, maxval=15, group=early_entry_group)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 📊 HELPER FUNCTIONS AND CALCULATIONS
@@ -101,11 +113,19 @@ detect_m_pattern() =>
             if shoulder_symmetry and sufficient_height
                 m_pattern_active := true
     
-    // Second leg detection (Steve Mauro focus)
+    // User's Simplified Second Leg Detection (Clean 13 EMA Close)
     if m_pattern_active and enable_second_leg_only and not second_leg_triggered
-        neckline_level = math.min(left_shoulder_high, right_shoulder_high)
-        if close < neckline_level and (not require_ema13_confirmation or close < ema_13)
-            second_leg_triggered := true
+        // User's Method: Simple close below 13 EMA at second leg top
+        if simple_ema_confirmation
+            // Clean break below 13 EMA with close (user's preferred method)
+            ema_break_confirmed = close < ema_13 and close[1] >= ema_13
+            if ema_break_confirmed and (not require_volume_confirmation or volume_spike)
+                second_leg_triggered := true
+        else
+            // Original neckline method (backup)
+            neckline_level = math.min(left_shoulder_high, right_shoulder_high)
+            if close < neckline_level and close < ema_13
+                second_leg_triggered := true
     
     // Reset pattern if invalidated
     if m_pattern_active and high > head_high
@@ -157,11 +177,19 @@ detect_w_pattern() =>
             if shoulder_symmetry and sufficient_height
                 w_pattern_active := true
     
-    // Second leg detection (Steve Mauro focus)
+    // User's Simplified Second Leg Detection (Clean 13 EMA Close)
     if w_pattern_active and enable_second_leg_only and not second_leg_triggered
-        neckline_level = math.max(left_shoulder_low, right_shoulder_low)
-        if close > neckline_level and (not require_ema13_confirmation or close > ema_13)
-            second_leg_triggered := true
+        // User's Method: Simple close above 13 EMA at second leg bottom
+        if simple_ema_confirmation
+            // Clean break above 13 EMA with close (user's preferred method)
+            ema_break_confirmed = close > ema_13 and close[1] <= ema_13
+            if ema_break_confirmed and (not require_volume_confirmation or volume_spike)
+                second_leg_triggered := true
+        else
+            // Original neckline method (backup)
+            neckline_level = math.max(left_shoulder_low, right_shoulder_low)
+            if close > neckline_level and close > ema_13
+                second_leg_triggered := true
     
     // Reset pattern if invalidated
     if w_pattern_active and low < head_low
@@ -182,27 +210,31 @@ detect_w_pattern() =>
 calculate_confluence_score(pattern_type) =>
     score = 0
     
-    // EMA 13 Confirmation
-    if pattern_type == "M" and close < ema_13
-        score += 1
-    else if pattern_type == "W" and close > ema_13
-        score += 1
+    // User's Simplified 13 EMA Confirmation (Primary Factor)
+    if simple_ema_confirmation
+        if pattern_type == "M" and close < ema_13
+            score += 2  // Higher weight for user's primary method
+        else if pattern_type == "W" and close > ema_13
+            score += 2  // Higher weight for user's primary method
+    else
+        // Traditional EMA confirmation (backup method)
+        if pattern_type == "M" and close < ema_13
+            score += 1
+        else if pattern_type == "W" and close > ema_13
+            score += 1
     
     // Volume Confirmation
     if require_volume_confirmation and volume_spike
         score += 1
     
-    // Price action confluence
+    // Price action confluence (clean candle close)
     if pattern_type == "M" and close < open  // Bearish candle
         score += 1
     else if pattern_type == "W" and close > open  // Bullish candle
         score += 1
     
-    // Additional confluence (momentum, trend alignment, etc.)
-    rsi = ta.rsi(close, 14)
-    if pattern_type == "M" and rsi > 70  // Overbought
-        score += 1
-    else if pattern_type == "W" and rsi < 30  // Oversold
+    // Early Entry Pattern Bonus
+    if early_entry_signal
         score += 1
     
     score
@@ -210,8 +242,10 @@ calculate_confluence_score(pattern_type) =>
 m_confluence_score = m_pattern_formed ? calculate_confluence_score("M") : 0
 w_confluence_score = w_pattern_formed ? calculate_confluence_score("W") : 0
 
-m_pattern_confirmed = m_pattern_formed and m_confluence_score >= confluence_factors
-w_pattern_confirmed = w_pattern_formed and w_confluence_score >= confluence_factors
+// Simplified confirmation requirements (user's preference)
+confluence_threshold = simple_ema_confirmation ? 2 : 3  // Lower threshold for user's method
+m_pattern_confirmed = m_pattern_formed and m_confluence_score >= confluence_threshold
+w_pattern_confirmed = w_pattern_formed and w_confluence_score >= confluence_threshold
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 🎨 VISUAL PATTERN DISPLAY
@@ -249,13 +283,13 @@ if show_pattern_labels
     if m_pattern_confirmed and not m_pattern_confirmed[1]
         label.new(bar_index, high + atr_value, 
                   "🔻 M PATTERN\n" + (m_second_leg_active ? "2ND LEG" : "FORMING") + 
-                  "\nConfluence: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_factors), 
+                  "\nConfluence: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_threshold), 
                   style=label.style_label_down, color=color.red, textcolor=color.white, size=label_size)
     
     if w_pattern_confirmed and not w_pattern_confirmed[1]
         label.new(bar_index, low - atr_value, 
                   "🔺 W PATTERN\n" + (w_second_leg_active ? "2ND LEG" : "FORMING") + 
-                  "\nConfluence: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_factors), 
+                  "\nConfluence: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_threshold), 
                   style=label.style_label_up, color=color.green, textcolor=color.white, size=label_size)
 
 // Entry Zone Visualization
@@ -289,14 +323,14 @@ if barstate.islast
     m_status_text = m_pattern_confirmed ? "✅ CONFIRMED" : m_pattern_formed ? "⏳ FORMING" : "❌ NONE"
     table.cell(pattern_table, 0, 1, "M Pattern", bgcolor=color.red, text_color=color.white)
     table.cell(pattern_table, 1, 1, m_status_text, bgcolor=m_status_color, text_color=color.white)
-    table.cell(pattern_table, 2, 1, str.tostring(m_confluence_score) + "/" + str.tostring(confluence_factors), bgcolor=m_status_color, text_color=color.white)
+    table.cell(pattern_table, 2, 1, str.tostring(m_confluence_score) + "/" + str.tostring(confluence_threshold), bgcolor=m_status_color, text_color=color.white)
     
     // W Pattern Status
     w_status_color = w_pattern_confirmed ? color.new(color.green, 50) : w_pattern_formed ? color.new(color.lime, 70) : color.new(color.gray, 80)
     w_status_text = w_pattern_confirmed ? "✅ CONFIRMED" : w_pattern_formed ? "⏳ FORMING" : "❌ NONE"
     table.cell(pattern_table, 0, 2, "W Pattern", bgcolor=color.green, text_color=color.white)
     table.cell(pattern_table, 1, 2, w_status_text, bgcolor=w_status_color, text_color=color.white)
-    table.cell(pattern_table, 2, 2, str.tostring(w_confluence_score) + "/" + str.tostring(confluence_factors), bgcolor=w_status_color, text_color=color.white)
+    table.cell(pattern_table, 2, 2, str.tostring(w_confluence_score) + "/" + str.tostring(confluence_threshold), bgcolor=w_status_color, text_color=color.white)
     
     // Second Leg Status
     second_leg_status = m_second_leg_active ? "🔻 M 2ND LEG" : w_second_leg_active ? "🔺 W 2ND LEG" : "❌ NO ACTIVE"
@@ -319,6 +353,43 @@ if barstate.islast
     table.cell(pattern_table, 1, 5, vol_status, bgcolor=vol_color, text_color=color.white)
     table.cell(pattern_table, 2, 5, str.tostring(volume / avg_volume, "#.#") + "x Avg", bgcolor=vol_color, text_color=color.white)
 
+// Early Entry Pattern Labels and Alerts
+if show_pattern_labels and early_entry_signal
+    if early_bullish_entry and not early_bullish_entry[1]
+        label.new(bar_index, low - atr_value, 
+                  "🔺 EARLY ENTRY\n" + pattern_name + "\n13 EMA BREAK UP", 
+                  style=label.style_label_up, color=color.blue, textcolor=color.white, size=label_size)
+    
+    if early_bearish_entry and not early_bearish_entry[1]
+        label.new(bar_index, high + atr_value, 
+                  "🔻 EARLY ENTRY\n" + pattern_name + "\n13 EMA BREAK DOWN", 
+                  style=label.style_label_down, color=color.purple, textcolor=color.white, size=label_size)
+
+// Early Entry Pattern Table Status
+if barstate.islast and enable_early_entries
+    // Add early entry rows to pattern table
+    table.cell(pattern_table, 0, 4, "Early Entry", bgcolor=color.blue, text_color=color.white)
+    early_status_text = early_entry_signal ? "✅ " + pattern_name : "❌ NONE"
+    early_status_color = early_entry_signal ? color.new(color.blue, 50) : color.new(color.gray, 80)
+    table.cell(pattern_table, 1, 4, early_status_text, bgcolor=early_status_color, text_color=color.white)
+    table.cell(pattern_table, 2, 4, "13 EMA", bgcolor=early_status_color, text_color=color.white)
+    
+    // Pattern breakdown
+    table.cell(pattern_table, 0, 5, "Pattern Type", bgcolor=color.gray, text_color=color.white)
+    pattern_breakdown = ""
+    if flag_detected
+        pattern_breakdown += "FLAG "
+    if pennant_detected
+        pattern_breakdown += "PENNANT "
+    if rectangle_detected
+        pattern_breakdown += "RECTANGLE "
+    if triangle_detected
+        pattern_breakdown += "TRIANGLE "
+    if pattern_breakdown == ""
+        pattern_breakdown := "NONE"
+    table.cell(pattern_table, 1, 5, pattern_breakdown, bgcolor=color.gray, text_color=color.white)
+    table.cell(pattern_table, 2, 5, "DETECTED", bgcolor=color.gray, text_color=color.white)
+
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 🚨 M&W PATTERN ALERTS
 // ═══════════════════════════════════════════════════════════════════════════════════
@@ -332,7 +403,7 @@ if enable_pattern_alerts
               "Symbol: " + syminfo.ticker + "\n" +
               "Timeframe: " + timeframe.period + "\n" +
               "Pattern Type: BEARISH M\n" +
-              "Confluence Score: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_factors) + "\n" +
+              "Confluence Score: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_threshold) + "\n" +
               "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
               "Second Leg: " + (m_second_leg_active ? "ACTIVE" : "PENDING"), alert_freq)
     
@@ -341,7 +412,7 @@ if enable_pattern_alerts
               "Symbol: " + syminfo.ticker + "\n" +
               "Timeframe: " + timeframe.period + "\n" +
               "Pattern Type: BULLISH W\n" +
-              "Confluence Score: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_factors) + "\n" +
+              "Confluence Score: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_threshold) + "\n" +
               "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
               "Second Leg: " + (w_second_leg_active ? "ACTIVE" : "PENDING"), alert_freq)
 
@@ -364,15 +435,38 @@ if enable_second_leg_alerts
               "Action: Consider long entry", alert_freq)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
-// 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
+// 🚨 EARLY ENTRY ALERTS
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-export m_pattern_formed
-export w_pattern_formed
+// Early Entry Pattern Alerts
+if enable_confirmation_alerts and early_bullish_entry and not early_bullish_entry[1]
+    alert("🔺 EARLY BULLISH ENTRY: " + pattern_name + " + 13 EMA BREAK\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: " + pattern_name + "\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Entry Type: EARLY BULLISH\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and early_bearish_entry and not early_bearish_entry[1]
+    alert("🔻 EARLY BEARISH ENTRY: " + pattern_name + " + 13 EMA BREAK\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: " + pattern_name + "\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Entry Type: EARLY BEARISH\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 EXPORT VALUES FOR OTHER SCRIPTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Export user's simplified entry signals
 export m_pattern_confirmed
-export w_pattern_confirmed
+export w_pattern_confirmed  
 export m_second_leg_active
 export w_second_leg_active
-export m_confluence_score
-export w_confluence_score
+export early_bullish_entry
+export early_bearish_entry
+export pattern_name
 export ema_13
