@@ -78,7 +78,12 @@
     "web-build": "npm run build",
     "web-start": "npm run start",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "pre-commit": "node automation/pre-commit-optimization.js",
+    "pre-commit-install": "node automation/install-git-hooks.js",
+    "workspace-cleanup": "node automation/pre-commit-optimization.js",
+    "auto-commit": "npm run pre-commit && npm run git-commit && npm run git-push",
+    "setup-automation": "npm run pre-commit-install && echo 'Automated pre-commit optimization is now active!'"
   },
   "keywords": [
     "trading",
