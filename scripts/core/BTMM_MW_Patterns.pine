@@ -354,7 +354,112 @@ if barstate.islast
     table.cell(pattern_table, 2, 5, str.tostring(volume / avg_volume, "#.#") + "x Avg", bgcolor=vol_color, text_color=color.white)
 
 // Early Entry Pattern Labels and Alerts
-if show_pattern_labels and early_entry_signal
+if show_pattern_labels and enable_candlestick_patterns
+    // Convert label size
+    pattern_label_size_converted = switch pattern_label_size
+        "tiny" => size.tiny
+        "small" => size.small
+        "large" => size.large
+        => size.normal
+    
+    // === BULLISH CANDLESTICK PATTERNS ===
+    
+    // Single Candle Bullish
+    if hammer
+        label.new(bar_index, low, "🔨\nHAMMER", style=label.style_label_up, color=color.green, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if inverted_hammer  
+        label.new(bar_index, high, "🔨\nINV HAMMER", style=label.style_label_down, color=color.green, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if dragonfly_doji
+        label.new(bar_index, low, "🐉\nDRAGONFLY", style=label.style_label_up, color=color.blue, textcolor=color.white, size=pattern_label_size_converted)
+    
+    // Two Candle Bullish
+    if railroad_bull
+        label.new(bar_index, low, "🚂\nRAILROAD\nBULL", style=label.style_label_up, color=color.lime, textcolor=color.black, size=pattern_label_size_converted)
+    
+    if bullish_engulfing
+        label.new(bar_index, low, "🫂\nBULL\nENGULF", style=label.style_label_up, color=color.green, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if bullish_harami
+        label.new(bar_index, low, "🤱\nBULL\nHARAMI", style=label.style_label_up, color=color.aqua, textcolor=color.white, size=pattern_label_size_converted)
+    
+    // Three Candle Bullish
+    if morning_star
+        label.new(bar_index, low, "⭐\nMORNING\nSTAR", style=label.style_label_up, color=color.yellow, textcolor=color.black, size=pattern_label_size_converted)
+    
+    if morning_doji_star
+        label.new(bar_index, low, "⭐\nMORN DOJI\nSTAR", style=label.style_label_up, color=color.orange, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if three_white_soldiers
+        label.new(bar_index, low, "⚔️\nTHREE\nSOLDIERS", style=label.style_label_up, color=color.lime, textcolor=color.black, size=pattern_label_size_converted)
+    
+    // === BEARISH CANDLESTICK PATTERNS ===
+    
+    // Single Candle Bearish
+    if shooting_star
+        label.new(bar_index, high, "⭐\nSHOOTING\nSTAR", style=label.style_label_down, color=color.red, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if hanging_man
+        label.new(bar_index, high, "🪓\nHANGING\nMAN", style=label.style_label_down, color=color.maroon, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if gravestone_doji
+        label.new(bar_index, high, "🪦\nGRAVESTONE", style=label.style_label_down, color=color.purple, textcolor=color.white, size=pattern_label_size_converted)
+    
+    // Two Candle Bearish
+    if railroad_bear
+        label.new(bar_index, high, "🚂\nRAILROAD\nBEAR", style=label.style_label_down, color=color.red, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if bearish_engulfing
+        label.new(bar_index, high, "🫂\nBEAR\nENGULF", style=label.style_label_down, color=color.red, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if bearish_harami
+        label.new(bar_index, high, "🤱\nBEAR\nHARAMI", style=label.style_label_down, color=color.orange, textcolor=color.white, size=pattern_label_size_converted)
+    
+    // Three Candle Bearish
+    if evening_star
+        label.new(bar_index, high, "🌅\nEVENING\nSTAR", style=label.style_label_down, color=color.orange, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if evening_doji_star
+        label.new(bar_index, high, "🌅\nEVE DOJI\nSTAR", style=label.style_label_down, color=color.red, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if three_black_crows
+        label.new(bar_index, high, "🐦\nTHREE\nCROWS", style=label.style_label_down, color=color.black, textcolor=color.white, size=pattern_label_size_converted)
+    
+    // === NEUTRAL/SPECIAL PATTERNS ===
+    
+    if doji
+        label.new(bar_index, high, "✚\nDOJI", style=label.style_label_center, color=color.gray, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if cord_of_wood
+        label.new(bar_index, math.avg(high, low), "🪵\nCORD OF\nWOOD", style=label.style_label_center, color=color.brown, textcolor=color.white, size=pattern_label_size_converted)
+    
+    if spinning_top
+        label.new(bar_index, math.avg(high, low), "🌪️\nSPIN TOP", style=label.style_label_center, color=color.gray, textcolor=color.white, size=pattern_label_size_converted)
+    
+    // === RARE PATTERNS (if enabled) ===
+    
+    if show_rare_patterns
+        if abandoned_baby_bull
+            label.new(bar_index, low, "👶\nABANDONED\nBABY BULL", style=label.style_label_up, color=color.purple, textcolor=color.white, size=pattern_label_size_converted)
+        
+        if abandoned_baby_bear
+            label.new(bar_index, high, "👶\nABANDONED\nBABY BEAR", style=label.style_label_down, color=color.purple, textcolor=color.white, size=pattern_label_size_converted)
+        
+        if white_marubozu
+            label.new(bar_index, low, "💪\nWHITE\nMARUBOZU", style=label.style_label_up, color=color.lime, textcolor=color.black, size=pattern_label_size_converted)
+        
+        if black_marubozu
+            label.new(bar_index, high, "💪\nBLACK\nMARUBOZU", style=label.style_label_down, color=color.black, textcolor=color.white, size=pattern_label_size_converted)
+        
+        if belt_hold_bull
+            label.new(bar_index, low, "🥋\nBELT HOLD\nBULL", style=label.style_label_up, color=color.green, textcolor=color.white, size=pattern_label_size_converted)
+        
+        if belt_hold_bear
+            label.new(bar_index, high, "🥋\nBELT HOLD\nBEAR", style=label.style_label_down, color=color.red, textcolor=color.white, size=pattern_label_size_converted)
+
+    // === EARLY ENTRY CONFIRMATION LABELS ===
+    
     if early_bullish_entry and not early_bullish_entry[1]
         label.new(bar_index, low - atr_value, 
                   "🔺 EARLY ENTRY\n" + pattern_name + "\n13 EMA BREAK UP", 
@@ -366,37 +471,28 @@ if show_pattern_labels and early_entry_signal
                   style=label.style_label_down, color=color.purple, textcolor=color.white, size=label_size)
 
 // Early Entry Pattern Table Status
-if barstate.islast and enable_early_entries
-    // Add early entry rows to pattern table
-    table.cell(pattern_table, 0, 4, "Early Entry", bgcolor=color.blue, text_color=color.white)
-    early_status_text = early_entry_signal ? "✅ " + pattern_name : "❌ NONE"
-    early_status_color = early_entry_signal ? color.new(color.blue, 50) : color.new(color.gray, 80)
-    table.cell(pattern_table, 1, 4, early_status_text, bgcolor=early_status_color, text_color=color.white)
-    table.cell(pattern_table, 2, 4, "13 EMA", bgcolor=early_status_color, text_color=color.white)
+if barstate.islast and enable_candlestick_patterns
+    // Update pattern table with candlestick patterns
+    table.cell(pattern_table, 0, 4, "Candlestick Patterns", bgcolor=color.blue, text_color=color.white)
+    pattern_status_text = any_pattern_active ? "✅ " + pattern_name : "❌ NONE"
+    pattern_status_color = any_pattern_active ? color.new(color.blue, 50) : color.new(color.gray, 80)
+    table.cell(pattern_table, 1, 4, pattern_status_text, bgcolor=pattern_status_color, text_color=color.white)
+    table.cell(pattern_table, 2, 4, "13 EMA ENTRY", bgcolor=pattern_status_color, text_color=color.white)
     
-    // Pattern breakdown
-    table.cell(pattern_table, 0, 5, "Pattern Type", bgcolor=color.gray, text_color=color.white)
-    pattern_breakdown = ""
-    if flag_detected
-        pattern_breakdown += "FLAG "
-    if pennant_detected
-        pattern_breakdown += "PENNANT "
-    if rectangle_detected
-        pattern_breakdown += "RECTANGLE "
-    if triangle_detected
-        pattern_breakdown += "TRIANGLE "
-    if pattern_breakdown == ""
-        pattern_breakdown := "NONE"
-    table.cell(pattern_table, 1, 5, pattern_breakdown, bgcolor=color.gray, text_color=color.white)
-    table.cell(pattern_table, 2, 5, "DETECTED", bgcolor=color.gray, text_color=color.white)
+    // Early entry status
+    table.cell(pattern_table, 0, 5, "Early Entry", bgcolor=color.purple, text_color=color.white)
+    early_entry_text = early_entry_signal ? (early_bullish_entry ? "🔺 BULLISH" : "🔻 BEARISH") : "❌ NONE"
+    early_entry_color = early_entry_signal ? color.new(color.purple, 50) : color.new(color.gray, 80)
+    table.cell(pattern_table, 1, 5, early_entry_text, bgcolor=early_entry_color, text_color=color.white)
+    table.cell(pattern_table, 2, 5, early_entry_signal ? pattern_name : "WAITING", bgcolor=early_entry_color, text_color=color.white)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
-// 🚨 M&W PATTERN ALERTS
+// 🚨 CANDLESTICK PATTERN ALERTS + 13 EMA CONFIRMATION
 // ═══════════════════════════════════════════════════════════════════════════════════
 
 alert_freq = alert_frequency == "once_per_bar" ? alert.freq_once_per_bar : alert.freq_once_per_bar_close
 
-// Pattern Formation Alerts
+// M&W Pattern Formation Alerts
 if enable_pattern_alerts
     if m_pattern_confirmed and not m_pattern_confirmed[1]
         alert("🔻 M PATTERN CONFIRMED!\n" +
@@ -434,18 +530,115 @@ if enable_second_leg_alerts
               "Pattern: W Formation\n" +
               "Action: Consider long entry", alert_freq)
 
-// ═══════════════════════════════════════════════════════════════════════════════════
-// 🚨 EARLY ENTRY ALERTS
-// ═══════════════════════════════════════════════════════════════════════════════════
+// Major Reversal Pattern Alerts
+if enable_confirmation_alerts and hammer and not hammer[1]
+    alert("🔨 HAMMER PATTERN DETECTED\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: HAMMER - Potential Bullish Reversal\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
 
-// Early Entry Pattern Alerts
+if enable_confirmation_alerts and shooting_star and not shooting_star[1]
+    alert("⭐ SHOOTING STAR PATTERN DETECTED\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: SHOOTING STAR - Potential Bearish Reversal\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and morning_star and not morning_star[1]
+    alert("⭐ MORNING STAR PATTERN DETECTED\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: MORNING STAR - Strong Bullish Reversal\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and evening_star and not evening_star[1]
+    alert("🌅 EVENING STAR PATTERN DETECTED\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: EVENING STAR - Strong Bearish Reversal\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// Engulfing Pattern Alerts
+if enable_confirmation_alerts and bullish_engulfing and not bullish_engulfing[1]
+    alert("🫂 BULLISH ENGULFING PATTERN\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: BULLISH ENGULFING - Strong Bullish Signal\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and bearish_engulfing and not bearish_engulfing[1]
+    alert("🫂 BEARISH ENGULFING PATTERN\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: BEARISH ENGULFING - Strong Bearish Signal\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// Railroad Track Alerts
+if enable_confirmation_alerts and railroad_bull and not railroad_bull[1]
+    alert("🚂 BULLISH RAILROAD TRACKS\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: RAILROAD TRACKS - Side-by-side Bullish\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and railroad_bear and not railroad_bear[1]
+    alert("🚂 BEARISH RAILROAD TRACKS\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: RAILROAD TRACKS - Side-by-side Bearish\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// Continuation Pattern Alerts
+if enable_confirmation_alerts and three_white_soldiers and not three_white_soldiers[1]
+    alert("⚔️ THREE WHITE SOLDIERS\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: THREE WHITE SOLDIERS - Strong Bullish Continuation\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and three_black_crows and not three_black_crows[1]
+    alert("🐦 THREE BLACK CROWS\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: THREE BLACK CROWS - Strong Bearish Continuation\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// Indecision Pattern Alerts
+if enable_confirmation_alerts and doji and not doji[1]
+    alert("✚ DOJI PATTERN DETECTED\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: DOJI - Market Indecision\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+if enable_confirmation_alerts and cord_of_wood and not cord_of_wood[1]
+    alert("🪵 CORD OF WOOD PATTERN\n" +
+          "Symbol: " + syminfo.ticker + "\n" +
+          "Timeframe: " + timeframe.period + "\n" +
+          "Pattern: CORD OF WOOD - Extended Indecision\n" +
+          "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
+          "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// User's Early Entry Pattern Alerts (Pattern + 13 EMA Confirmation)
 if enable_confirmation_alerts and early_bullish_entry and not early_bullish_entry[1]
     alert("🔺 EARLY BULLISH ENTRY: " + pattern_name + " + 13 EMA BREAK\n" +
           "Symbol: " + syminfo.ticker + "\n" +
           "Timeframe: " + timeframe.period + "\n" +
           "Pattern: " + pattern_name + "\n" +
           "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
-          "Entry Type: EARLY BULLISH\n" +
+          "Entry Type: EARLY BULLISH CONFIRMATION\n" +
           "Close: " + str.tostring(close, "#.#####"), alert_freq)
 
 if enable_confirmation_alerts and early_bearish_entry and not early_bearish_entry[1]
@@ -454,8 +647,58 @@ if enable_confirmation_alerts and early_bearish_entry and not early_bearish_entr
           "Timeframe: " + timeframe.period + "\n" +
           "Pattern: " + pattern_name + "\n" +
           "EMA 13: " + str.tostring(ema_13, "#.#####") + "\n" +
-          "Entry Type: EARLY BEARISH\n" +
+          "Entry Type: EARLY BEARISH CONFIRMATION\n" +
           "Close: " + str.tostring(close, "#.#####"), alert_freq)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 CANDLESTICK PATTERN COUNTERS AND DATA OUTPUTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Basic pattern occurrence tracking
+var int hammer_count = 0
+var int shooting_star_count = 0
+var int morning_star_count = 0
+var int evening_star_count = 0
+var int engulfing_count = 0
+var int railroad_count = 0
+var int doji_count = 0
+
+// Count patterns when they occur
+if hammer and barstate.isconfirmed
+    hammer_count += 1
+if shooting_star and barstate.isconfirmed
+    shooting_star_count += 1
+if morning_star and barstate.isconfirmed
+    morning_star_count += 1
+if evening_star and barstate.isconfirmed
+    evening_star_count += 1
+if (bullish_engulfing or bearish_engulfing) and barstate.isconfirmed
+    engulfing_count += 1
+if (railroad_bull or railroad_bear) and barstate.isconfirmed
+    railroad_count += 1
+if doji and barstate.isconfirmed
+    doji_count += 1
+
+// Display pattern counts in data window
+plot(hammer_count, "Hammer Count", color=color.green, display=display.data_window)
+plot(shooting_star_count, "Shooting Star Count", color=color.red, display=display.data_window)
+plot(morning_star_count, "Morning Star Count", color=color.yellow, display=display.data_window)
+plot(evening_star_count, "Evening Star Count", color=color.orange, display=display.data_window)
+plot(engulfing_count, "Engulfing Count", color=color.blue, display=display.data_window)
+plot(railroad_count, "Railroad Count", color=color.purple, display=display.data_window)
+plot(doji_count, "Doji Count", color=color.gray, display=display.data_window)
+
+// Current pattern status (1 = active, 0 = none)
+plot(hammer ? 1 : 0, "Current Hammer", color=color.green, display=display.data_window)
+plot(shooting_star ? 1 : 0, "Current Shooting Star", color=color.red, display=display.data_window)
+plot(railroad_bull ? 1 : 0, "Current Railroad Bull", color=color.lime, display=display.data_window)
+plot(railroad_bear ? 1 : 0, "Current Railroad Bear", color=color.red, display=display.data_window)
+plot(doji ? 1 : 0, "Current Doji", color=color.gray, display=display.data_window)
+plot(cord_of_wood ? 1 : 0, "Current Cord of Wood", color=color.brown, display=display.data_window)
+
+// Early entry signal status
+plot(early_bullish_entry ? 1 : 0, "Early Bullish Entry", color=color.blue, display=display.data_window)
+plot(early_bearish_entry ? 1 : 0, "Early Bearish Entry", color=color.purple, display=display.data_window)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 📊 EXPORT VALUES FOR OTHER SCRIPTS
@@ -470,3 +713,21 @@ export early_bullish_entry
 export early_bearish_entry
 export pattern_name
 export ema_13
+
+// Export candlestick pattern detection
+export bullish_patterns
+export bearish_patterns
+export indecision_patterns
+export any_pattern_active
+
+// Export specific pattern signals
+export hammer
+export shooting_star
+export railroad_bull
+export railroad_bear
+export bullish_engulfing
+export bearish_engulfing
+export morning_star
+export evening_star
+export doji
+export cord_of_wood
