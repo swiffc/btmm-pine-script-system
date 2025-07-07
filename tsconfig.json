@@ -12,6 +12,7 @@
     "lib": ["ES2020", "dom", "dom.iterable"],
     "jsx": "react-jsx",
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",

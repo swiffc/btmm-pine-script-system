@@ -178,5 +178,22 @@
   "problems.showCurrentInStatus": true,
 
   "debug.allowBreakpointsEverywhere": true,
-  "debug.openDebug": "openOnDebugBreak"
+  "debug.openDebug": "openOnDebugBreak",
+  "cSpell.words": [
+    "backtesting",
+    "btmm",
+    "cicd",
+    "cmdk",
+    "embla",
+    "Forex",
+    "jridgewell",
+    "killzones",
+    "memoizee",
+    "memorystore",
+    "neondatabase",
+    "replit",
+    "tradingview",
+    "vaul",
+    "wouter"
+  ]
 }
