@@ -1,63 +1,116 @@
 //@version=5
 
 // =============================================================================
-// BTMM RISK MANAGEMENT SYSTEM - INSTITUTIONAL TRADE LEVELS
+// BTMM COMPREHENSIVE RISK MANAGEMENT SYSTEM
 // =============================================================================
-// Purpose: Complete risk management system with institutional-grade calculations
-// Method: ATR-based risk calculations with dynamic R:R ratios and position sizing
+// Purpose: Complete institutional-grade risk management with multiple stop loss methods
+// Method: ATR, EMA, Asian Range, Manual SL with dynamic R:R and advanced position sizing
 // Author: BTMM Development Team
-// Version: 2.0 - Enhanced from Master System
-// Date: 2025-07-02
+// Version: 3.0 - Merged comprehensive system
+// Date: 2025-07-07
 // =============================================================================
 
-// Note: BTMMFoundation functions imported directly due to local development
-// In production, this would use: import username/BTMMFoundation/1 as btmm
+indicator("BTMM Comprehensive Risk Management", "BTMM Risk", overlay=true, shorttitle="BTMM Risk",
+         max_boxes_count=100, max_lines_count=150, max_labels_count=100, max_tables_count=2)
 
-indicator("BTMM Risk Management", "BTMM Risk", overlay=true, shorttitle="BTMM Risk",
-         max_boxes_count=50, max_lines_count=100, max_labels_count=100)
-
-// ============================================================================
-// 💰 RISK MANAGEMENT CONFIGURATION
-// ============================================================================
-
-// === RISK MANAGEMENT ===
-risk_group = "💰 Risk Management"
-show_risk_levels = input.bool(true, "Show Risk/Reward Levels", group=risk_group)
-risk_reward_ratio = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=10.0, step=0.1, group=risk_group)
-atr_multiplier = input.float(1.0, "ATR Multiplier for Stops", minval=0.5, maxval=3.0, step=0.1, group=risk_group)
-max_risk_percent = input.float(2.0, "Max Risk % per Trade", minval=0.5, maxval=10.0, step=0.1, group=risk_group)
-dynamic_rr_adjustment = input.bool(true, "Dynamic R:R Adjustment", group=risk_group, tooltip="Adjust R:R based on market conditions")
-use_pattern_levels = input.bool(true, "Use Pattern Levels for Stops", group=risk_group, tooltip="Use pattern highs/lows instead of ATR only")
-
-// === POSITION SIZING ===
-position_group = "📏 Position Sizing"
-account_size = input.float(10000.0, "Account Size", minval=1000.0, maxval=1000000.0, step=1000.0, group=position_group)
-use_fixed_dollar_risk = input.bool(false, "Use Fixed Dollar Risk", group=position_group)
-fixed_dollar_risk = input.float(200.0, "Fixed Dollar Risk", minval=10.0, maxval=10000.0, step=10.0, group=position_group)
-compound_profits = input.bool(true, "Compound Profits", group=position_group, tooltip="Increase position size as account grows")
-
-// === VISUAL SETTINGS ===
-risk_visual_group = "🎨 Risk Visual Configuration"
-risk_line_width = input.int(2, "Line Width", minval=1, maxval=5, group=risk_visual_group)
-risk_label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=risk_visual_group)
-risk_transparency = input.int(85, "Box Transparency", minval=50, maxval=95, group=risk_visual_group)
-show_statistics = input.bool(true, "Show Risk Statistics", group=risk_visual_group)
+import TradingView/ta/7 as ta
 
 // ============================================================================
-// 🔧 HELPER FUNCTIONS & CALCULATIONS
+// 🛡️ COMPREHENSIVE RISK MANAGEMENT CONFIGURATION
+// ============================================================================
+
+// === ACCOUNT & RISK SETTINGS ===
+account_group = "💰 Account & Risk Settings"
+account_size = input.float(10000.0, "Account Size ($)", minval=1000.0, maxval=1000000.0, step=1000.0, group=account_group)
+risk_per_trade = input.float(1.0, "Risk Per Trade (%)", minval=0.1, maxval=5.0, step=0.1, group=account_group)
+max_risk_per_day = input.float(3.0, "Max Daily Risk (%)", minval=1.0, maxval=10.0, step=0.5, group=account_group)
+use_fixed_dollar_risk = input.bool(false, "Use Fixed Dollar Risk", group=account_group)
+fixed_dollar_risk = input.float(200.0, "Fixed Dollar Risk ($)", minval=10.0, maxval=10000.0, step=10.0, group=account_group)
+compound_profits = input.bool(true, "Compound Profits", group=account_group, tooltip="Increase position size as account grows")
+
+// === STOP LOSS CONFIGURATION ===
+sl_group = "🚫 Advanced Stop Loss Methods"
+sl_method = input.string("ATR", "Primary Stop Loss Method", options=["ATR", "EMA", "ASIAN_RANGE", "PATTERN_LEVELS", "MANUAL"], group=sl_group)
+atr_multiplier = input.float(1.5, "ATR Multiplier", minval=0.5, maxval=5.0, step=0.1, group=sl_group)
+atr_length = input.int(14, "ATR Length", minval=5, maxval=50, group=sl_group)
+manual_sl_pips = input.float(20.0, "Manual SL (Pips)", minval=5.0, maxval=100.0, group=sl_group)
+use_pattern_levels = input.bool(true, "Use Pattern Levels Override", group=sl_group, tooltip="Override other methods with pattern highs/lows when available")
+show_sl_levels = input.bool(true, "Show Stop Loss Levels", group=sl_group)
+
+// === RISK:REWARD & TAKE PROFITS ===
+rr_group = "🎯 Risk:Reward Configuration"
+base_rr_ratio = input.float(2.0, "Base R:R Ratio", minval=1.0, maxval=10.0, step=0.1, group=rr_group)
+dynamic_rr_adjustment = input.bool(true, "Dynamic R:R Adjustment", group=rr_group, tooltip="Adjust R:R based on market conditions")
+show_multiple_targets = input.bool(true, "Show Multiple TP Levels", group=rr_group)
+tp1_ratio = input.float(1.0, "TP1 R:R Ratio", minval=0.5, maxval=3.0, step=0.1, group=rr_group)
+tp2_ratio = input.float(2.0, "TP2 R:R Ratio", minval=1.0, maxval=5.0, step=0.1, group=rr_group)
+tp3_ratio = input.float(3.0, "TP3 R:R Ratio", minval=1.5, maxval=8.0, step=0.1, group=rr_group)
+
+// === POSITION SIZING METHODS ===
+position_group = "📊 Advanced Position Sizing"
+position_method = input.string("FIXED_RISK", "Position Sizing Method", options=["FIXED_RISK", "FIXED_AMOUNT", "KELLY_CRITERION", "VOLATILITY_ADJUSTED"], group=position_group)
+fixed_lot_size = input.float(0.1, "Fixed Lot Size", minval=0.01, maxval=10.0, step=0.01, group=position_group)
+max_position_size = input.float(2.0, "Max Position Size (Lots)", minval=0.1, maxval=10.0, group=position_group)
+kelly_win_rate = input.float(0.6, "Kelly Win Rate", minval=0.1, maxval=0.9, step=0.01, group=position_group, tooltip="Historical win rate for Kelly Criterion")
+volatility_lookback = input.int(20, "Volatility Lookback Period", minval=10, maxval=50, group=position_group)
+
+// === VISUAL CONFIGURATION ===
+visual_group = "🎨 Visual & Display Settings"
+show_risk_table = input.bool(true, "Show Risk Management Dashboard", group=visual_group)
+show_rr_zones = input.bool(true, "Show R:R Zone Boxes", group=visual_group)
+show_risk_levels = input.bool(true, "Show Risk/Reward Lines", group=visual_group)
+show_position_info = input.bool(true, "Show Position Information", group=visual_group)
+show_statistics = input.bool(true, "Show Risk Statistics", group=visual_group)
+bullish_color = input.color(color.new(color.green, 75), "Bullish Zone Color", group=visual_group)
+bearish_color = input.color(color.new(color.red, 75), "Bearish Zone Color", group=visual_group)
+sl_line_color = input.color(color.red, "Stop Loss Line Color", group=visual_group)
+tp_line_color = input.color(color.green, "Take Profit Line Color", group=visual_group)
+line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
+label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
+
+// === ALERT CONFIGURATION ===
+alert_group = "🚨 Risk Alert Settings"
+enable_risk_alerts = input.bool(true, "Enable Risk Management Alerts", group=alert_group)
+enable_position_alerts = input.bool(true, "Position Size Alerts", group=alert_group)
+enable_rr_alerts = input.bool(true, "R:R Achievement Alerts", group=alert_group)
+enable_risk_breach_alerts = input.bool(true, "Risk Breach Warnings", group=alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+
+// ============================================================================
+// 🔧 ADVANCED CALCULATIONS & HELPER FUNCTIONS
 // ============================================================================
 
 // ATR and volatility calculations
+atr_value = ta.atr(atr_length)
+atr_current = atr_value * atr_multiplier
 atr_14 = ta.atr(14)
 atr_21 = ta.atr(21)
-atr_current = atr_14 * atr_multiplier
 
-// Volume calculations
+// EMA calculations for dynamic stops
+ema_13 = ta.ema(close, 13)
+ema_50 = ta.ema(close, 50)
+
+// Volume calculations for market condition assessment
 volume_ma = ta.sma(volume, 20)
 volume_ratio = volume / volume_ma
 
+// Asian session range calculation
+var float asian_high = na
+var float asian_low = na
+var float asian_range = na
+
+asian_session = time(timeframe.period, "1700-0000")
+if asian_session and not asian_session[1]
+    asian_high := high
+    asian_low := low
+else if asian_session
+    asian_high := math.max(asian_high, high)
+    asian_low := math.min(asian_low, low)
+else if not asian_session and asian_session[1]
+    asian_range := asian_high - asian_low
+
 // Label size conversion
-label_text_size = switch risk_label_size
+label_text_size = switch label_size
     "tiny" => size.tiny
     "small" => size.small
     "normal" => size.normal
@@ -66,316 +119,311 @@ label_text_size = switch risk_label_size
     => size.normal
 
 // ============================================================================
-// 💰 RISK CALCULATION ENGINE
+// 💰 ADVANCED STOP LOSS CALCULATION ENGINE
 // ============================================================================
 
-// Calculate risk levels for different signal types
-calculate_risk_levels(signal_type, entry_price, pattern_high, pattern_low) =>
-    var float stop_loss = na
-    var float take_profit_1 = na
-    var float take_profit_2 = na
-    var float take_profit_3 = na
-    var float risk_amount = na
-    var float reward_1 = na
-    var float reward_2 = na
-    var float reward_3 = na
+// Comprehensive stop loss calculation with multiple methods
+calculate_comprehensive_stop_loss(entry_price, direction, pattern_high, pattern_low) =>
+    var float sl_level = na
 
-    if signal_type == "SELL"
-        // Bearish trade setup
-        if use_pattern_levels and not na(pattern_high)
-            stop_loss := pattern_high + atr_current
-        else
-            stop_loss := entry_price + atr_current
+    // Pattern levels override (highest priority)
+    if use_pattern_levels and direction == "LONG" and not na(pattern_low)
+        sl_level := pattern_low - (atr_current * 0.5)
+    else if use_pattern_levels and direction == "SHORT" and not na(pattern_high)
+        sl_level := pattern_high + (atr_current * 0.5)
+    else
+        // Primary stop loss method
+        switch sl_method
+            "ATR" =>
+                sl_level := direction == "LONG" ? entry_price - atr_current : entry_price + atr_current
+            "EMA" =>
+                sl_level := direction == "LONG" ? ema_13 - (atr_value * 0.2) : ema_13 + (atr_value * 0.2)
+            "ASIAN_RANGE" =>
+                if not na(asian_range) and asian_range > 0
+                    sl_level := direction == "LONG" ? entry_price - asian_range : entry_price + asian_range
+                else
+                    sl_level := direction == "LONG" ? entry_price - atr_current : entry_price + atr_current
+            "PATTERN_LEVELS" =>
+                if direction == "LONG" and not na(pattern_low)
+                    sl_level := pattern_low - (atr_current * 0.3)
+                else if direction == "SHORT" and not na(pattern_high)
+                    sl_level := pattern_high + (atr_current * 0.3)
+                else
+                    sl_level := direction == "LONG" ? entry_price - atr_current : entry_price + atr_current
+            "MANUAL" =>
+                pip_value = syminfo.mintick * 10
+                sl_level := direction == "LONG" ? entry_price - (manual_sl_pips * pip_value) : entry_price + (manual_sl_pips * pip_value)
+            =>
+                sl_level := direction == "LONG" ? entry_price - atr_current : entry_price + atr_current
 
-        risk_amount := stop_loss - entry_price
-
-        // Calculate multiple take profit levels
-        base_reward = risk_amount * risk_reward_ratio
-        take_profit_1 := entry_price - base_reward
-        take_profit_2 := entry_price - (base_reward * 1.5)
-        take_profit_3 := entry_price - (base_reward * 2.0)
-
-        reward_1 := base_reward
-        reward_2 := base_reward * 1.5
-        reward_3 := base_reward * 2.0
-
-    else if signal_type == "BUY"
-        // Bullish trade setup
-        if use_pattern_levels and not na(pattern_low)
-            stop_loss := pattern_low - atr_current
-        else
-            stop_loss := entry_price - atr_current
-
-        risk_amount := entry_price - stop_loss
-
-        // Calculate multiple take profit levels
-        base_reward = risk_amount * risk_reward_ratio
-        take_profit_1 := entry_price + base_reward
-        take_profit_2 := entry_price + (base_reward * 1.5)
-        take_profit_3 := entry_price + (base_reward * 2.0)
-
-        reward_1 := base_reward
-        reward_2 := base_reward * 1.5
-        reward_3 := base_reward * 2.0
-
-    [stop_loss, take_profit_1, take_profit_2, take_profit_3, risk_amount, reward_1, reward_2, reward_3]
+    sl_level
 
 // Dynamic Risk:Reward adjustment based on market conditions
 calculate_dynamic_rr() =>
-    base_rr = risk_reward_ratio
+    base_rr = base_rr_ratio
 
     if dynamic_rr_adjustment
-        // Adjust based on volatility
-        volatility_factor = atr_14 / ta.sma(atr_14, 20)
+        // Volatility factor
+        volatility_factor = atr_14 / ta.sma(atr_14, volatility_lookback)
 
-        // Adjust based on volume
+        // Volume factor
         volume_factor = volume_ratio
 
-        // Higher volatility = higher R:R target
-        // Higher volume = potentially higher R:R target
-        adjustment_factor = (volatility_factor + volume_factor) / 2
+        // Trend strength factor
+        trend_factor = math.abs(close - ema_50) / atr_14
 
+        // Combined adjustment factor
+        adjustment_factor = (volatility_factor + volume_factor + trend_factor) / 3
+
+        // Apply dynamic adjustment (80% to 150% of base R:R)
         dynamic_rr = base_rr * math.max(0.8, math.min(1.5, adjustment_factor))
         dynamic_rr
     else
         base_rr
 
-dynamic_risk_reward_ratio = calculate_dynamic_rr()
-
 // ============================================================================
-// 📏 POSITION SIZING CALCULATIONS
+// 📏 ADVANCED POSITION SIZING ENGINE
 // ============================================================================
 
-// Calculate position size based on risk parameters
-calculate_position_size(risk_amount_per_share, signal_type) =>
-    var float position_size = na
+// Comprehensive position sizing with multiple methods
+calculate_advanced_position_size(entry_price, sl_price, direction) =>
+    var float position_size = 0.0
     var float dollar_risk = na
     var float risk_per_share = na
 
-    if not na(risk_amount_per_share) and risk_amount_per_share > 0
+    if not na(entry_price) and not na(sl_price) and entry_price != sl_price
+        // Calculate dollar risk amount
         if use_fixed_dollar_risk
             dollar_risk := fixed_dollar_risk
         else
             current_account_size = compound_profits ? account_size : account_size
-            dollar_risk := current_account_size * (max_risk_percent / 100)
+            dollar_risk := current_account_size * (risk_per_trade / 100)
 
-        // Convert risk amount to the same units as account size
-        risk_per_share := risk_amount_per_share * syminfo.pointvalue
+        // Calculate risk per pip/point
+        pip_value = syminfo.mintick * 10
+        sl_distance_pips = math.abs(entry_price - sl_price) / pip_value
 
-        if risk_per_share > 0
-            position_size := dollar_risk / risk_per_share
-        else
-            position_size := na
+        if sl_distance_pips > 0
+            switch position_method
+                "FIXED_RISK" =>
+                    value_per_pip = 10.0  // $10 per pip for 1 standard lot in major pairs
+                    position_size := math.min(dollar_risk / (sl_distance_pips * value_per_pip), max_position_size)
+
+                "FIXED_AMOUNT" =>
+                    position_size := fixed_lot_size
+
+                "KELLY_CRITERION" =>
+                    // Kelly Criterion: f* = (bp - q) / b
+                    // where b = odds, p = win probability, q = loss probability
+                    avg_win = base_rr_ratio
+                    avg_loss = 1.0
+                    win_rate = kelly_win_rate
+                    loss_rate = 1 - kelly_win_rate
+
+                    kelly_percentage = (win_rate * avg_win - loss_rate * avg_loss) / avg_win
+                    kelly_position = math.max(0, kelly_percentage * dollar_risk / (sl_distance_pips * 10))
+                    position_size := math.min(kelly_position, max_position_size)
+
+                "VOLATILITY_ADJUSTED" =>
+                    // Adjust position size based on market volatility
+                    volatility_factor = atr_14 / ta.sma(atr_14, volatility_lookback)
+                    adjusted_risk = dollar_risk / math.max(0.5, math.min(2.0, volatility_factor))
+
+                    value_per_pip = 10.0
+                    position_size := math.min(adjusted_risk / (sl_distance_pips * value_per_pip), max_position_size)
+
+                =>
+                    position_size := fixed_lot_size
+
+        risk_per_share := sl_distance_pips * 10
 
     [position_size, dollar_risk, risk_per_share]
 
 // ============================================================================
-// 🎯 SIGNAL DETECTION & RISK APPLICATION
+// 🎯 COMPREHENSIVE RISK/REWARD CALCULATIONS
 // ============================================================================
 
-// Mock signal detection (in real implementation, these would come from other scripts)
-// Simple EMA crossover signals for demonstration
-ema_13 = ta.ema(close, 13)
-ema_50 = ta.ema(close, 50)
+// Current market data for calculations
+current_entry = close
+dynamic_rr_ratio = calculate_dynamic_rr()
 
-// Bearish signal (M pattern simulation)
-bearish_signal = ta.crossunder(close, ema_13) and close[1] > ema_13 and volume > volume_ma * 1.5
-mock_m_peak = bearish_signal ? ta.highest(high, 10) : na
-mock_m_valley = bearish_signal ? ta.lowest(low, 5) : na
+// Mock pattern detection (in real implementation, would come from Pattern Detection script)
+simple_bullish_signal = ta.crossover(close, ema_13) and close[1] < ema_13 and volume > volume_ma * 1.2
+simple_bearish_signal = ta.crossunder(close, ema_13) and close[1] > ema_13 and volume > volume_ma * 1.2
 
-// Bullish signal (W pattern simulation)
-bullish_signal = ta.crossover(close, ema_13) and close[1] < ema_13 and volume > volume_ma * 1.5
-mock_w_peak = bullish_signal ? ta.highest(high, 5) : na
-mock_w_valley = bullish_signal ? ta.lowest(low, 10) : na
+mock_pattern_high = simple_bearish_signal ? ta.highest(high, 10) : na
+mock_pattern_low = simple_bullish_signal ? ta.lowest(low, 10) : na
 
-// Calculate risk levels for active signals
-[m_stop, m_tp1, m_tp2, m_tp3, m_risk, m_reward1, m_reward2, m_reward3] = bearish_signal and not na(mock_m_peak) and not na(mock_m_valley) ?
-    calculate_risk_levels("SELL", close, mock_m_peak, mock_m_valley) :
-    [na, na, na, na, na, na, na, na]
-
-[w_stop, w_tp1, w_tp2, w_tp3, w_risk, w_reward1, w_reward2, w_reward3] = bullish_signal and not na(mock_w_peak) and not na(mock_w_valley) ?
-    calculate_risk_levels("BUY", close, mock_w_peak, mock_w_valley) :
-    [na, na, na, na, na, na, na, na]
+// Calculate stop losses for both directions
+long_sl = calculate_comprehensive_stop_loss(current_entry, "LONG", mock_pattern_high, mock_pattern_low)
+short_sl = calculate_comprehensive_stop_loss(current_entry, "SHORT", mock_pattern_high, mock_pattern_low)
 
 // Calculate position sizes
-[m_position_size, m_dollar_risk, m_risk_per_share] = bearish_signal and not na(m_risk) ?
-    calculate_position_size(m_risk, "SELL") : [na, na, na]
+[long_position_size, long_dollar_risk, long_risk_per_share] = calculate_advanced_position_size(current_entry, long_sl, "LONG")
+[short_position_size, short_dollar_risk, short_risk_per_share] = calculate_advanced_position_size(current_entry, short_sl, "SHORT")
 
-[w_position_size, w_dollar_risk, w_risk_per_share] = bullish_signal and not na(w_risk) ?
-    calculate_position_size(w_risk, "BUY") : [na, na, na]
+// Calculate comprehensive R:R zones
+long_risk = math.abs(current_entry - long_sl)
+short_risk = math.abs(current_entry - short_sl)
 
-// ============================================================================
-// 🎨 VISUAL ELEMENTS & RISK LEVEL DRAWING
-// ============================================================================
+// Multiple take profit levels
+long_tp1 = current_entry + (long_risk * tp1_ratio)
+long_tp2 = current_entry + (long_risk * tp2_ratio * dynamic_rr_ratio)
+long_tp3 = current_entry + (long_risk * tp3_ratio * dynamic_rr_ratio)
 
-// Draw risk levels for bearish signals
-draw_bearish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, dollar_risk) =>
-    if show_risk_levels and not na(stop_loss)
-        // Entry line
-        entry_line = line.new(bar_index, entry_price, bar_index + 20, entry_price,
-                             color=color.white, width=risk_line_width, style=line.style_solid)
-
-        // Stop loss line
-        stop_line = line.new(bar_index, stop_loss, bar_index + 20, stop_loss,
-                            color=color.red, width=risk_line_width, style=line.style_dashed)
-
-        // Take profit lines
-        tp1_line = line.new(bar_index, tp1, bar_index + 20, tp1,
-                           color=color.green, width=risk_line_width, style=line.style_dashed)
-        tp2_line = line.new(bar_index, tp2, bar_index + 20, tp2,
-                           color=color.lime, width=risk_line_width - 1, style=line.style_dotted)
-        tp3_line = line.new(bar_index, tp3, bar_index + 20, tp3,
-                           color=color.yellow, width=risk_line_width - 1, style=line.style_dotted)
-
-        // Risk box (red)
-        risk_box = box.new(bar_index, entry_price, bar_index + 15, stop_loss,
-                          border_color=color.red, bgcolor=color.new(color.red, risk_transparency),
-                          border_width=1)
-
-        // Reward boxes (green gradient)
-        reward_box1 = box.new(bar_index, entry_price, bar_index + 15, tp1,
-                             border_color=color.green, bgcolor=color.new(color.green, risk_transparency),
-                             border_width=1)
-
-        // Risk/Reward information label
-        rr_text = "🔴 BEARISH SETUP\n" +
-                 "Entry: " + str.tostring(entry_price, "#.#####") + "\n" +
-                 "Stop: " + str.tostring(stop_loss, "#.#####") + "\n" +
-                 "TP1: " + str.tostring(tp1, "#.#####") + " (R:" + str.tostring(dynamic_risk_reward_ratio, "#.#") + ")\n" +
-                 "TP2: " + str.tostring(tp2, "#.#####") + " (R:" + str.tostring(dynamic_risk_reward_ratio * 1.5, "#.#") + ")\n" +
-                 "Risk: $" + str.tostring(dollar_risk, "#") + "\n" +
-                 "Size: " + str.tostring(position_size, "#.##") + " units"
-
-        label.new(bar_index + 10, (entry_price + tp1) / 2, rr_text,
-                 style=label.style_label_left, color=color.red, textcolor=color.white, size=label_text_size)
-
-// Draw risk levels for bullish signals
-draw_bullish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, dollar_risk) =>
-    if show_risk_levels and not na(stop_loss)
-        // Entry line
-        entry_line = line.new(bar_index, entry_price, bar_index + 20, entry_price,
-                             color=color.white, width=risk_line_width, style=line.style_solid)
-
-        // Stop loss line
-        stop_line = line.new(bar_index, stop_loss, bar_index + 20, stop_loss,
-                            color=color.red, width=risk_line_width, style=line.style_dashed)
-
-        // Take profit lines
-        tp1_line = line.new(bar_index, tp1, bar_index + 20, tp1,
-                           color=color.green, width=risk_line_width, style=line.style_dashed)
-        tp2_line = line.new(bar_index, tp2, bar_index + 20, tp2,
-                           color=color.lime, width=risk_line_width - 1, style=line.style_dotted)
-        tp3_line = line.new(bar_index, tp3, bar_index + 20, tp3,
-                           color=color.yellow, width=risk_line_width - 1, style=line.style_dotted)
-
-        // Risk box (red)
-        risk_box = box.new(bar_index, entry_price, bar_index + 15, stop_loss,
-                          border_color=color.red, bgcolor=color.new(color.red, risk_transparency),
-                          border_width=1)
-
-        // Reward box (green)
-        reward_box1 = box.new(bar_index, entry_price, bar_index + 15, tp1,
-                             border_color=color.green, bgcolor=color.new(color.green, risk_transparency),
-                             border_width=1)
-
-        // Risk/Reward information label
-        rr_text = "🟢 BULLISH SETUP\n" +
-                 "Entry: " + str.tostring(entry_price, "#.#####") + "\n" +
-                 "Stop: " + str.tostring(stop_loss, "#.#####") + "\n" +
-                 "TP1: " + str.tostring(tp1, "#.#####") + " (R:" + str.tostring(dynamic_risk_reward_ratio, "#.#") + ")\n" +
-                 "TP2: " + str.tostring(tp2, "#.#####") + " (R:" + str.tostring(dynamic_risk_reward_ratio * 1.5, "#.#") + ")\n" +
-                 "Risk: $" + str.tostring(dollar_risk, "#") + "\n" +
-                 "Size: " + str.tostring(position_size, "#.##") + " units"
-
-        label.new(bar_index + 10, (entry_price + tp1) / 2, rr_text,
-                 style=label.style_label_left, color=color.green, textcolor=color.white, size=label_text_size)
-
-// Apply risk level drawing for active signals
-if bearish_signal and not na(m_stop)
-    draw_bearish_risk_levels(close, m_stop, m_tp1, m_tp2, m_tp3, m_position_size, m_dollar_risk)
-
-if bullish_signal and not na(w_stop)
-    draw_bullish_risk_levels(close, w_stop, w_tp1, w_tp2, w_tp3, w_position_size, w_dollar_risk)
+short_tp1 = current_entry - (short_risk * tp1_ratio)
+short_tp2 = current_entry - (short_risk * tp2_ratio * dynamic_rr_ratio)
+short_tp3 = current_entry - (short_risk * tp3_ratio * dynamic_rr_ratio)
 
 // ============================================================================
-// 📊 RISK STATISTICS TABLE
+// 🎨 COMPREHENSIVE VISUAL ELEMENTS
 // ============================================================================
 
-var table risk_stats_table = na
+// Plot stop loss and take profit levels
+plot(show_risk_levels and show_sl_levels ? long_sl : na, "Long SL", color=sl_line_color, linewidth=line_width, style=plot.style_line)
+plot(show_risk_levels and show_sl_levels ? short_sl : na, "Short SL", color=sl_line_color, linewidth=line_width, style=plot.style_line)
 
-if show_statistics and barstate.islast
-    if not na(risk_stats_table)
-        table.delete(risk_stats_table)
+// Multiple take profit levels
+plot(show_risk_levels and show_multiple_targets ? long_tp1 : na, "Long TP1", color=color.new(tp_line_color, 60), linewidth=1, style=plot.style_circles)
+plot(show_risk_levels and show_multiple_targets ? long_tp2 : na, "Long TP2", color=tp_line_color, linewidth=line_width, style=plot.style_line)
+plot(show_risk_levels and show_multiple_targets ? long_tp3 : na, "Long TP3", color=color.new(tp_line_color, 40), linewidth=1, style=plot.style_cross)
 
-    risk_stats_table := table.new(position.bottom_left, 3, 9, bgcolor=color.white, border_width=1)
+plot(show_risk_levels and show_multiple_targets ? short_tp1 : na, "Short TP1", color=color.new(tp_line_color, 60), linewidth=1, style=plot.style_circles)
+plot(show_risk_levels and show_multiple_targets ? short_tp2 : na, "Short TP2", color=tp_line_color, linewidth=line_width, style=plot.style_line)
+plot(show_risk_levels and show_multiple_targets ? short_tp3 : na, "Short TP3", color=color.new(tp_line_color, 40), linewidth=1, style=plot.style_cross)
+
+// R:R Zone boxes
+if show_rr_zones and barstate.islast
+    // Long R:R zone
+    box.new(bar_index - 15, current_entry, bar_index + 10, long_tp2, bgcolor=bullish_color, border_color=color.green, border_width=1)
+
+    // Short R:R zone
+    box.new(bar_index - 15, current_entry, bar_index + 10, short_tp2, bgcolor=bearish_color, border_color=color.red, border_width=1)
+
+// Dynamic labels for key levels
+if show_risk_levels and barstate.islast
+    if show_sl_levels
+        label.new(bar_index + 3, long_sl, "LONG SL\n" + sl_method, style=label.style_label_left, color=color.red, textcolor=color.white, size=label_text_size)
+        label.new(bar_index + 3, short_sl, "SHORT SL\n" + sl_method, style=label.style_label_left, color=color.red, textcolor=color.white, size=label_text_size)
+
+    if show_multiple_targets
+        label.new(bar_index + 3, long_tp2, "LONG " + str.tostring(tp2_ratio * dynamic_rr_ratio, "#.#") + "R", style=label.style_label_left, color=color.green, textcolor=color.white, size=size.small)
+        label.new(bar_index + 3, short_tp2, "SHORT " + str.tostring(tp2_ratio * dynamic_rr_ratio, "#.#") + "R", style=label.style_label_left, color=color.green, textcolor=color.white, size=size.small)
+
+// ============================================================================
+// 📊 COMPREHENSIVE RISK MANAGEMENT DASHBOARD
+// ============================================================================
+
+if show_risk_table and barstate.islast
+    var table risk_table = table.new(position.middle_right, 3, 12, bgcolor=color.new(color.white, 5), border_width=2)
 
     // Headers
-    table.cell(risk_stats_table, 0, 0, "RISK STATS", bgcolor=color.navy, text_color=color.white, text_size=size.small)
-    table.cell(risk_stats_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.small)
-    table.cell(risk_stats_table, 2, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 0, 0, "RISK MANAGEMENT", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(risk_table, 1, 0, "LONG", bgcolor=color.new(color.green, 20), text_color=color.white, text_size=size.normal)
+    table.cell(risk_table, 2, 0, "SHORT", bgcolor=color.new(color.red, 20), text_color=color.white, text_size=size.normal)
 
-    // Statistics rows
-    table.cell(risk_stats_table, 0, 1, "Account Size", text_color=color.black, text_size=size.tiny)
-    table.cell(risk_stats_table, 1, 1, "$" + str.tostring(account_size, "#"), text_color=color.blue, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 1, "✅", text_color=color.green, text_size=size.tiny)
+    // Account Information
+    table.cell(risk_table, 0, 1, "Account Size", bgcolor=color.gray, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 1, "$" + str.tostring(account_size, "#,###"), bgcolor=color.new(color.gray, 80), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 1, "Risk: " + str.tostring(risk_per_trade, "#.#") + "%", bgcolor=color.new(color.gray, 80), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 2, "Max Risk %", text_color=color.black, text_size=size.tiny)
-    table.cell(risk_stats_table, 1, 2, str.tostring(max_risk_percent, "#.#") + "%", text_color=color.orange, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 2, max_risk_percent <= 3.0 ? "✅" : "⚠️", text_color=max_risk_percent <= 3.0 ? color.green : color.orange, text_size=size.tiny)
+    // Stop Loss Method & Levels
+    table.cell(risk_table, 0, 2, "SL Method", bgcolor=color.maroon, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 2, sl_method, bgcolor=color.new(color.red, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 2, sl_method, bgcolor=color.new(color.red, 70), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 3, "ATR 14", text_color=color.black, text_size=size.tiny)
-    table.cell(risk_stats_table, 1, 3, str.tostring(atr_14 * 10000, "#") + " pips", text_color=color.purple, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 3, atr_14 > 0 ? "✅" : "❌", text_color=atr_14 > 0 ? color.green : color.red, text_size=size.tiny)
+    // Stop Loss Prices
+    table.cell(risk_table, 0, 3, "Stop Loss", bgcolor=color.red, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 3, not na(long_sl) ? str.tostring(long_sl, "#.#####") : "N/A", bgcolor=color.new(color.red, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 3, not na(short_sl) ? str.tostring(short_sl, "#.#####") : "N/A", bgcolor=color.new(color.red, 70), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 4, "R:R Ratio", text_color=color.black, text_size=size.tiny)
-    table.cell(risk_stats_table, 1, 4, "1:" + str.tostring(dynamic_risk_reward_ratio, "#.#"), text_color=color.green, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 4, dynamic_risk_reward_ratio >= 2.0 ? "✅" : "⚠️", text_color=dynamic_risk_reward_ratio >= 2.0 ? color.green : color.orange, text_size=size.tiny)
+    // Position Sizing
+    table.cell(risk_table, 0, 4, "Position Size", bgcolor=color.blue, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 4, str.tostring(long_position_size, "#.##") + " lots", bgcolor=color.new(color.blue, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 4, str.tostring(short_position_size, "#.##") + " lots", bgcolor=color.new(color.blue, 70), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 5, "Volume Ratio", text_color=color.black, text_size=size.tiny)
-    table.cell(risk_stats_table, 1, 5, str.tostring(volume_ratio, "#.#") + "x", text_color=color.blue, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 5, volume_ratio > 1.0 ? "✅" : "❌", text_color=volume_ratio > 1.0 ? color.green : color.red, text_size=size.tiny)
+    // Position Method
+    table.cell(risk_table, 0, 5, "Sizing Method", bgcolor=color.purple, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 5, position_method, bgcolor=color.new(color.purple, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 5, position_method, bgcolor=color.new(color.purple, 70), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 6, "Volatility", text_color=color.black, text_size=size.tiny)
-    volatility_ratio = atr_14 / ta.sma(atr_14, 20)
-    table.cell(risk_stats_table, 1, 6, str.tostring(volatility_ratio, "#.##") + "x", text_color=color.purple, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 6, volatility_ratio > 0.8 and volatility_ratio < 1.5 ? "✅" : "⚠️", text_color=volatility_ratio > 0.8 and volatility_ratio < 1.5 ? color.green : color.orange, text_size=size.tiny)
+    // Risk Amount
+    table.cell(risk_table, 0, 6, "Risk Amount", bgcolor=color.orange, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 6, "$" + str.tostring(long_dollar_risk, "#,###"), bgcolor=color.new(color.orange, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 6, "$" + str.tostring(short_dollar_risk, "#,###"), bgcolor=color.new(color.orange, 70), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 7, "Active Signals", text_color=color.black, text_size=size.tiny)
-    active_signals = (bearish_signal ? 1 : 0) + (bullish_signal ? 1 : 0)
-    table.cell(risk_stats_table, 1, 7, str.tostring(active_signals), text_color=active_signals > 0 ? color.green : color.gray, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 7, active_signals > 0 ? "📊" : "💤", text_color=active_signals > 0 ? color.green : color.gray, text_size=size.tiny)
+    // R:R Ratios
+    table.cell(risk_table, 0, 7, "Target R:R", bgcolor=color.green, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 7, str.tostring(dynamic_rr_ratio, "#.#") + ":1", bgcolor=color.new(color.green, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 7, str.tostring(dynamic_rr_ratio, "#.#") + ":1", bgcolor=color.new(color.green, 70), text_color=color.white, text_size=size.small)
 
-    table.cell(risk_stats_table, 0, 8, "System Status", text_color=color.black, text_size=size.tiny)
-    table.cell(risk_stats_table, 1, 8, "BTMM v2.0", text_color=color.navy, text_size=size.tiny)
-    table.cell(risk_stats_table, 2, 8, "🟢 ACTIVE", text_color=color.green, text_size=size.tiny)
+    // Take Profit 2 (Primary Target)
+    table.cell(risk_table, 0, 8, "TP2 Price", bgcolor=color.lime, text_color=color.black, text_size=size.small)
+    table.cell(risk_table, 1, 8, not na(long_tp2) ? str.tostring(long_tp2, "#.#####") : "N/A", bgcolor=color.new(color.green, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 8, not na(short_tp2) ? str.tostring(short_tp2, "#.#####") : "N/A", bgcolor=color.new(color.green, 70), text_color=color.white, text_size=size.small)
+
+    // Potential Profit
+    long_potential_profit = not na(long_tp2) and not na(long_position_size) ? (long_tp2 - current_entry) * long_position_size * 100000 / 100 : 0
+    short_potential_profit = not na(short_tp2) and not na(short_position_size) ? (current_entry - short_tp2) * short_position_size * 100000 / 100 : 0
+
+    table.cell(risk_table, 0, 9, "Potential Profit", bgcolor=color.teal, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 9, "$" + str.tostring(long_potential_profit, "#,###"), bgcolor=color.new(color.green, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 9, "$" + str.tostring(short_potential_profit, "#,###"), bgcolor=color.new(color.green, 70), text_color=color.white, text_size=size.small)
+
+    // Market Conditions
+    market_condition = volume_ratio > 1.5 ? "HIGH VOL" : volume_ratio > 1.2 ? "NORMAL" : "LOW VOL"
+    trend_condition = close > ema_50 ? "BULLISH" : close < ema_50 ? "BEARISH" : "NEUTRAL"
+
+    table.cell(risk_table, 0, 10, "Market State", bgcolor=color.yellow, text_color=color.black, text_size=size.small)
+    table.cell(risk_table, 1, 10, market_condition, bgcolor=color.new(color.yellow, 70), text_color=color.black, text_size=size.small)
+    table.cell(risk_table, 2, 10, trend_condition, bgcolor=color.new(color.yellow, 70), text_color=color.black, text_size=size.small)
+
+    // System Status
+    system_status = dynamic_rr_adjustment ? "DYNAMIC" : "STATIC"
+    risk_status = (risk_per_trade <= 2.0) ? "CONSERVATIVE" : (risk_per_trade <= 3.0) ? "MODERATE" : "AGGRESSIVE"
+
+    table.cell(risk_table, 0, 11, "System Mode", bgcolor=color.navy, text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 1, 11, system_status, bgcolor=color.new(color.navy, 70), text_color=color.white, text_size=size.small)
+    table.cell(risk_table, 2, 11, risk_status, bgcolor=color.new(color.navy, 70), text_color=color.white, text_size=size.small)
 
 // ============================================================================
-// 📊 DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// 🚨 COMPREHENSIVE ALERT SYSTEM
 // ============================================================================
 
-plot(m_stop, "M_Stop_Loss", display=display.data_window)
-plot(m_tp1, "M_Take_Profit_1", display=display.data_window)
-plot(m_tp2, "M_Take_Profit_2", display=display.data_window)
-plot(m_tp3, "M_Take_Profit_3", display=display.data_window)
-plot(m_risk, "M_Risk_Amount", display=display.data_window)
-plot(m_position_size, "M_Position_Size", display=display.data_window)
-plot(m_dollar_risk, "M_Dollar_Risk", display=display.data_window)
+alert_freq = alert_frequency == "once_per_bar" ? alert.freq_once_per_bar : alert.freq_once_per_bar_close
 
-plot(w_stop, "W_Stop_Loss", display=display.data_window)
-plot(w_tp1, "W_Take_Profit_1", display=display.data_window)
-plot(w_tp2, "W_Take_Profit_2", display=display.data_window)
-plot(w_tp3, "W_Take_Profit_3", display=display.data_window)
-plot(w_risk, "W_Risk_Amount", display=display.data_window)
-plot(w_position_size, "W_Position_Size", display=display.data_window)
-plot(w_dollar_risk, "W_Dollar_Risk", display=display.data_window)
+// Risk breach alerts
+if enable_risk_breach_alerts and risk_per_trade > max_risk_per_day
+    alert("⚠️ RISK BREACH WARNING!\n" +
+          "Current Risk: " + str.tostring(risk_per_trade, "#.#") + "%\n" +
+          "Max Daily Risk: " + str.tostring(max_risk_per_day, "#.#") + "%\n" +
+          "Reduce position size or skip trade!", alert_freq)
 
-plot(dynamic_risk_reward_ratio, "Dynamic_RR_Ratio", display=display.data_window)
-plot(atr_current, "ATR_Current", display=display.data_window)
+// Position size alerts
+if enable_position_alerts
+    if long_position_size > max_position_size * 0.9
+        alert("📊 LARGE POSITION ALERT - LONG\n" +
+              "Position Size: " + str.tostring(long_position_size, "#.##") + " lots\n" +
+              "Risk Amount: $" + str.tostring(long_dollar_risk, "#,###"), alert_freq)
+
+    if short_position_size > max_position_size * 0.9
+        alert("📊 LARGE POSITION ALERT - SHORT\n" +
+              "Position Size: " + str.tostring(short_position_size, "#.##") + " lots\n" +
+              "Risk Amount: $" + str.tostring(short_dollar_risk, "#,###"), alert_freq)
+
+// ============================================================================
+// 📤 COMPREHENSIVE DATA OUTPUTS
+// ============================================================================
+
+// Export key data for other scripts
+plot(long_sl, "Long_Stop_Loss", display=display.data_window)
+plot(short_sl, "Short_Stop_Loss", display=display.data_window)
+plot(long_tp2, "Long_Take_Profit_2R", display=display.data_window)
+plot(short_tp2, "Short_Take_Profit_2R", display=display.data_window)
+plot(long_position_size, "Long_Position_Size", display=display.data_window)
+plot(short_position_size, "Short_Position_Size", display=display.data_window)
+plot(dynamic_rr_ratio, "Dynamic_RR_Ratio", display=display.data_window)
+plot(long_dollar_risk, "Long_Dollar_Risk", display=display.data_window)
+plot(short_dollar_risk, "Short_Dollar_Risk", display=display.data_window)
 plot(volume_ratio, "Volume_Ratio", display=display.data_window)
-plot(bearish_signal ? 1 : 0, "Bearish_Signal", display=display.data_window)
-plot(bullish_signal ? 1 : 0, "Bullish_Signal", display=display.data_window)
-
-// Risk management validation
-plot(max_risk_percent <= 3.0 ? 1 : 0, "Risk_Valid", display=display.data_window)
-plot(dynamic_risk_reward_ratio >= 2.0 ? 1 : 0, "RR_Valid", display=display.data_window)
-plot(not na(m_position_size) or not na(w_position_size) ? 1 : 0, "Position_Calculated", display=display.data_window)
+plot(atr_current, "ATR_Current", display=display.data_window)
