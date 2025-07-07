@@ -1353,36 +1353,36 @@ plot(early_bullish_entry ? 1 : 0, "Early Bullish Entry", color=color.blue, displ
 plot(early_bearish_entry ? 1 : 0, "Early Bearish Entry", color=color.purple, display=display.data_window)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
-// 📊 EXPORT VALUES FOR OTHER SCRIPTS
+// 📊 DATA OUTPUTS FOR OTHER SCRIPTS (INDICATOR SECTION)
 // ═══════════════════════════════════════════════════════════════════════════════════
 
+// Note: Converting export statements to plot() for indicator script compatibility
 // Export user's simplified entry signals
-export m_pattern_confirmed
-export w_pattern_confirmed
-export m_second_leg_active
-export w_second_leg_active
-export early_bullish_entry
-export early_bearish_entry
-export pattern_name
-export ema_13
+plot(m_pattern_confirmed ? 1 : 0, "M_Pattern_Confirmed", display=display.data_window)
+plot(w_pattern_confirmed ? 1 : 0, "W_Pattern_Confirmed", display=display.data_window)
+plot(m_second_leg_active ? 1 : 0, "M_Second_Leg_Active", display=display.data_window)
+plot(w_second_leg_active ? 1 : 0, "W_Second_Leg_Active", display=display.data_window)
+plot(early_bullish_entry ? 1 : 0, "Early_Bullish_Entry", display=display.data_window)
+plot(early_bearish_entry ? 1 : 0, "Early_Bearish_Entry", display=display.data_window)
+plot(ema_13, "EMA_13", display=display.data_window)
 
 // Export candlestick pattern detection
-export bullish_patterns
-export bearish_patterns
-export indecision_patterns
-export any_pattern_active
+plot(bullish_patterns ? 1 : 0, "Bullish_Patterns", display=display.data_window)
+plot(bearish_patterns ? 1 : 0, "Bearish_Patterns", display=display.data_window)
+plot(indecision_patterns ? 1 : 0, "Indecision_Patterns", display=display.data_window)
+plot(any_pattern_active ? 1 : 0, "Any_Pattern_Active", display=display.data_window)
 
 // Export specific pattern signals
-export hammer
-export shooting_star
-export railroad_bull
-export railroad_bear
-export bullish_engulfing
-export bearish_engulfing
-export morning_star
-export evening_star
-export doji
-export cord_of_wood
+plot(hammer ? 1 : 0, "Hammer", display=display.data_window)
+plot(shooting_star ? 1 : 0, "Shooting_Star", display=display.data_window)
+plot(railroad_bull ? 1 : 0, "Railroad_Bull", display=display.data_window)
+plot(railroad_bear ? 1 : 0, "Railroad_Bear", display=display.data_window)
+plot(bullish_engulfing ? 1 : 0, "Bullish_Engulfing", display=display.data_window)
+plot(bearish_engulfing ? 1 : 0, "Bearish_Engulfing", display=display.data_window)
+plot(morning_star ? 1 : 0, "Morning_Star", display=display.data_window)
+plot(evening_star ? 1 : 0, "Evening_Star", display=display.data_window)
+plot(doji ? 1 : 0, "Doji", display=display.data_window)
+plot(cord_of_wood ? 1 : 0, "Cord_Of_Wood", display=display.data_window)
 // ============================================================================
 // MERGED FROM: BTMM_Market_Maker_Phases
 // ============================================================================
@@ -1790,17 +1790,18 @@ if show_performance_table and barstate.islast
     table.cell(summary_table, 1, 5, recommendation, bgcolor=rec_color, text_color=color.white)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
-// 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
+// 📤 PERFORMANCE DATA OUTPUTS FOR INTEGRATION WITH OTHER SCRIPTS
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-export win_rate
-export profit_factor
-export total_return
-export max_drawdown
-export current_balance
-export total_trades
-export in_long_trade
-export in_short_trade
+// Note: Converting export statements to plot() for indicator script compatibility
+plot(win_rate, "Win_Rate", display=display.data_window)
+plot(profit_factor, "Profit_Factor", display=display.data_window)
+plot(total_return, "Total_Return", display=display.data_window)
+plot(max_drawdown, "Max_Drawdown", display=display.data_window)
+plot(current_balance, "Current_Balance", display=display.data_window)
+plot(total_trades, "Total_Trades", display=display.data_window)
+plot(in_long_trade ? 1 : 0, "In_Long_Trade", display=display.data_window)
+plot(in_short_trade ? 1 : 0, "In_Short_Trade", display=display.data_window)
 // ============================================================================
 // MERGED FROM: BTMM_Custom_Candles
 // ============================================================================
@@ -2258,3 +2259,6 @@ export get_btmm_system_status() =>
                    system_health_score >= 40 ? "FAIR" : "SUBOPTIMAL"
 
     [session, cycle_day, cycle_phase, tf_quality, system_health_score, system_status]
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 DATA OUTPUTS FOR OTHER SCRIPTS (INDICATOR SECTION)

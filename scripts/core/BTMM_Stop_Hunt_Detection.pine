@@ -585,13 +585,14 @@ if enable_fib_touch_alerts
 // 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-export in_ote_zone
-export ote_strength
-export in_premium_zone
-export in_discount_zone
-export is_uptrend
-export fib_705
-export fib_79
-export fib_618
-export fib_786
-export current_range_position
+// Note: Converting export statements to plot() for indicator script compatibility
+plot(in_ote_zone ? 1 : 0, "In_OTE_Zone", display=display.data_window)
+plot(ote_strength, "OTE_Strength", display=display.data_window)
+plot(in_premium_zone ? 1 : 0, "In_Premium_Zone", display=display.data_window)
+plot(in_discount_zone ? 1 : 0, "In_Discount_Zone", display=display.data_window)
+plot(is_uptrend ? 1 : 0, "Is_Uptrend", display=display.data_window)
+plot(fib_705, "Fib_705", display=display.data_window)
+plot(fib_79, "Fib_79", display=display.data_window)
+plot(fib_618, "Fib_618", display=display.data_window)
+plot(fib_786, "Fib_786", display=display.data_window)
+plot(current_range_position, "Current_Range_Position", display=display.data_window)

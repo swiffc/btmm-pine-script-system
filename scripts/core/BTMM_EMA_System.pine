@@ -1,9 +1,9 @@
 //@version=5
-indicator("BTMM Risk Management - Script 5/10", 
-         shorttitle="BTMM-Risk", 
-         overlay=true, 
+indicator("BTMM Risk Management - Script 5/10",
+         shorttitle="BTMM-Risk",
+         overlay=true,
          max_boxes_count=100,
-         max_lines_count=100, 
+         max_lines_count=100,
          max_labels_count=100,
          max_tables_count=2)
 
@@ -83,7 +83,7 @@ else if not asian_session and asian_session[1]
 // Calculate Stop Loss Levels
 calculate_stop_loss(entry_price, direction) =>
     var float sl_level = na
-    
+
     switch sl_method
         "ATR" =>
             sl_level := direction == "LONG" ? entry_price - (atr_value * atr_multiplier) : entry_price + (atr_value * atr_multiplier)
@@ -97,22 +97,22 @@ calculate_stop_loss(entry_price, direction) =>
         "MANUAL" =>
             pip_value = syminfo.mintick * 10
             sl_level := direction == "LONG" ? entry_price - (manual_sl_pips * pip_value) : entry_price + (manual_sl_pips * pip_value)
-        => 
+        =>
             sl_level := direction == "LONG" ? entry_price - (atr_value * atr_multiplier) : entry_price + (atr_value * atr_multiplier)
-    
+
     sl_level
 
 // Calculate Position Size
 calculate_position_size(entry_price, sl_price, direction) =>
     var float position_size = 0.0
-    
+
     if not na(entry_price) and not na(sl_price)
         risk_amount = account_size * (risk_per_trade / 100)
-        
+
         // Calculate risk per pip
         pip_value = syminfo.mintick * 10
         sl_distance_pips = math.abs(entry_price - sl_price) / pip_value
-        
+
         switch position_method
             "FIXED_RISK" =>
                 if sl_distance_pips > 0
@@ -131,7 +131,7 @@ calculate_position_size(entry_price, sl_price, direction) =>
                 position_size := math.min(kelly_position, max_position_size)
             =>
                 position_size := fixed_lot_size
-    
+
     position_size
 
 // Current price for calculations
@@ -178,7 +178,7 @@ plot(show_rr_zones ? short_tp_3r : na, "Short TP 3R", color=color.new(tp_line_co
 if show_rr_zones and barstate.islast
     // Long R:R zones
     box.new(bar_index - 10, current_entry, bar_index + 5, long_tp_2r, bgcolor=bullish_color, border_color=color.green, border_width=1)
-    
+
     // Short R:R zones
     box.new(bar_index - 10, current_entry, bar_index + 5, short_tp_2r, bgcolor=bearish_color, border_color=color.red, border_width=1)
 
@@ -197,46 +197,46 @@ if show_rr_zones and barstate.islast
 
 if show_risk_table and barstate.islast
     var table risk_table = table.new(position.middle_right, 3, 8, bgcolor=color.new(color.white, 10), border_width=2)
-    
+
     // Header
     table.cell(risk_table, 0, 0, "RISK MANAGEMENT", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
     table.cell(risk_table, 1, 0, "LONG", bgcolor=color.green, text_color=color.white, text_size=size.normal)
     table.cell(risk_table, 2, 0, "SHORT", bgcolor=color.red, text_color=color.white, text_size=size.normal)
-    
+
     // Entry Price
     table.cell(risk_table, 0, 1, "Entry Price", bgcolor=color.blue, text_color=color.white)
     table.cell(risk_table, 1, 1, str.tostring(current_entry, "#.#####"), bgcolor=color.new(color.blue, 70), text_color=color.white)
     table.cell(risk_table, 2, 1, str.tostring(current_entry, "#.#####"), bgcolor=color.new(color.blue, 70), text_color=color.white)
-    
+
     // Stop Loss
     table.cell(risk_table, 0, 2, "Stop Loss", bgcolor=color.red, text_color=color.white)
     table.cell(risk_table, 1, 2, str.tostring(long_sl, "#.#####"), bgcolor=color.new(color.red, 70), text_color=color.white)
     table.cell(risk_table, 2, 2, str.tostring(short_sl, "#.#####"), bgcolor=color.new(color.red, 70), text_color=color.white)
-    
+
     // Risk (Pips)
     long_risk_pips = math.abs(current_entry - long_sl) / (syminfo.mintick * 10)
     short_risk_pips = math.abs(current_entry - short_sl) / (syminfo.mintick * 10)
     table.cell(risk_table, 0, 3, "Risk (Pips)", bgcolor=color.orange, text_color=color.white)
     table.cell(risk_table, 1, 3, str.tostring(long_risk_pips, "#.#"), bgcolor=color.new(color.orange, 70), text_color=color.white)
     table.cell(risk_table, 2, 3, str.tostring(short_risk_pips, "#.#"), bgcolor=color.new(color.orange, 70), text_color=color.white)
-    
+
     // Position Size
     table.cell(risk_table, 0, 4, "Position Size", bgcolor=color.purple, text_color=color.white)
     table.cell(risk_table, 1, 4, str.tostring(long_position_size, "#.##") + " lots", bgcolor=color.new(color.purple, 70), text_color=color.white)
     table.cell(risk_table, 2, 4, str.tostring(short_position_size, "#.##") + " lots", bgcolor=color.new(color.purple, 70), text_color=color.white)
-    
+
     // Risk Amount ($)
     long_risk_amount = long_position_size * long_risk_pips * 10
     short_risk_amount = short_position_size * short_risk_pips * 10
     table.cell(risk_table, 0, 5, "Risk Amount", bgcolor=color.maroon, text_color=color.white)
     table.cell(risk_table, 1, 5, "$" + str.tostring(long_risk_amount, "#.##"), bgcolor=color.new(color.maroon, 70), text_color=color.white)
     table.cell(risk_table, 2, 5, "$" + str.tostring(short_risk_amount, "#.##"), bgcolor=color.new(color.maroon, 70), text_color=color.white)
-    
+
     // Target 2R
     table.cell(risk_table, 0, 6, "Target 2R", bgcolor=color.green, text_color=color.white)
     table.cell(risk_table, 1, 6, str.tostring(long_tp_2r, "#.#####"), bgcolor=color.new(color.green, 70), text_color=color.white)
     table.cell(risk_table, 2, 6, str.tostring(short_tp_2r, "#.#####"), bgcolor=color.new(color.green, 70), text_color=color.white)
-    
+
     // Potential Profit 2R
     long_profit_2r = long_position_size * (long_risk_pips * 2) * 10
     short_profit_2r = short_position_size * (short_risk_pips * 2) * 10
@@ -247,25 +247,25 @@ if show_risk_table and barstate.islast
 // Account Risk Summary
 if show_position_info and barstate.islast
     var table account_table = table.new(position.bottom_right, 2, 5, bgcolor=color.new(color.white, 10), border_width=2)
-    
+
     // Header
     table.cell(account_table, 0, 0, "ACCOUNT RISK", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
     table.cell(account_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
-    
+
     // Account Size
     table.cell(account_table, 0, 1, "Account Size", bgcolor=color.blue, text_color=color.white)
     table.cell(account_table, 1, 1, "$" + str.tostring(account_size, "#,###"), bgcolor=color.new(color.blue, 70), text_color=color.white)
-    
+
     // Risk Per Trade
     risk_dollar_amount = account_size * (risk_per_trade / 100)
     table.cell(account_table, 0, 2, "Risk Per Trade", bgcolor=color.orange, text_color=color.white)
     table.cell(account_table, 1, 2, str.tostring(risk_per_trade, "#.#") + "% ($" + str.tostring(risk_dollar_amount, "#.##") + ")", bgcolor=color.new(color.orange, 70), text_color=color.white)
-    
+
     // Max Daily Risk
     max_daily_risk_amount = account_size * (max_risk_per_day / 100)
     table.cell(account_table, 0, 3, "Max Daily Risk", bgcolor=color.red, text_color=color.white)
     table.cell(account_table, 1, 3, str.tostring(max_risk_per_day, "#.#") + "% ($" + str.tostring(max_daily_risk_amount, "#.##") + ")", bgcolor=color.new(color.red, 70), text_color=color.white)
-    
+
     // Preferred R:R
     table.cell(account_table, 0, 4, "Target R:R", bgcolor=color.green, text_color=color.white)
     table.cell(account_table, 1, 4, "1:" + str.tostring(preferred_rr_ratio, "#.#"), bgcolor=color.new(color.green, 70), text_color=color.white)
@@ -280,7 +280,7 @@ alert_freq = alert_frequency == "once_per_bar" ? alert.freq_once_per_bar : alert
 if enable_position_alerts
     max_risk_amount = account_size * (risk_per_trade / 100)
     current_risk_amount = math.max(long_risk_amount, short_risk_amount)
-    
+
     if current_risk_amount > max_risk_amount * 1.5
         alert("⚠️ HIGH RISK POSITION!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -292,7 +292,7 @@ if enable_position_alerts
 if enable_rr_alerts
     current_rr_long = (long_tp_2r - current_entry) / (current_entry - long_sl)
     current_rr_short = (current_entry - short_tp_2r) / (short_sl - current_entry)
-    
+
     if current_rr_long < preferred_rr_ratio or current_rr_short < preferred_rr_ratio
         alert("📊 LOW R:R RATIO!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -304,7 +304,7 @@ if enable_rr_alerts
 if enable_risk_breach_alerts
     daily_risk_threshold = account_size * (max_risk_per_day / 100)
     // This would need to track daily P&L in a real implementation
-    
+
     if long_risk_amount > daily_risk_threshold or short_risk_amount > daily_risk_threshold
         alert("🛑 DAILY RISK BREACH WARNING!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -316,16 +316,17 @@ if enable_risk_breach_alerts
 // 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-export long_sl
-export short_sl
-export long_tp_2r
-export short_tp_2r
-export long_position_size
-export short_position_size
-export account_size
-export risk_per_trade
-export preferred_rr_ratio
-export atr_value
+// Note: Converting export statements to plot() for indicator script compatibility
+plot(long_sl, "Long_SL", display=display.data_window)
+plot(short_sl, "Short_SL", display=display.data_window)
+plot(long_tp_2r, "Long_TP_2R", display=display.data_window)
+plot(short_tp_2r, "Short_TP_2R", display=display.data_window)
+plot(long_position_size, "Long_Position_Size", display=display.data_window)
+plot(short_position_size, "Short_Position_Size", display=display.data_window)
+plot(account_size, "Account_Size", display=display.data_window)
+plot(risk_per_trade, "Risk_Per_Trade", display=display.data_window)
+plot(preferred_rr_ratio, "Preferred_RR_Ratio", display=display.data_window)
+plot(atr_value, "ATR_Value", display=display.data_window)
 // ============================================================================
 // MERGED FROM: BTMM_TDI_Divergence
 // ============================================================================
@@ -414,35 +415,35 @@ detect_divergences() =>
     var array<int> price_low_bars = array.new<int>()
     var array<int> tdi_high_bars = array.new<int>()
     var array<int> tdi_low_bars = array.new<int>()
-    
+
     // Store pivot highs
     if not na(price_pivot_high) and not na(tdi_pivot_high)
         array.push(price_highs, price_pivot_high)
         array.push(tdi_highs, tdi_pivot_high)
         array.push(price_high_bars, bar_index[divergence_lookback])
         array.push(tdi_high_bars, bar_index[divergence_lookback])
-        
+
         // Keep only recent pivots
         if array.size(price_highs) > 10
             array.shift(price_highs)
             array.shift(tdi_highs)
             array.shift(price_high_bars)
             array.shift(tdi_high_bars)
-    
+
     // Store pivot lows
     if not na(price_pivot_low) and not na(tdi_pivot_low)
         array.push(price_lows, price_pivot_low)
         array.push(tdi_lows, tdi_pivot_low)
         array.push(price_low_bars, bar_index[divergence_lookback])
         array.push(tdi_low_bars, bar_index[divergence_lookback])
-        
+
         // Keep only recent pivots
         if array.size(price_lows) > 10
             array.shift(price_lows)
             array.shift(tdi_lows)
             array.shift(price_low_bars)
             array.shift(tdi_low_bars)
-    
+
     // Detect Regular Bearish Divergence (Higher Highs in Price, Lower Highs in TDI)
     regular_bearish_div = false
     if enable_regular_divergence and array.size(price_highs) >= 2 and array.size(tdi_highs) >= 2
@@ -450,10 +451,10 @@ detect_divergences() =>
         prev_price_high = array.get(price_highs, array.size(price_highs) - 2)
         last_tdi_high = array.get(tdi_highs, array.size(tdi_highs) - 1)
         prev_tdi_high = array.get(tdi_highs, array.size(tdi_highs) - 2)
-        
+
         if last_price_high > prev_price_high and last_tdi_high < prev_tdi_high
             regular_bearish_div := true
-    
+
     // Detect Regular Bullish Divergence (Lower Lows in Price, Higher Lows in TDI)
     regular_bullish_div = false
     if enable_regular_divergence and array.size(price_lows) >= 2 and array.size(tdi_lows) >= 2
@@ -461,10 +462,10 @@ detect_divergences() =>
         prev_price_low = array.get(price_lows, array.size(price_lows) - 2)
         last_tdi_low = array.get(tdi_lows, array.size(tdi_lows) - 1)
         prev_tdi_low = array.get(tdi_lows, array.size(tdi_lows) - 2)
-        
+
         if last_price_low < prev_price_low and last_tdi_low > prev_tdi_low
             regular_bullish_div := true
-    
+
     // Detect Hidden Bearish Divergence (Lower Highs in Price, Higher Highs in TDI)
     hidden_bearish_div = false
     if enable_hidden_divergence and array.size(price_highs) >= 2 and array.size(tdi_highs) >= 2
@@ -472,10 +473,10 @@ detect_divergences() =>
         prev_price_high = array.get(price_highs, array.size(price_highs) - 2)
         last_tdi_high = array.get(tdi_highs, array.size(tdi_highs) - 1)
         prev_tdi_high = array.get(tdi_highs, array.size(tdi_highs) - 2)
-        
+
         if last_price_high < prev_price_high and last_tdi_high > prev_tdi_high
             hidden_bearish_div := true
-    
+
     // Detect Hidden Bullish Divergence (Higher Lows in Price, Lower Lows in TDI)
     hidden_bullish_div = false
     if enable_hidden_divergence and array.size(price_lows) >= 2 and array.size(tdi_lows) >= 2
@@ -483,10 +484,10 @@ detect_divergences() =>
         prev_price_low = array.get(price_lows, array.size(price_lows) - 2)
         last_tdi_low = array.get(tdi_lows, array.size(tdi_lows) - 1)
         prev_tdi_low = array.get(tdi_lows, array.size(tdi_lows) - 2)
-        
+
         if last_price_low > prev_price_low and last_tdi_low < prev_tdi_low
             hidden_bullish_div := true
-    
+
     [regular_bearish_div, regular_bullish_div, hidden_bearish_div, hidden_bullish_div]
 
 [reg_bear_div, reg_bull_div, hid_bear_div, hid_bull_div] = detect_divergences()
@@ -522,13 +523,13 @@ bgcolor(rsi_smoothed < oversold_level ? color.new(color.green, 95) : na, title="
 if show_divergence_labels
     if reg_bear_div
         label.new(bar_index, rsi_smoothed + 5, "🔻 REG BEAR DIV", style=label.style_label_down, color=color.red, textcolor=color.white, size=size.normal)
-    
+
     if reg_bull_div
         label.new(bar_index, rsi_smoothed - 5, "🔺 REG BULL DIV", style=label.style_label_up, color=color.green, textcolor=color.white, size=size.normal)
-    
+
     if hid_bear_div
         label.new(bar_index, rsi_smoothed + 5, "🔸 HID BEAR DIV", style=label.style_label_down, color=color.orange, textcolor=color.white, size=size.small)
-    
+
     if hid_bull_div
         label.new(bar_index, rsi_smoothed - 5, "🔸 HID BULL DIV", style=label.style_label_up, color=color.lime, textcolor=color.black, size=size.small)
 
@@ -538,35 +539,35 @@ if show_divergence_labels
 
 if barstate.islast
     var table tdi_table = table.new(position.bottom_left, 3, 7, bgcolor=color.new(color.white, 10), border_width=2)
-    
+
     // Header
     table.cell(tdi_table, 0, 0, "TDI ANALYSIS", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
     table.cell(tdi_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
     table.cell(tdi_table, 2, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
-    
+
     // TDI Price Line
-    tdi_level_color = rsi_smoothed > overbought_level ? color.new(color.red, 70) : 
+    tdi_level_color = rsi_smoothed > overbought_level ? color.new(color.red, 70) :
                      rsi_smoothed < oversold_level ? color.new(color.green, 70) : color.new(color.gray, 70)
-    tdi_level_status = rsi_smoothed > overbought_level ? "🔥 OVERBOUGHT" : 
+    tdi_level_status = rsi_smoothed > overbought_level ? "🔥 OVERBOUGHT" :
                       rsi_smoothed < oversold_level ? "🔥 OVERSOLD" : "📊 NEUTRAL"
     table.cell(tdi_table, 0, 1, "TDI Level", bgcolor=color.blue, text_color=color.white)
     table.cell(tdi_table, 1, 1, str.tostring(rsi_smoothed, "#.#"), bgcolor=tdi_level_color, text_color=color.white)
     table.cell(tdi_table, 2, 1, tdi_level_status, bgcolor=tdi_level_color, text_color=color.white)
-    
+
     // Signal Line Relationship
     signal_status = rsi_smoothed > signal_line ? "🔺 ABOVE SIGNAL" : "🔻 BELOW SIGNAL"
     signal_color_bg = rsi_smoothed > signal_line ? color.new(color.green, 70) : color.new(color.red, 70)
     table.cell(tdi_table, 0, 2, "Signal Relation", bgcolor=color.purple, text_color=color.white)
     table.cell(tdi_table, 1, 2, str.tostring(signal_line, "#.#"), bgcolor=color.new(color.purple, 70), text_color=color.white)
     table.cell(tdi_table, 2, 2, signal_status, bgcolor=signal_color_bg, text_color=color.white)
-    
+
     // Base Line Trend
     trend_status = signal_line > base_line ? "🔺 BULLISH" : "🔻 BEARISH"
     trend_color_bg = signal_line > base_line ? color.new(color.green, 70) : color.new(color.red, 70)
     table.cell(tdi_table, 0, 3, "TDI Trend", bgcolor=color.orange, text_color=color.white)
     table.cell(tdi_table, 1, 3, str.tostring(base_line, "#.#"), bgcolor=color.new(color.orange, 70), text_color=color.white)
     table.cell(tdi_table, 2, 3, trend_status, bgcolor=trend_color_bg, text_color=color.white)
-    
+
     // Regular Divergence Status
     reg_div_active = reg_bear_div or reg_bull_div
     reg_div_status = reg_bear_div ? "🔻 BEARISH" : reg_bull_div ? "🔺 BULLISH" : "❌ NONE"
@@ -574,7 +575,7 @@ if barstate.islast
     table.cell(tdi_table, 0, 4, "Regular Div", bgcolor=color.red, text_color=color.white)
     table.cell(tdi_table, 1, 4, reg_div_active ? "ACTIVE" : "NONE", bgcolor=reg_div_color, text_color=color.white)
     table.cell(tdi_table, 2, 4, reg_div_status, bgcolor=reg_div_color, text_color=color.white)
-    
+
     // Hidden Divergence Status
     hid_div_active = hid_bear_div or hid_bull_div
     hid_div_status = hid_bear_div ? "🔸 BEARISH" : hid_bull_div ? "🔸 BULLISH" : "❌ NONE"
@@ -582,14 +583,14 @@ if barstate.islast
     table.cell(tdi_table, 0, 5, "Hidden Div", bgcolor=color.orange, text_color=color.white)
     table.cell(tdi_table, 1, 5, hid_div_active ? "ACTIVE" : "NONE", bgcolor=hid_div_color, text_color=color.white)
     table.cell(tdi_table, 2, 5, hid_div_status, bgcolor=hid_div_color, text_color=color.white)
-    
+
     // Overall TDI Signal
-    overall_signal = (reg_bear_div or hid_bear_div) ? "🔻 BEARISH" : 
-                    (reg_bull_div or hid_bull_div) ? "🔺 BULLISH" : 
+    overall_signal = (reg_bear_div or hid_bear_div) ? "🔻 BEARISH" :
+                    (reg_bull_div or hid_bull_div) ? "🔺 BULLISH" :
                     signal_line > base_line and rsi_smoothed > signal_line ? "📈 TREND UP" :
                     signal_line < base_line and rsi_smoothed < signal_line ? "📉 TREND DOWN" : "📊 NEUTRAL"
-    overall_color = (reg_bear_div or hid_bear_div) ? color.new(color.red, 50) : 
-                   (reg_bull_div or hid_bull_div) ? color.new(color.green, 50) : 
+    overall_color = (reg_bear_div or hid_bear_div) ? color.new(color.red, 50) :
+                   (reg_bull_div or hid_bull_div) ? color.new(color.green, 50) :
                    signal_line > base_line ? color.new(color.blue, 70) : color.new(color.gray, 70)
     table.cell(tdi_table, 0, 6, "TDI Signal", bgcolor=color.navy, text_color=color.white)
     table.cell(tdi_table, 1, 6, "OVERALL", bgcolor=overall_color, text_color=color.white)
@@ -610,7 +611,7 @@ if enable_divergence_alerts
               "Type: Regular Bearish\n" +
               "TDI Level: " + str.tostring(rsi_smoothed, "#.#") + "\n" +
               "Signal: POTENTIAL REVERSAL DOWN", alert_freq)
-    
+
     if reg_bull_div
         alert("🔺 TDI REGULAR BULLISH DIVERGENCE!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -618,7 +619,7 @@ if enable_divergence_alerts
               "Type: Regular Bullish\n" +
               "TDI Level: " + str.tostring(rsi_smoothed, "#.#") + "\n" +
               "Signal: POTENTIAL REVERSAL UP", alert_freq)
-    
+
     if hid_bear_div
         alert("🔸 TDI HIDDEN BEARISH DIVERGENCE!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -626,7 +627,7 @@ if enable_divergence_alerts
               "Type: Hidden Bearish\n" +
               "TDI Level: " + str.tostring(rsi_smoothed, "#.#") + "\n" +
               "Signal: TREND CONTINUATION DOWN", alert_freq)
-    
+
     if hid_bull_div
         alert("🔸 TDI HIDDEN BULLISH DIVERGENCE!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -643,7 +644,7 @@ if enable_tdi_level_alerts
               "TDI Level: " + str.tostring(rsi_smoothed, "#.#") + "\n" +
               "Threshold: " + str.tostring(overbought_level, "#.#") + "\n" +
               "Signal: POTENTIAL REVERSAL ZONE", alert_freq)
-    
+
     if ta.crossunder(rsi_smoothed, oversold_level)
         alert("🔥 TDI OVERSOLD!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -659,7 +660,7 @@ if enable_signal_cross_alerts
               "TDI Price crossed above Signal Line\n" +
               "TDI Level: " + str.tostring(rsi_smoothed, "#.#") + "\n" +
               "Signal: MOMENTUM SHIFT UP", alert_freq)
-    
+
     if ta.crossunder(rsi_smoothed, signal_line)
         alert("📉 TDI BEARISH CROSS!\n" +
               "Symbol: " + syminfo.ticker + "\n" +
@@ -671,12 +672,13 @@ if enable_signal_cross_alerts
 // 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-export rsi_smoothed
-export signal_line
-export base_line
-export reg_bear_div
-export reg_bull_div
-export hid_bear_div
-export hid_bull_div
-export overbought_level
-export oversold_level
+// Note: Converting export statements to plot() for indicator script compatibility
+plot(rsi_smoothed, "RSI_Smoothed", display=display.data_window)
+plot(signal_line, "Signal_Line", display=display.data_window)
+plot(base_line, "Base_Line", display=display.data_window)
+plot(reg_bear_div ? 1 : 0, "Reg_Bear_Div", display=display.data_window)
+plot(reg_bull_div ? 1 : 0, "Reg_Bull_Div", display=display.data_window)
+plot(hid_bear_div ? 1 : 0, "Hid_Bear_Div", display=display.data_window)
+plot(hid_bull_div ? 1 : 0, "Hid_Bull_Div", display=display.data_window)
+plot(overbought_level, "Overbought_Level", display=display.data_window)
+plot(oversold_level, "Oversold_Level", display=display.data_window)

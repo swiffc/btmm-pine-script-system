@@ -1,9 +1,9 @@
 //@version=5
-indicator("BTMM Core System - Steve Mauro Method", 
-         shorttitle="BTMM-Core", 
-         overlay=true, 
+indicator("BTMM Core System - Steve Mauro Method",
+         shorttitle="BTMM-Core",
+         overlay=true,
          max_boxes_count=200,
-         max_lines_count=300, 
+         max_lines_count=300,
          max_labels_count=500,
          max_tables_count=5)
 
@@ -91,15 +91,15 @@ calculate_btmm_bias_score() =>
     score_50 = close > ema_50 ? 1.0 : -1.0
     score_200 = close > ema_200 ? 1.0 : -1.0
     score_800 = close > ema_800 ? 1.0 : -1.0
-    
+
     // EMA Alignment Scoring (Perfect Stack Bonus)
     bullish_alignment = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
     bearish_alignment = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
     alignment_bonus = bullish_alignment ? 2.0 : bearish_alignment ? -2.0 : 0.0
-    
+
     // 50/200 Relationship (Critical BTMM Rule)
     trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
-    
+
     // Total BTMM Bias Score (-8 to +8 range)
     total_score = score_5 + score_13 + score_50 + score_200 + score_800 + alignment_bonus + trend_score
     total_score
@@ -107,22 +107,22 @@ calculate_btmm_bias_score() =>
 // Determine Market Bias
 determine_btmm_market_bias() =>
     var string current_bias = "NEUTRAL"
-    
+
     if not is_15m_or_higher and enable_15m_bias_only
         current_bias := "LOWER_TF_WARNING"
     else
         bias_score = calculate_btmm_bias_score()
-        
+
         if bias_score >= btmm_bias_score_threshold
             current_bias := "BULLISH"
         else if bias_score <= -btmm_bias_score_threshold
             current_bias := "BEARISH"
         else
             current_bias := "NEUTRAL"
-    
+
     if manual_bias != "AUTO"
         current_bias := manual_bias
-    
+
     current_bias
 
 // Get current bias and score
@@ -144,50 +144,50 @@ ketchup_break_bearish = ta.crossunder(close, ema_13)
 
 if show_bias_table and barstate.islast
     var table bias_table = table.new(position.top_right, 3, 8, bgcolor=color.new(color.white, 10), border_width=2, border_color=color.gray)
-    
+
     // Headers
     table.cell(bias_table, 0, 0, "BTMM CORE", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
     table.cell(bias_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
     table.cell(bias_table, 2, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
-    
+
     // Bias Score
     table.cell(bias_table, 0, 1, "Bias Score", bgcolor=color.blue, text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 1, 1, str.tostring(btmm_bias_score, "#.#"), 
-              bgcolor=btmm_bias_score > 0 ? color.new(color.green, 70) : btmm_bias_score < 0 ? color.new(color.red, 70) : color.new(color.gray, 70), 
+    table.cell(bias_table, 1, 1, str.tostring(btmm_bias_score, "#.#"),
+              bgcolor=btmm_bias_score > 0 ? color.new(color.green, 70) : btmm_bias_score < 0 ? color.new(color.red, 70) : color.new(color.gray, 70),
               text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 2, 1, btmm_market_bias, 
-              bgcolor=btmm_market_bias == "BULLISH" ? color.new(color.green, 70) : btmm_market_bias == "BEARISH" ? color.new(color.red, 70) : color.new(color.gray, 70), 
+    table.cell(bias_table, 2, 1, btmm_market_bias,
+              bgcolor=btmm_market_bias == "BULLISH" ? color.new(color.green, 70) : btmm_market_bias == "BEARISH" ? color.new(color.red, 70) : color.new(color.gray, 70),
               text_color=color.white, text_size=size.small)
-    
+
     // Perfect Stack
     table.cell(bias_table, 0, 2, "Perfect Stack", bgcolor=color.purple, text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 1, 2, btmm_perfect_stack ? "YES" : "NO", 
-              bgcolor=btmm_perfect_stack ? color.new(color.purple, 50) : color.new(color.gray, 80), 
+    table.cell(bias_table, 1, 2, btmm_perfect_stack ? "YES" : "NO",
+              bgcolor=btmm_perfect_stack ? color.new(color.purple, 50) : color.new(color.gray, 80),
               text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 2, 2, btmm_perfect_bull_stack ? "🔥 BULL" : btmm_perfect_bear_stack ? "🔥 BEAR" : "❌", 
-              bgcolor=btmm_perfect_stack ? color.new(color.purple, 50) : color.new(color.gray, 80), 
+    table.cell(bias_table, 2, 2, btmm_perfect_bull_stack ? "🔥 BULL" : btmm_perfect_bear_stack ? "🔥 BEAR" : "❌",
+              bgcolor=btmm_perfect_stack ? color.new(color.purple, 50) : color.new(color.gray, 80),
               text_color=color.white, text_size=size.small)
-    
+
     // Ketchup Line
     table.cell(bias_table, 0, 3, "Ketchup (13)", bgcolor=color.red, text_color=color.white, text_size=size.small)
     table.cell(bias_table, 1, 3, str.tostring(ema_13, "#.#####"), bgcolor=color.new(color.red, 70), text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 2, 3, close > ema_13 ? "✅ ABOVE" : "❌ BELOW", 
-              bgcolor=close > ema_13 ? color.new(color.green, 70) : color.new(color.red, 70), 
+    table.cell(bias_table, 2, 3, close > ema_13 ? "✅ ABOVE" : "❌ BELOW",
+              bgcolor=close > ema_13 ? color.new(color.green, 70) : color.new(color.red, 70),
               text_color=color.white, text_size=size.small)
-    
+
     // Timeframe Check
     table.cell(bias_table, 0, 4, "Timeframe", bgcolor=color.orange, text_color=color.white, text_size=size.small)
     table.cell(bias_table, 1, 4, timeframe.period, bgcolor=color.new(color.orange, 70), text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 2, 4, is_15m_or_higher ? "✅ VALID" : "⚠️ LOW", 
-              bgcolor=is_15m_or_higher ? color.new(color.green, 70) : color.new(color.orange, 70), 
+    table.cell(bias_table, 2, 4, is_15m_or_higher ? "✅ VALID" : "⚠️ LOW",
+              bgcolor=is_15m_or_higher ? color.new(color.green, 70) : color.new(color.orange, 70),
               text_color=color.white, text_size=size.small)
-    
+
     // Current Price vs EMAs
     table.cell(bias_table, 0, 5, "Price Position", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     above_emas = (close > ema_5 ? 1 : 0) + (close > ema_13 ? 1 : 0) + (close > ema_50 ? 1 : 0) + (close > ema_200 ? 1 : 0) + (close > ema_800 ? 1 : 0)
     table.cell(bias_table, 1, 5, str.tostring(above_emas) + "/5", bgcolor=color.new(color.gray, 70), text_color=color.white, text_size=size.small)
-    table.cell(bias_table, 2, 5, above_emas >= 4 ? "💪 STRONG" : above_emas >= 3 ? "📊 DECENT" : above_emas <= 1 ? "💪 WEAK" : "📊 MIXED", 
-              bgcolor=above_emas >= 4 ? color.new(color.green, 70) : above_emas <= 1 ? color.new(color.red, 70) : color.new(color.yellow, 70), 
+    table.cell(bias_table, 2, 5, above_emas >= 4 ? "💪 STRONG" : above_emas >= 3 ? "📊 DECENT" : above_emas <= 1 ? "💪 WEAK" : "📊 MIXED",
+              bgcolor=above_emas >= 4 ? color.new(color.green, 70) : above_emas <= 1 ? color.new(color.red, 70) : color.new(color.yellow, 70),
               text_color=color.black, text_size=size.small)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
@@ -249,16 +249,16 @@ if enable_ketchup_alerts and ketchup_break_bearish
 
 // Lower Timeframe Warning
 if show_bias_warning and not is_15m_or_higher and barstate.islast
-    label.new(bar_index, high + ta.atr(14), 
-              "⚠️ BTMM BIAS REQUIRES 15M+\nCurrent: " + timeframe.period, 
-              style=label.style_label_down, 
-              color=color.orange, 
-              textcolor=color.white, 
+    label.new(bar_index, high + ta.atr(14),
+              "⚠️ BTMM BIAS REQUIRES 15M+\nCurrent: " + timeframe.period,
+              style=label.style_label_down,
+              color=color.orange,
+              textcolor=color.white,
               size=size.normal)
 
 // Export variables for other scripts in the 10-script system
-export btmm_market_bias
-export btmm_bias_score
-export btmm_perfect_stack
-export ema_13
-export is_15m_or_higher
+// Note: Converting export statements to plot() for indicator script compatibility
+plot(btmm_bias_score, "BTMM_Bias_Score", display=display.data_window)
+plot(btmm_perfect_stack ? 1 : 0, "BTMM_Perfect_Stack", display=display.data_window)
+plot(ema_13, "EMA_13", display=display.data_window)
+plot(is_15m_or_higher ? 1 : 0, "Is_15M_Or_Higher", display=display.data_window)
