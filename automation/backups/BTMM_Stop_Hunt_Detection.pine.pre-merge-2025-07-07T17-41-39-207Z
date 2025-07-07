@@ -1,0 +1,265 @@
+//@version=5
+
+// =============================================================================
+// BTMM STOP HUNT DETECTION
+// =============================================================================
+// Purpose: [DESCRIBE THE PURPOSE OF THIS INDICATOR/STRATEGY]
+// Method: [DESCRIBE THE TECHNICAL ANALYSIS METHOD USED]
+// Author: BTMM Development Team
+// Version: 1.0
+// Date: 2025-07-02
+// =============================================================================
+
+import BTMMFoundation as btmm
+
+indicator("BTMM Stop Hunt Detection", "BTMM Hunt", overlay=true, shorttitle="BTMM Stop Hu...")
+
+// ============================================================================
+// BTMM STOP HUNT DETECTION - LIQUIDITY SWEEP & HUNT ANALYSIS
+// ============================================================================
+// This script consolidates all stop hunt functionality including:
+// - Liquidity level detection
+// - Stop hunt pattern recognition
+// - False move identification
+// - Market maker manipulation detection
+// ============================================================================
+
+// ============================================================================
+// SETTINGS & INPUTS
+// ============================================================================
+
+var g_detection = "Stop Hunt Detection"
+hunt_sensitivity = input.float(1.0, "Hunt Sensitivity", minval=0.1, maxval=3.0, group=g_detection)
+// TODO: Add input validation for hunt_sensitivity (e.g., if hunt_sensitivity < 1 runtime.error("hunt_sensitivity must be positive"))
+min_liquidity_level = input.int(3, "Min Liquidity Level", minval=2, maxval=10, group=g_detection)
+hunt_confirmation_bars = input.int(3, "Hunt Confirmation Bars", minval=1, maxval=10, group=g_detection)
+
+var g_levels = "Liquidity Levels"
+show_liquidity_levels = input.bool(true, "Show Liquidity Levels", group=g_levels)
+show_hunt_zones = input.bool(true, "Show Hunt Zones", group=g_levels)
+extend_levels = input.bool(true, "Extend Levels", group=g_levels)
+
+var g_sources = "External Sources"
+asian_hi_src = input.source(close, "Asian High", group=g_sources)
+asian_lo_src = input.source(close, "Asian Low", group=g_sources)
+ema13_src = input.source(close, "EMA 13", group=g_sources)
+ema50_src = input.source(close, "EMA 50", group=g_sources)
+ema200_src = input.source(close, "EMA 200", group=g_sources)
+
+var g_display = "Display Settings"
+show_hunt_signals = input.bool(true, "Show Hunt Signals", group=g_display)
+show_liquidity_sweep = input.bool(true, "Show Liquidity Sweep", group=g_display)
+
+// ============================================================================
+// ATR AND VOLATILITY ANALYSIS - PERFORMANCE OPTIMIZED
+// ============================================================================
+
+// Cache ATR calculation for performance optimization (eliminates duplicate calculations)
+atr_14 = ta.atr(14)
+
+// ============================================================================
+// LIQUIDITY LEVEL DETECTION
+// ============================================================================
+
+// Store liquidity levels
+var array<float> liquidity_highs = array.new<float>()
+var array<float> liquidity_lows = array.new<float>()
+var array<int> liquidity_high_bars = array.new<int>()
+var array<int> liquidity_low_bars = array.new<int>()
+
+// Swing point detection
+swing_high = ta.pivothigh(high, 5, 5)
+swing_low = ta.pivotlow(low, 5, 5)
+
+// Update liquidity arrays
+if not na(swing_high)
+    array.push(liquidity_highs, swing_high)
+    array.push(liquidity_high_bars, bar_index[5])
+    if array.size(liquidity_highs) > 20
+        array.shift(liquidity_highs)
+        array.shift(liquidity_high_bars)
+
+if not na(swing_low)
+    array.push(liquidity_lows, swing_low)
+    array.push(liquidity_low_bars, bar_index[5])
+    if array.size(liquidity_lows) > 20
+        array.shift(liquidity_lows)
+        array.shift(liquidity_low_bars)
+
+// ============================================================================
+// STOP HUNT DETECTION
+// ============================================================================
+
+// Function to detect stop hunts
+detect_stop_hunt() =>
+    bull_hunt = false
+    bear_hunt = false
+    hunt_level = 0.0
+
+    // Use cached ATR value instead of recalculating
+    hunt_threshold = close + (atr_14 * hunt_sensitivity)
+
+    // Check for liquidity sweep above recent highs
+    if array.size(liquidity_highs) > 0
+        for i = 0 to math.min(array.size(liquidity_highs) - 1, 5)
+            level = array.get(liquidity_highs, array.size(liquidity_highs) - 1 - i)
+            level_bar = array.get(liquidity_high_bars, array.size(liquidity_high_bars) - 1 - i)
+
+            // Stop hunt criteria: price spikes above level then quickly reverses
+            if high > level + (atr_14 * hunt_sensitivity) and close < level and bar_index - level_bar <= 20
+                bull_hunt := true
+                hunt_level := level
+                break
+
+    // Check for liquidity sweep below recent lows
+    if array.size(liquidity_lows) > 0
+        for i = 0 to math.min(array.size(liquidity_lows) - 1, 5)
+            level = array.get(liquidity_lows, array.size(liquidity_lows) - 1 - i)
+            level_bar = array.get(liquidity_low_bars, array.size(liquidity_low_bars) - 1 - i)
+
+            // Stop hunt criteria: price spikes below level then quickly reverses
+            if low < level - (atr_14 * hunt_sensitivity) and close > level and bar_index - level_bar <= 20
+                bear_hunt := true
+                hunt_level := level
+                break
+
+    [bull_hunt, bear_hunt, hunt_level]
+
+[stop_hunt_bull, stop_hunt_bear, hunt_level] = detect_stop_hunt()
+
+// ============================================================================
+// EMA LEVEL HUNTS
+// ============================================================================
+
+// Use cached ATR value in risk calculations
+risk_level = atr_14 / close * 100
+
+// EMA 13 hunts using cached ATR
+ema13_bull_hunt = high > ema13_src + (atr_14 * 0.5) and close < ema13_src and close < open
+ema13_bear_hunt = low < ema13_src - (atr_14 * 0.5) and close > ema13_src and close > open
+
+// EMA 50 hunts using cached ATR
+ema50_bull_hunt = high > ema50_src + (atr_14 * 0.8) and close < ema50_src and close < open
+ema50_bear_hunt = low < ema50_src - (atr_14 * 0.8) and close > ema50_src and close > open
+
+// EMA 200 hunts (major levels) using cached ATR
+ema200_bull_hunt = high > ema200_src + (atr_14 * 1.2) and close < ema200_src and close < open
+ema200_bear_hunt = low < ema200_src - (atr_14 * 1.2) and close > ema200_src and close > open
+
+// Asian range hunts
+asian_high_hunt = high > asian_hi_src + (risk_level * 0.5) and close < asian_hi_src and close < open
+asian_low_hunt = low < asian_lo_src - (risk_level * 0.5) and close > asian_lo_src and close > open
+
+// ============================================================================
+// LIQUIDITY SWEEP DETECTION
+// ============================================================================
+
+// Detect when multiple levels are swept
+liquidity_sweep_bull = stop_hunt_bull or ema13_bull_hunt or ema50_bull_hunt or asian_high_hunt
+liquidity_sweep_bear = stop_hunt_bear or ema13_bear_hunt or ema50_bear_hunt or asian_low_hunt
+
+// Major liquidity sweep (EMA 200 or multiple levels)
+major_sweep_bull = ema200_bull_hunt or (liquidity_sweep_bull and (ema13_bull_hunt or ema50_bull_hunt))
+major_sweep_bear = ema200_bear_hunt or (liquidity_sweep_bear and (ema13_bear_hunt or ema50_bear_hunt))
+
+// ============================================================================
+// FALSE MOVE DETECTION
+// ============================================================================
+
+// False move: strong directional move that quickly reverses
+var bool false_move_up = false
+var bool false_move_down = false
+
+// Detect false moves
+strong_up_move = close > open and (close - open) >= risk_level * 1.5
+strong_down_move = close < open and (open - close) >= risk_level * 1.5
+
+// Check for quick reversal
+if strong_up_move
+    for i = 1 to hunt_confirmation_bars
+        if close[i] < low and close[i] < open[i]
+            false_move_up := true
+            break
+
+if strong_down_move
+    for i = 1 to hunt_confirmation_bars
+        if close[i] > high and close[i] > open[i]
+            false_move_down := true
+            break
+
+// ============================================================================
+// HUNT CONFIRMATION
+// ============================================================================
+
+// Confirmed hunt: hunt signal followed by reversal
+var bool hunt_confirmed_bull = false
+var bool hunt_confirmed_bear = false
+
+if liquidity_sweep_bull
+    for i = 1 to hunt_confirmation_bars
+        if close[i] > high  // Price moved back above the hunt level
+            hunt_confirmed_bull := true
+            break
+
+if liquidity_sweep_bear
+    for i = 1 to hunt_confirmation_bars
+        if close[i] < low  // Price moved back below the hunt level
+            hunt_confirmed_bear := true
+            break
+
+// Overall stop hunt signal
+stop_hunt = liquidity_sweep_bull or liquidity_sweep_bear
+bull_hunt = liquidity_sweep_bull or hunt_confirmed_bull
+bear_hunt = liquidity_sweep_bear or hunt_confirmed_bear
+
+// ============================================================================
+// VISUAL ELEMENTS
+// ============================================================================
+
+// Hunt signals
+plotshape(show_hunt_signals and liquidity_sweep_bull, "Bull Hunt", shape.arrowdown,
+          location.abovebar, color.orange, size=size.normal)
+plotshape(show_hunt_signals and liquidity_sweep_bear, "Bear Hunt", shape.arrowup,
+          location.belowbar, color.orange, size=size.normal)
+
+// Major sweeps
+plotshape(show_liquidity_sweep and major_sweep_bull, "Major Bull Sweep", shape.triangledown,
+          location.abovebar, color.red, size=size.large)
+plotshape(show_liquidity_sweep and major_sweep_bear, "Major Bear Sweep", shape.triangleup,
+          location.belowbar, color.red, size=size.large)
+
+// False moves
+plotshape(false_move_up, "False Move Up", shape.xcross, location.abovebar, color.purple, size=size.small)
+plotshape(false_move_down, "False Move Down", shape.xcross, location.belowbar, color.purple, size=size.small)
+
+// Hunt zones
+bgcolor(show_hunt_zones and stop_hunt ? color.new(color.orange, 90) : na)
+
+// Liquidity levels
+if show_liquidity_levels and array.size(liquidity_highs) > 0
+    latest_high = array.get(liquidity_highs, array.size(liquidity_highs) - 1)
+    plot(latest_high, "Liquidity High", color=color.red, linewidth=1, style=plot.style_line)
+
+if show_liquidity_levels and array.size(liquidity_lows) > 0
+    latest_low = array.get(liquidity_lows, array.size(liquidity_lows) - 1)
+    plot(latest_low, "Liquidity Low", color=color.green, linewidth=1, style=plot.style_line)
+
+// ============================================================================
+// DATA WINDOW OUTPUTS (FOR INTEGRATION)
+// ============================================================================
+
+plot(stop_hunt ? 1 : 0, "Stop_Hunt", display=display.data_window)
+plot(bull_hunt ? 1 : 0, "Bull_Hunt", display=display.data_window)
+plot(bear_hunt ? 1 : 0, "Bear_Hunt", display=display.data_window)
+plot(liquidity_sweep_bull ? 1 : 0, "Liquidity_Sweep_Bull", display=display.data_window)
+plot(liquidity_sweep_bear ? 1 : 0, "Liquidity_Sweep_Bear", display=display.data_window)
+plot(major_sweep_bull ? 1 : 0, "Major_Sweep_Bull", display=display.data_window)
+plot(major_sweep_bear ? 1 : 0, "Major_Sweep_Bear", display=display.data_window)
+plot(false_move_up ? 1 : 0, "False_Move_Up", display=display.data_window)
+plot(false_move_down ? 1 : 0, "False_Move_Down", display=display.data_window)
+plot(hunt_confirmed_bull ? 1 : 0, "Hunt_Confirmed_Bull", display=display.data_window)
+plot(hunt_confirmed_bear ? 1 : 0, "Hunt_Confirmed_Bear", display=display.data_window)
+
+// Liquidity levels for integration
+liquidity_levels = array.size(liquidity_highs) + array.size(liquidity_lows)
+plot(liquidity_levels, "Liquidity_Levels", display=display.data_window)

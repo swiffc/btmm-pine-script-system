@@ -1,0 +1,328 @@
+//@version=5
+indicator("BTMM Risk Management - Script 5/10", 
+         shorttitle="BTMM-Risk", 
+         overlay=true, 
+         max_boxes_count=100,
+         max_lines_count=100, 
+         max_labels_count=100,
+         max_tables_count=2)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🛡️ BTMM RISK MANAGEMENT - SCRIPT 5 OF 10
+// Steve Mauro's Beat The Market Maker Methodology
+// Focus: Risk Levels, Stop Loss Calculation, Position Sizing, R:R Analysis
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+import TradingView/ta/7 as ta
+
+// === RISK MANAGEMENT CONFIGURATION ===
+risk_group = "🛡️ Risk Management Settings"
+account_size = input.float(10000.0, "Account Size ($)", minval=1000.0, maxval=1000000.0, group=risk_group)
+risk_per_trade = input.float(1.0, "Risk Per Trade (%)", minval=0.1, maxval=5.0, step=0.1, group=risk_group)
+max_risk_per_day = input.float(3.0, "Max Daily Risk (%)", minval=1.0, maxval=10.0, step=0.5, group=risk_group)
+preferred_rr_ratio = input.float(2.0, "Preferred R:R Ratio", minval=1.0, maxval=5.0, step=0.1, group=risk_group)
+enable_risk_alerts = input.bool(true, "Enable Risk Alerts", group=risk_group)
+
+// === STOP LOSS CALCULATION ===
+sl_group = "🚫 Stop Loss Configuration"
+sl_method = input.string("ATR", "Stop Loss Method", options=["ATR", "EMA", "ASIAN_RANGE", "MANUAL"], group=sl_group)
+atr_multiplier = input.float(2.0, "ATR Multiplier", minval=0.5, maxval=5.0, step=0.1, group=sl_group)
+atr_length = input.int(14, "ATR Length", minval=5, maxval=50, group=sl_group)
+manual_sl_pips = input.float(20.0, "Manual SL (Pips)", minval=5.0, maxval=100.0, group=sl_group)
+show_sl_levels = input.bool(true, "Show Stop Loss Levels", group=sl_group)
+
+// === POSITION SIZING ===
+position_group = "📊 Position Sizing"
+position_method = input.string("FIXED_RISK", "Position Sizing Method", options=["FIXED_RISK", "FIXED_AMOUNT", "KELLY"], group=position_group)
+fixed_lot_size = input.float(0.1, "Fixed Lot Size", minval=0.01, maxval=10.0, step=0.01, group=position_group)
+show_position_info = input.bool(true, "Show Position Information", group=position_group)
+max_position_size = input.float(2.0, "Max Position Size (Lots)", minval=0.1, maxval=10.0, group=position_group)
+
+// === VISUAL SETTINGS ===
+visual_group = "🎨 Visual Configuration"
+show_risk_table = input.bool(true, "Show Risk Management Table", group=visual_group)
+show_rr_zones = input.bool(true, "Show R:R Zones", group=visual_group)
+bullish_color = input.color(color.new(color.green, 70), "Bullish Zone Color", group=visual_group)
+bearish_color = input.color(color.new(color.red, 70), "Bearish Zone Color", group=visual_group)
+sl_line_color = input.color(color.red, "Stop Loss Line Color", group=visual_group)
+tp_line_color = input.color(color.green, "Take Profit Line Color", group=visual_group)
+
+// === ALERT CONFIGURATION ===
+alert_group = "🚨 Risk Alert Settings"
+enable_position_alerts = input.bool(true, "Position Size Alerts", group=alert_group)
+enable_rr_alerts = input.bool(true, "R:R Ratio Alerts", group=alert_group)
+enable_risk_breach_alerts = input.bool(true, "Risk Breach Alerts", group=alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 RISK CALCULATIONS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// ATR for volatility-based calculations
+atr_value = ta.atr(atr_length)
+
+// EMA 13 for dynamic stop loss
+ema_13 = ta.ema(close, 13)
+
+// Asian Range for session-based stops
+var float asian_high = na
+var float asian_low = na
+var float asian_range = na
+
+// Track Asian session (simplified)
+asian_session = time(timeframe.period, "1700-0000")  // Corrected: 5PM-Midnight EST
+if asian_session and not asian_session[1]
+    asian_high := high
+    asian_low := low
+else if asian_session
+    asian_high := math.max(asian_high, high)
+    asian_low := math.min(asian_low, low)
+else if not asian_session and asian_session[1]
+    asian_range := asian_high - asian_low
+
+// Calculate Stop Loss Levels
+calculate_stop_loss(entry_price, direction) =>
+    var float sl_level = na
+    
+    switch sl_method
+        "ATR" =>
+            sl_level := direction == "LONG" ? entry_price - (atr_value * atr_multiplier) : entry_price + (atr_value * atr_multiplier)
+        "EMA" =>
+            sl_level := direction == "LONG" ? ema_13 : ema_13
+        "ASIAN_RANGE" =>
+            if not na(asian_range)
+                sl_level := direction == "LONG" ? entry_price - asian_range : entry_price + asian_range
+            else
+                sl_level := direction == "LONG" ? entry_price - (atr_value * atr_multiplier) : entry_price + (atr_value * atr_multiplier)
+        "MANUAL" =>
+            pip_value = syminfo.mintick * 10
+            sl_level := direction == "LONG" ? entry_price - (manual_sl_pips * pip_value) : entry_price + (manual_sl_pips * pip_value)
+        => 
+            sl_level := direction == "LONG" ? entry_price - (atr_value * atr_multiplier) : entry_price + (atr_value * atr_multiplier)
+    
+    sl_level
+
+// Calculate Position Size
+calculate_position_size(entry_price, sl_price, direction) =>
+    var float position_size = 0.0
+    
+    if not na(entry_price) and not na(sl_price)
+        risk_amount = account_size * (risk_per_trade / 100)
+        
+        // Calculate risk per pip
+        pip_value = syminfo.mintick * 10
+        sl_distance_pips = math.abs(entry_price - sl_price) / pip_value
+        
+        switch position_method
+            "FIXED_RISK" =>
+                if sl_distance_pips > 0
+                    // Standard lot size calculation for forex
+                    value_per_pip = 10.0  // $10 per pip for 1 standard lot in major pairs
+                    position_size := math.min(risk_amount / (sl_distance_pips * value_per_pip), max_position_size)
+            "FIXED_AMOUNT" =>
+                position_size := fixed_lot_size
+            "KELLY" =>
+                // Simplified Kelly Criterion (requires win rate and avg win/loss data)
+                win_rate = 0.6  // Default 60% win rate
+                avg_win = preferred_rr_ratio
+                avg_loss = 1.0
+                kelly_percentage = (win_rate * avg_win - (1 - win_rate) * avg_loss) / avg_win
+                kelly_position = math.max(0, kelly_percentage * risk_amount / (sl_distance_pips * 10))
+                position_size := math.min(kelly_position, max_position_size)
+            =>
+                position_size := fixed_lot_size
+    
+    position_size
+
+// Current price for calculations
+current_entry = close
+
+// Calculate stop losses for both directions
+long_sl = calculate_stop_loss(current_entry, "LONG")
+short_sl = calculate_stop_loss(current_entry, "SHORT")
+
+// Calculate position sizes
+long_position_size = calculate_position_size(current_entry, long_sl, "LONG")
+short_position_size = calculate_position_size(current_entry, short_sl, "SHORT")
+
+// Calculate R:R zones
+long_risk = math.abs(current_entry - long_sl)
+short_risk = math.abs(current_entry - short_sl)
+
+long_tp_1r = current_entry + (long_risk * 1)
+long_tp_2r = current_entry + (long_risk * 2)
+long_tp_3r = current_entry + (long_risk * 3)
+
+short_tp_1r = current_entry - (short_risk * 1)
+short_tp_2r = current_entry - (short_risk * 2)
+short_tp_3r = current_entry - (short_risk * 3)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🎨 VISUAL RISK LEVELS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Plot Stop Loss Lines
+plot(show_sl_levels ? long_sl : na, "Long SL", color=sl_line_color, linewidth=2, style=plot.style_line)
+plot(show_sl_levels ? short_sl : na, "Short SL", color=sl_line_color, linewidth=2, style=plot.style_line)
+
+// Plot Take Profit Levels
+plot(show_rr_zones ? long_tp_1r : na, "Long TP 1R", color=color.new(tp_line_color, 70), linewidth=1, style=plot.style_circles)
+plot(show_rr_zones ? long_tp_2r : na, "Long TP 2R", color=tp_line_color, linewidth=2, style=plot.style_line)
+plot(show_rr_zones ? long_tp_3r : na, "Long TP 3R", color=color.new(tp_line_color, 70), linewidth=1, style=plot.style_circles)
+
+plot(show_rr_zones ? short_tp_1r : na, "Short TP 1R", color=color.new(tp_line_color, 70), linewidth=1, style=plot.style_circles)
+plot(show_rr_zones ? short_tp_2r : na, "Short TP 2R", color=tp_line_color, linewidth=2, style=plot.style_line)
+plot(show_rr_zones ? short_tp_3r : na, "Short TP 3R", color=color.new(tp_line_color, 70), linewidth=1, style=plot.style_circles)
+
+// R:R Zone Boxes
+if show_rr_zones and barstate.islast
+    // Long R:R zones
+    box.new(bar_index - 10, current_entry, bar_index + 5, long_tp_2r, bgcolor=bullish_color, border_color=color.green, border_width=1)
+    
+    // Short R:R zones
+    box.new(bar_index - 10, current_entry, bar_index + 5, short_tp_2r, bgcolor=bearish_color, border_color=color.red, border_width=1)
+
+// Labels for key levels
+if show_sl_levels and barstate.islast
+    label.new(bar_index + 3, long_sl, "LONG SL", style=label.style_label_left, color=color.red, textcolor=color.white, size=size.small)
+    label.new(bar_index + 3, short_sl, "SHORT SL", style=label.style_label_left, color=color.red, textcolor=color.white, size=size.small)
+
+if show_rr_zones and barstate.islast
+    label.new(bar_index + 3, long_tp_2r, "LONG 2R", style=label.style_label_left, color=color.green, textcolor=color.white, size=size.small)
+    label.new(bar_index + 3, short_tp_2r, "SHORT 2R", style=label.style_label_left, color=color.green, textcolor=color.white, size=size.small)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📊 RISK MANAGEMENT TABLE
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+if show_risk_table and barstate.islast
+    var table risk_table = table.new(position.middle_right, 3, 8, bgcolor=color.new(color.white, 10), border_width=2)
+    
+    // Header
+    table.cell(risk_table, 0, 0, "RISK MANAGEMENT", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(risk_table, 1, 0, "LONG", bgcolor=color.green, text_color=color.white, text_size=size.normal)
+    table.cell(risk_table, 2, 0, "SHORT", bgcolor=color.red, text_color=color.white, text_size=size.normal)
+    
+    // Entry Price
+    table.cell(risk_table, 0, 1, "Entry Price", bgcolor=color.blue, text_color=color.white)
+    table.cell(risk_table, 1, 1, str.tostring(current_entry, "#.#####"), bgcolor=color.new(color.blue, 70), text_color=color.white)
+    table.cell(risk_table, 2, 1, str.tostring(current_entry, "#.#####"), bgcolor=color.new(color.blue, 70), text_color=color.white)
+    
+    // Stop Loss
+    table.cell(risk_table, 0, 2, "Stop Loss", bgcolor=color.red, text_color=color.white)
+    table.cell(risk_table, 1, 2, str.tostring(long_sl, "#.#####"), bgcolor=color.new(color.red, 70), text_color=color.white)
+    table.cell(risk_table, 2, 2, str.tostring(short_sl, "#.#####"), bgcolor=color.new(color.red, 70), text_color=color.white)
+    
+    // Risk (Pips)
+    long_risk_pips = math.abs(current_entry - long_sl) / (syminfo.mintick * 10)
+    short_risk_pips = math.abs(current_entry - short_sl) / (syminfo.mintick * 10)
+    table.cell(risk_table, 0, 3, "Risk (Pips)", bgcolor=color.orange, text_color=color.white)
+    table.cell(risk_table, 1, 3, str.tostring(long_risk_pips, "#.#"), bgcolor=color.new(color.orange, 70), text_color=color.white)
+    table.cell(risk_table, 2, 3, str.tostring(short_risk_pips, "#.#"), bgcolor=color.new(color.orange, 70), text_color=color.white)
+    
+    // Position Size
+    table.cell(risk_table, 0, 4, "Position Size", bgcolor=color.purple, text_color=color.white)
+    table.cell(risk_table, 1, 4, str.tostring(long_position_size, "#.##") + " lots", bgcolor=color.new(color.purple, 70), text_color=color.white)
+    table.cell(risk_table, 2, 4, str.tostring(short_position_size, "#.##") + " lots", bgcolor=color.new(color.purple, 70), text_color=color.white)
+    
+    // Risk Amount ($)
+    long_risk_amount = long_position_size * long_risk_pips * 10
+    short_risk_amount = short_position_size * short_risk_pips * 10
+    table.cell(risk_table, 0, 5, "Risk Amount", bgcolor=color.maroon, text_color=color.white)
+    table.cell(risk_table, 1, 5, "$" + str.tostring(long_risk_amount, "#.##"), bgcolor=color.new(color.maroon, 70), text_color=color.white)
+    table.cell(risk_table, 2, 5, "$" + str.tostring(short_risk_amount, "#.##"), bgcolor=color.new(color.maroon, 70), text_color=color.white)
+    
+    // Target 2R
+    table.cell(risk_table, 0, 6, "Target 2R", bgcolor=color.green, text_color=color.white)
+    table.cell(risk_table, 1, 6, str.tostring(long_tp_2r, "#.#####"), bgcolor=color.new(color.green, 70), text_color=color.white)
+    table.cell(risk_table, 2, 6, str.tostring(short_tp_2r, "#.#####"), bgcolor=color.new(color.green, 70), text_color=color.white)
+    
+    // Potential Profit 2R
+    long_profit_2r = long_position_size * (long_risk_pips * 2) * 10
+    short_profit_2r = short_position_size * (short_risk_pips * 2) * 10
+    table.cell(risk_table, 0, 7, "Profit 2R", bgcolor=color.lime, text_color=color.black)
+    table.cell(risk_table, 1, 7, "$" + str.tostring(long_profit_2r, "#.##"), bgcolor=color.new(color.lime, 70), text_color=color.black)
+    table.cell(risk_table, 2, 7, "$" + str.tostring(short_profit_2r, "#.##"), bgcolor=color.new(color.lime, 70), text_color=color.black)
+
+// Account Risk Summary
+if show_position_info and barstate.islast
+    var table account_table = table.new(position.bottom_right, 2, 5, bgcolor=color.new(color.white, 10), border_width=2)
+    
+    // Header
+    table.cell(account_table, 0, 0, "ACCOUNT RISK", bgcolor=color.navy, text_color=color.white, text_size=size.normal)
+    table.cell(account_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
+    
+    // Account Size
+    table.cell(account_table, 0, 1, "Account Size", bgcolor=color.blue, text_color=color.white)
+    table.cell(account_table, 1, 1, "$" + str.tostring(account_size, "#,###"), bgcolor=color.new(color.blue, 70), text_color=color.white)
+    
+    // Risk Per Trade
+    risk_dollar_amount = account_size * (risk_per_trade / 100)
+    table.cell(account_table, 0, 2, "Risk Per Trade", bgcolor=color.orange, text_color=color.white)
+    table.cell(account_table, 1, 2, str.tostring(risk_per_trade, "#.#") + "% ($" + str.tostring(risk_dollar_amount, "#.##") + ")", bgcolor=color.new(color.orange, 70), text_color=color.white)
+    
+    // Max Daily Risk
+    max_daily_risk_amount = account_size * (max_risk_per_day / 100)
+    table.cell(account_table, 0, 3, "Max Daily Risk", bgcolor=color.red, text_color=color.white)
+    table.cell(account_table, 1, 3, str.tostring(max_risk_per_day, "#.#") + "% ($" + str.tostring(max_daily_risk_amount, "#.##") + ")", bgcolor=color.new(color.red, 70), text_color=color.white)
+    
+    // Preferred R:R
+    table.cell(account_table, 0, 4, "Target R:R", bgcolor=color.green, text_color=color.white)
+    table.cell(account_table, 1, 4, "1:" + str.tostring(preferred_rr_ratio, "#.#"), bgcolor=color.new(color.green, 70), text_color=color.white)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 🚨 RISK MANAGEMENT ALERTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+alert_freq = alert_frequency == "once_per_bar" ? alert.freq_once_per_bar : alert.freq_once_per_bar_close
+
+// Position Size Alerts
+if enable_position_alerts
+    max_risk_amount = account_size * (risk_per_trade / 100)
+    current_risk_amount = math.max(long_risk_amount, short_risk_amount)
+    
+    if current_risk_amount > max_risk_amount * 1.5
+        alert("⚠️ HIGH RISK POSITION!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Current Risk: $" + str.tostring(current_risk_amount, "#.##") + "\n" +
+              "Max Allowed: $" + str.tostring(max_risk_amount, "#.##") + "\n" +
+              "Position size may be too large for account", alert_freq)
+
+// R:R Ratio Alerts
+if enable_rr_alerts
+    current_rr_long = (long_tp_2r - current_entry) / (current_entry - long_sl)
+    current_rr_short = (current_entry - short_tp_2r) / (short_sl - current_entry)
+    
+    if current_rr_long < preferred_rr_ratio or current_rr_short < preferred_rr_ratio
+        alert("📊 LOW R:R RATIO!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Long R:R: 1:" + str.tostring(current_rr_long, "#.#") + "\n" +
+              "Short R:R: 1:" + str.tostring(current_rr_short, "#.#") + "\n" +
+              "Target R:R: 1:" + str.tostring(preferred_rr_ratio, "#.#"), alert_freq)
+
+// Risk Breach Alerts
+if enable_risk_breach_alerts
+    daily_risk_threshold = account_size * (max_risk_per_day / 100)
+    // This would need to track daily P&L in a real implementation
+    
+    if long_risk_amount > daily_risk_threshold or short_risk_amount > daily_risk_threshold
+        alert("🛑 DAILY RISK BREACH WARNING!\n" +
+              "Symbol: " + syminfo.ticker + "\n" +
+              "Potential Risk: $" + str.tostring(math.max(long_risk_amount, short_risk_amount), "#.##") + "\n" +
+              "Daily Limit: $" + str.tostring(daily_risk_threshold, "#.##") + "\n" +
+              "Consider reducing position size", alert_freq)
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// 📤 EXPORT FOR INTEGRATION WITH OTHER SCRIPTS
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+export long_sl
+export short_sl
+export long_tp_2r
+export short_tp_2r
+export long_position_size
+export short_position_size
+export account_size
+export risk_per_trade
+export preferred_rr_ratio
+export atr_value
