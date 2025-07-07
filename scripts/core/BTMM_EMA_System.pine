@@ -355,20 +355,20 @@ divergence_lookback = input.int(15, "Divergence Lookback Period", minval=5, maxv
 divergence_sensitivity = input.float(1.0, "Divergence Sensitivity", minval=0.5, maxval=2.0, step=0.1, group=divergence_group)
 min_divergence_distance = input.int(5, "Minimum Pivot Distance", minval=3, maxval=15, group=divergence_group)
 
-// === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-show_divergence_lines = input.bool(true, "Show Divergence Lines", group=visual_group)
-show_divergence_labels = input.bool(true, "Show Divergence Labels", group=visual_group)
-show_tdi_levels = input.bool(true, "Show TDI Overbought/Oversold", group=visual_group)
-overbought_level = input.float(68.0, "Overbought Level", minval=60.0, maxval=80.0, group=visual_group)
-oversold_level = input.float(32.0, "Oversold Level", minval=20.0, maxval=40.0, group=visual_group)
+// === TDI VISUAL SETTINGS (Second Definition Section) ===
+tdi_visual_group = "🎨 TDI Visual Configuration"
+show_divergence_lines = input.bool(true, "Show Divergence Lines", group=tdi_visual_group)
+show_divergence_labels = input.bool(true, "Show Divergence Labels", group=tdi_visual_group)
+show_tdi_levels = input.bool(true, "Show TDI Overbought/Oversold", group=tdi_visual_group)
+overbought_level = input.float(68.0, "Overbought Level", minval=60.0, maxval=80.0, group=tdi_visual_group)
+oversold_level = input.float(32.0, "Oversold Level", minval=20.0, maxval=40.0, group=tdi_visual_group)
 
-// === ALERT CONFIGURATION ===
-alert_group = "🚨 TDI Alert Settings"
-enable_divergence_alerts = input.bool(true, "Divergence Alert Notifications", group=alert_group)
-enable_tdi_level_alerts = input.bool(true, "TDI Level Break Alerts", group=alert_group)
-enable_signal_cross_alerts = input.bool(true, "TDI Signal Cross Alerts", group=alert_group)
-alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+// === TDI ALERT CONFIGURATION (Second Definition Section) ===
+tdi_alert_group = "🚨 TDI Alert Settings"
+enable_divergence_alerts = input.bool(true, "Divergence Alert Notifications", group=tdi_alert_group)
+enable_tdi_level_alerts = input.bool(true, "TDI Level Break Alerts", group=tdi_alert_group)
+enable_signal_cross_alerts = input.bool(true, "TDI Signal Cross Alerts", group=tdi_alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=tdi_alert_group)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 📊 TDI CALCULATIONS

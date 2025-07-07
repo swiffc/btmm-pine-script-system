@@ -57,7 +57,7 @@ show_pattern_labels = input.bool(true, "Show Pattern Labels", group=visual_group
 // 🔧 HELPER FUNCTIONS & CALCULATIONS
 // ============================================================================
 
-// ATR and volatility calculations
+// ATR and volatility calculations (consolidated)
 atr_14 = ta.atr(14)
 atr_21 = ta.atr(21)
 pattern_min_size = atr_14 * 2.0
@@ -685,20 +685,20 @@ simple_ema_confirmation = input.bool(true, "Simple 13 EMA Close Confirmation", g
 require_volume_confirmation = input.bool(true, "Require Volume Confirmation", group=confirmation_group)
 min_pattern_height = input.float(0.5, "Minimum Pattern Height (ATR)", minval=0.2, maxval=2.0, step=0.1, group=confirmation_group)
 
-// === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-show_pattern_labels = input.bool(true, "Show Pattern Labels", group=visual_group)
-show_entry_zones = input.bool(true, "Show Entry Zones", group=visual_group)
-show_pattern_structure = input.bool(true, "Show Pattern Structure Lines", group=visual_group)
-label_size_setting = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large"], group=visual_group)
-pattern_line_width = input.int(2, "Pattern Line Width", minval=1, maxval=5, group=visual_group)
+// === ADDITIONAL M&W VISUAL SETTINGS (Second Definition Section) ===
+mw_visual_group = "🎨 M&W Visual Configuration"
+show_pattern_labels = input.bool(true, "Show Pattern Labels", group=mw_visual_group)
+show_entry_zones = input.bool(true, "Show Entry Zones", group=mw_visual_group)
+show_pattern_structure = input.bool(true, "Show Pattern Structure Lines", group=mw_visual_group)
+label_size_setting = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large"], group=mw_visual_group)
+pattern_line_width = input.int(2, "Pattern Line Width", minval=1, maxval=5, group=mw_visual_group)
 
-// === ALERT CONFIGURATION ===
-alert_group = "🚨 M&W Alert Settings"
-enable_pattern_alerts = input.bool(true, "Pattern Formation Alerts", group=alert_group)
-enable_second_leg_alerts = input.bool(true, "Second Leg Entry Alerts", group=alert_group)
-enable_confirmation_alerts = input.bool(true, "Pattern Confirmation Alerts", group=alert_group)
-alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+// === M&W ALERT CONFIGURATION (Second Definition Section) ===
+mw_alert_group = "🚨 M&W Alert Settings"
+enable_pattern_alerts = input.bool(true, "Pattern Formation Alerts", group=mw_alert_group)
+enable_second_leg_alerts = input.bool(true, "Second Leg Entry Alerts", group=mw_alert_group)
+enable_confirmation_alerts = input.bool(true, "Pattern Confirmation Alerts", group=mw_alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=mw_alert_group)
 
 // === EARLY ENTRY NAMABLE PATTERNS ===
 early_entry_group = "🔍 Early Entry Namable Patterns"
@@ -716,8 +716,8 @@ early_entry_bars = input.int(8, "Early Entry Pattern Bars", minval=4, maxval=15,
 // EMA 13 for confirmation (Ketchup Line)
 ema_13 = ta.ema(close, 13)
 
-// ATR for pattern height validation
-atr_value = ta.atr(14)
+// ATR for pattern height validation (using existing atr_14 variable)
+// atr_value = ta.atr(14)  // REMOVED: Duplicate ATR definition - using atr_14 instead
 
 // Volume analysis
 avg_volume = ta.sma(volume, 20)
@@ -760,7 +760,7 @@ detect_m_pattern() =>
             // Validate M pattern structure
             shoulder_symmetry = math.abs(left_shoulder_high - right_shoulder_high) / head_high <= pattern_tolerance
             pattern_height = head_high - math.min(left_shoulder_high, right_shoulder_high)
-            sufficient_height = pattern_height >= atr_value * min_pattern_height
+            sufficient_height = pattern_height >= atr_14 * min_pattern_height
 
             if shoulder_symmetry and sufficient_height
                 m_pattern_active := true
@@ -824,7 +824,7 @@ detect_w_pattern() =>
             // Validate W pattern structure
             shoulder_symmetry = math.abs(left_shoulder_low - right_shoulder_low) / head_low <= pattern_tolerance
             pattern_height = math.max(left_shoulder_low, right_shoulder_low) - head_low
-            sufficient_height = pattern_height >= atr_value * min_pattern_height
+            sufficient_height = pattern_height >= atr_14 * min_pattern_height
 
             if shoulder_symmetry and sufficient_height
                 w_pattern_active := true
@@ -933,13 +933,13 @@ if show_pattern_structure and enable_w_patterns and w_pattern_formed and not na(
 // Pattern Labels
 if show_pattern_labels
     if m_pattern_confirmed and not m_pattern_confirmed[1]
-        label.new(bar_index, high + atr_value,
+        label.new(bar_index, high + atr_14,
                   "🔻 M PATTERN\n" + (m_second_leg_active ? "2ND LEG" : "FORMING") +
                   "\nConfluence: " + str.tostring(m_confluence_score) + "/" + str.tostring(confluence_threshold),
                   style=label.style_label_down, color=color.red, textcolor=color.white, size=label_size)
 
     if w_pattern_confirmed and not w_pattern_confirmed[1]
-        label.new(bar_index, low - atr_value,
+        label.new(bar_index, low - atr_14,
                   "🔺 W PATTERN\n" + (w_second_leg_active ? "2ND LEG" : "FORMING") +
                   "\nConfluence: " + str.tostring(w_confluence_score) + "/" + str.tostring(confluence_threshold),
                   style=label.style_label_up, color=color.green, textcolor=color.white, size=label_size)
@@ -1113,12 +1113,12 @@ if show_pattern_labels and enable_candlestick_patterns
     // === EARLY ENTRY CONFIRMATION LABELS ===
 
     if early_bullish_entry and not early_bullish_entry[1]
-        label.new(bar_index, low - atr_value,
+        label.new(bar_index, low - atr_14,
                   "🔺 EARLY ENTRY\n" + pattern_name + "\n13 EMA BREAK UP",
                   style=label.style_label_up, color=color.blue, textcolor=color.white, size=label_size)
 
     if early_bearish_entry and not early_bearish_entry[1]
-        label.new(bar_index, high + atr_value,
+        label.new(bar_index, high + atr_14,
                   "🔻 EARLY ENTRY\n" + pattern_name + "\n13 EMA BREAK DOWN",
                   style=label.style_label_down, color=color.purple, textcolor=color.white, size=label_size)
 
@@ -1417,13 +1417,13 @@ take_profit_rr = input.float(2.0, "Take Profit R:R Ratio", minval=1.0, maxval=5.
 max_open_trades = input.int(3, "Max Concurrent Trades", minval=1, maxval=10, group=risk_group)
 enable_trailing_stop = input.bool(true, "Enable Trailing Stop", group=risk_group)
 
-// === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-show_equity_curve = input.bool(true, "Show Equity Curve", group=visual_group)
-show_drawdown = input.bool(true, "Show Drawdown", group=visual_group)
-show_trade_markers = input.bool(true, "Show Trade Entry/Exit Markers", group=visual_group)
-equity_line_color = input.color(color.blue, "Equity Line Color", group=visual_group)
-drawdown_color = input.color(color.red, "Drawdown Color", group=visual_group)
+// === PERFORMANCE VISUAL SETTINGS (Third Definition Section) ===
+performance_visual_group = "🎨 Performance Visual Configuration"
+show_equity_curve = input.bool(true, "Show Equity Curve", group=performance_visual_group)
+show_drawdown = input.bool(true, "Show Drawdown", group=performance_visual_group)
+show_trade_markers = input.bool(true, "Show Trade Entry/Exit Markers", group=performance_visual_group)
+equity_line_color = input.color(color.blue, "Equity Line Color", group=performance_visual_group)
+drawdown_color = input.color(color.red, "Drawdown Color", group=performance_visual_group)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 📊 PERFORMANCE VARIABLES
@@ -1479,8 +1479,8 @@ if reset_stats and not reset_stats[1]
 // 🎯 SIGNAL DETECTION LOGIC
 // ═══════════════════════════════════════════════════════════════════════════════════
 
-// ATR for stop loss calculation
-atr_value = ta.atr(14)
+// ATR for stop loss calculation (using existing atr_14 variable)
+// atr_value = ta.atr(14)  // REMOVED: Third duplicate ATR definition - using atr_14 instead
 
 // EMA for trend detection
 ema_13 = ta.ema(close, 13)
@@ -1535,7 +1535,7 @@ short_signal = switch signal_source
 if long_signal and not in_long_trade
     in_long_trade := true
     trade_entry_price := close
-    trade_stop_loss := close - (atr_value * stop_loss_atr_mult)
+            trade_stop_loss := close - (atr_14 * stop_loss_atr_mult)
     trade_take_profit := close + ((close - trade_stop_loss) * take_profit_rr)
     trade_entry_bar := bar_index
     trade_risk_amount := current_balance * (risk_per_trade / 100)
@@ -1544,7 +1544,7 @@ if long_signal and not in_long_trade
 if short_signal and not in_short_trade
     in_short_trade := true
     trade_entry_price := close
-    trade_stop_loss := close + (atr_value * stop_loss_atr_mult)
+            trade_stop_loss := close + (atr_14 * stop_loss_atr_mult)
     trade_take_profit := close - ((trade_stop_loss - close) * take_profit_rr)
     trade_entry_bar := bar_index
     trade_risk_amount := current_balance * (risk_per_trade / 100)
