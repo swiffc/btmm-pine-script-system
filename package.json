@@ -104,7 +104,15 @@
     "quality-monitoring": "node automation/quality-monitoring.js",
     "perfect-quality": "npm run quality:fix && npm run performance:test && npm run docs:validate && npm run btmm-compliance-check",
     "quality-perfection": "node automation/quality-perfection.js",
-    "achieve-100": "npm run quality-perfection && npm run perfect-quality && npm run validate-quality-score"
+    "achieve-100": "npm run quality-perfection && npm run perfect-quality && npm run validate-quality-score",
+    "setup:automated": "node automated-setup.js",
+    "fix:paths": "node automated-setup.js --fix-paths-only",
+    "validate:structure": "node automated-setup.js --validate-only",
+    "show:structure": "tree -I 'node_modules|.git' -L 3 || find . -type d -not -path './node_modules*' -not -path './.git*' | head -30",
+    "fix:navigation": "npm run fix:paths && npm run validate:structure",
+    "fix:typescript": "npx tsc --noEmit && echo 'TypeScript validation complete'",
+    "fix:all": "npm run setup:automated && npm run fix:typescript",
+    "commit:all": "npm run fix:all && npm run git-auto-commit"
   },
   "keywords": [
     "trading",

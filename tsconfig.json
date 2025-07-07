@@ -1,6 +1,6 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "external-repo", "**/*.test.ts"],
+  "include": ["platform/client/src/**/*", "platform/shared/**/*", "platform/server/**/*", "docs/**/*"],
+  "exclude": ["node_modules", "build", "dist", "external-repo", "**/*.test.ts", "archives/**", "exports/**", "temp/**"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
@@ -18,7 +18,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "types": ["node", "vite/client"],
-    
+
     /* Enhanced strict mode for best practices */
     "strictNullChecks": true,
     "strictFunctionTypes": true,
@@ -28,15 +28,18 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": true,
-    
+
     "paths": {
-      "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"],
+      "@/*": ["./platform/client/src/*"],
+      "@shared/*": ["./platform/shared/*"],
+      "@server/*": ["./platform/server/*"],
       "@assets/*": ["./attached_assets/*"],
-      "@components/*": ["./client/src/components/*"],
-      "@pages/*": ["./client/src/pages/*"],
-      "@lib/*": ["./client/src/lib/*"],
-      "@hooks/*": ["./client/src/hooks/*"]
+      "@components/*": ["./platform/client/src/components/*"],
+      "@pages/*": ["./platform/client/src/pages/*"],
+      "@lib/*": ["./platform/client/src/lib/*"],
+      "@hooks/*": ["./platform/client/src/hooks/*"],
+      "@docs/*": ["./docs/*"],
+      "@trading-webapp/*": ["./docs/trading-strategy-webapp/*"]
     }
   }
 }
