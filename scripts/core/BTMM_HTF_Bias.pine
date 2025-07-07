@@ -240,11 +240,7 @@ var int current_day_number = 0
 
 // Day identification
 current_day_number := dayofweek
-current_day_name := current_day_number == dayofweek.monday ? "MONDAY" :
-  current_day_number == dayofweek.tuesday ? "TUESDAY" :
-  current_day_number == dayofweek.wednesday ? "WEDNESDAY" :
-  current_day_number == dayofweek.thursday ? "THURSDAY" :
-  current_day_number == dayofweek.friday ? "FRIDAY" : "WEEKEND"
+current_day_name := current_day_number == dayofweek.monday ? "MONDAY" : current_day_number == dayofweek.tuesday ? "TUESDAY" : current_day_number == dayofweek.wednesday ? "WEDNESDAY" : current_day_number == dayofweek.thursday ? "THURSDAY" : current_day_number == dayofweek.friday ? "FRIDAY" : "WEEKEND"
 
 // Detect new week (Monday open)
 new_week := dayofweek == dayofweek.monday and not (dayofweek[1] == dayofweek.monday)

@@ -575,9 +575,7 @@ if show_asian_stats and barstate.islast
     table.cell(session_table, 2, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.normal)
 
     // Current Session
-    session_color = current_session == "ASIAN" ? color.new(color.yellow, 70) :
-                   current_session == "LONDON" ? color.new(color.blue, 70) :
-                   current_session == "NY" ? color.new(color.green, 70) : color.new(color.gray, 70)
+    session_color = current_session == "ASIAN" ? color.new(color.yellow, 70) : current_session == "LONDON" ? color.new(color.blue, 70) : current_session == "NY" ? color.new(color.green, 70) : color.new(color.gray, 70)
     table.cell(session_table, 0, 1, "Current Session", bgcolor=color.purple, text_color=color.white)
     table.cell(session_table, 1, 1, current_session, bgcolor=session_color, text_color=color.white)
     table.cell(session_table, 2, 1, current_mm_phase, bgcolor=session_color, text_color=color.white)
