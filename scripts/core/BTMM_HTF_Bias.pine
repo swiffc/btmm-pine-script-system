@@ -10,7 +10,8 @@
 // Date: 2025-07-02
 // =============================================================================
 
-import BTMMFoundation as btmm
+// Note: BTMMFoundation functions imported directly due to local development
+// In production, this would use: import username/BTMMFoundation/1 as btmm
 
 indicator("BTMM HTF Bias System", "BTMM HTF", overlay=false, shorttitle="BTMM HTF Bia...")
 
@@ -49,19 +50,19 @@ show_strength_meter = input.bool(true, "Show Strength Meter", group=g_display)
 
 // Cache security data to avoid nested calls and improve performance
 // Higher Timeframe 1 Data (cached)
-[htf1_close, htf1_ema20, htf1_ema50] = request.security(syminfo.tickerid, htf_timeframe_1, 
+[htf1_close, htf1_ema20, htf1_ema50] = request.security(syminfo.tickerid, htf_timeframe_1,
     [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
 // Higher Timeframe 2 Data (cached)
-[htf2_close, htf2_ema20, htf2_ema50] = request.security(syminfo.tickerid, htf_timeframe_2, 
+[htf2_close, htf2_ema20, htf2_ema50] = request.security(syminfo.tickerid, htf_timeframe_2,
     [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
 // Higher Timeframe 3 Data (cached)
-[htf3_close, htf3_ema20, htf3_ema50] = request.security(syminfo.tickerid, htf_timeframe_3, 
+[htf3_close, htf3_ema20, htf3_ema50] = request.security(syminfo.tickerid, htf_timeframe_3,
     [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
 // Higher Timeframe 4 Data (cached)
-[htf4_close, htf4_ema20, htf4_ema50] = request.security(syminfo.tickerid, htf_timeframe_4, 
+[htf4_close, htf4_ema20, htf4_ema50] = request.security(syminfo.tickerid, htf_timeframe_4,
     [close, ta.ema(close, 20), ta.ema(close, 50)], lookahead=barmerge.lookahead_off)
 
 // ============================================================================
@@ -288,7 +289,7 @@ vol_spike = volume > vol_avg * 1.5
 atr_14 = ta.atr(14)
 
 // Monday: Accumulation/Setup Phase
-monday_accumulation = current_day_number == dayofweek.monday and 
+monday_accumulation = current_day_number == dayofweek.monday and
   not na(monday_high) and not na(monday_low) and
   (monday_high - monday_low) < atr_14 * 2.0
 
@@ -306,7 +307,7 @@ wednesday_reversal = current_day_number == dayofweek.wednesday and
   ((close < tuesday_low and tuesday_breakout[1] and close[1] > monday_high) or
    (close > tuesday_high and tuesday_breakout[1] and close[1] < monday_low))
 
-// Thursday: Institutional Positioning  
+// Thursday: Institutional Positioning
 thursday_positioning = current_day_number == dayofweek.thursday and vol_spike
 
 // Friday: Weekly Close Positioning
@@ -343,67 +344,67 @@ weekly_cycle_bear_bias = (monday_accumulation and composite_bias < 0) or
   (wednesday_continuation and composite_bias < 0)
 
 // Enhanced composite bias with weekly cycle
-enhanced_bias = composite_bias + 
+enhanced_bias = composite_bias +
   (weekly_cycle_bull_bias ? 1 : 0) - (weekly_cycle_bear_bias ? 1 : 0)
 
 // Weekly levels visual (only show on higher timeframes)
 weekly_levels_visible = timeframe.in_seconds() >= timeframe.in_seconds("1H")
 
-plot(show_weekly_levels and weekly_levels_visible and not na(weekly_high) ? weekly_high : na, 
+plot(show_weekly_levels and weekly_levels_visible and not na(weekly_high) ? weekly_high : na,
   "Weekly High", color=color.red, linewidth=2, style=plot.style_line, trackprice=true)
-plot(show_weekly_levels and weekly_levels_visible and not na(weekly_low) ? weekly_low : na, 
+plot(show_weekly_levels and weekly_levels_visible and not na(weekly_low) ? weekly_low : na,
   "Weekly Low", color=color.green, linewidth=2, style=plot.style_line, trackprice=true)
-plot(show_weekly_levels and weekly_levels_visible and not na(weekly_mid) ? weekly_mid : na, 
+plot(show_weekly_levels and weekly_levels_visible and not na(weekly_mid) ? weekly_mid : na,
   "Weekly Mid", color=color.blue, linewidth=1, style=plot.style_line, trackprice=true)
 
 // Cycle Dashboard Integration
 if enable_cycle_tracking and show_bias_table and barstate.islast
-    var table enhanced_table = table.new(position.top_left, 3, 8, 
+    var table enhanced_table = table.new(position.top_left, 3, 8,
       bgcolor=color.new(color.black, 80), border_width=1)
-    
+
     table.cell(enhanced_table, 0, 0, "HTF + WEEKLY CYCLE", text_color=color.white, text_size=size.normal)
     table.cell(enhanced_table, 1, 0, "STATUS", text_color=color.white, text_size=size.normal)
     table.cell(enhanced_table, 2, 0, "VALUE", text_color=color.white, text_size=size.normal)
-    
+
     table.cell(enhanced_table, 0, 1, "HTF Bias", text_color=color.white)
-    table.cell(enhanced_table, 1, 1, bias_direction, 
+    table.cell(enhanced_table, 1, 1, bias_direction,
       text_color=bias_percentage > 0 ? color.green : bias_percentage < 0 ? color.red : color.gray)
     table.cell(enhanced_table, 2, 1, str.tostring(bias_strength, "#.0") + "%", text_color=color.white)
-    
+
     table.cell(enhanced_table, 0, 2, "Current Day", text_color=color.white)
     table.cell(enhanced_table, 1, 2, current_day_name, text_color=color.yellow)
     table.cell(enhanced_table, 2, 2, str.tostring(current_day_number), text_color=color.white)
-    
+
     table.cell(enhanced_table, 0, 3, "Weekly Range", text_color=color.white)
-    weekly_range = not na(weekly_high) and not na(weekly_low) ? 
+    weekly_range = not na(weekly_high) and not na(weekly_low) ?
       str.tostring(math.round((weekly_high - weekly_low) * 10000)) + "p" : "N/A"
     table.cell(enhanced_table, 1, 3, weekly_range, text_color=color.blue)
     table.cell(enhanced_table, 2, 3, "", text_color=color.white)
-    
+
     table.cell(enhanced_table, 0, 4, "Monday Range", text_color=color.white)
-    monday_range = not na(monday_high) and not na(monday_low) ? 
+    monday_range = not na(monday_high) and not na(monday_low) ?
       str.tostring(math.round((monday_high - monday_low) * 10000)) + "p" : "N/A"
     table.cell(enhanced_table, 1, 4, monday_range, text_color=color.orange)
     table.cell(enhanced_table, 2, 4, "", text_color=color.white)
-    
+
     table.cell(enhanced_table, 0, 5, "Cycle Pattern", text_color=color.white)
-    pattern_status = monday_accumulation ? "ACCUMULATION" : 
-      tuesday_breakout ? "BREAKOUT" : 
-      wednesday_reversal ? "REVERSAL" : 
-      thursday_positioning ? "POSITIONING" : 
+    pattern_status = monday_accumulation ? "ACCUMULATION" :
+      tuesday_breakout ? "BREAKOUT" :
+      wednesday_reversal ? "REVERSAL" :
+      thursday_positioning ? "POSITIONING" :
       friday_positioning ? "CLOSE SETUP" : "MONITORING"
     table.cell(enhanced_table, 1, 5, pattern_status, text_color=color.yellow)
     table.cell(enhanced_table, 2, 5, "", text_color=color.white)
-    
+
     table.cell(enhanced_table, 0, 6, "Enhanced Bias", text_color=color.white)
     enhanced_direction = enhanced_bias > 0 ? "BULLISH" : enhanced_bias < 0 ? "BEARISH" : "NEUTRAL"
-    enhanced_color = enhanced_bias > composite_bias ? color.lime : 
+    enhanced_color = enhanced_bias > composite_bias ? color.lime :
       enhanced_bias < composite_bias ? color.orange : color.gray
     table.cell(enhanced_table, 1, 6, enhanced_direction, text_color=enhanced_color)
     table.cell(enhanced_table, 2, 6, str.tostring(enhanced_bias, "#.0"), text_color=color.white)
-    
+
     table.cell(enhanced_table, 0, 7, "Alignment", text_color=color.white)
-    table.cell(enhanced_table, 1, 7, strong_alignment ? "STRONG" : "WEAK", 
+    table.cell(enhanced_table, 1, 7, strong_alignment ? "STRONG" : "WEAK",
       text_color=strong_alignment ? color.green : color.red)
     table.cell(enhanced_table, 2, 7, str.tostring(alignment_percentage, "#.0") + "%", text_color=color.white)
 
@@ -448,7 +449,7 @@ plot(tuesday_failure ? 1 : 0, "Tuesday_Failure", display=display.data_window)
 
 // Session Settings - CORRECTED per user requirements
 asian_session = input.session("1700-0000", "Asian Session (5PM-Midnight)", group="Sessions", tooltip="Accumulation phase with 24h pivot reference")
-london_session = input.session("0200-0900", "London Session (2AM-9AM)", group="Sessions") 
+london_session = input.session("0200-0900", "London Session (2AM-9AM)", group="Sessions")
 ny_session = input.session("0930-1700", "NY Session (9:30AM-5PM)", group="Sessions")
 
 // Second Leg Parameters
@@ -510,7 +511,7 @@ if not leg1_complete
         leg1_start := low[1]
         leg_direction := 1
         leg1_complete := false
-        
+
     if bearish_impulse and leg_direction != -1
         leg1_start := high[1]
         leg_direction := -1
@@ -526,7 +527,7 @@ if not na(leg1_start) and leg_direction != 0
             leg1_complete := true
             leg_size_pips := current_size
             pullback_target := leg1_start + (leg1_end - leg1_start) * pullback_max_percent
-    
+
     if leg_direction == -1 and not leg1_complete
         current_size = (leg1_start - low) / pip_size
         if current_size >= first_leg_min_pips and close > low * 1.02
@@ -549,12 +550,12 @@ if pullback_done
     bars_since_pullback += 1
 
 // Second leg confirmation
-leg2_bull_confirmed = pullback_done and leg_direction == 1 and 
-                     close > leg1_end and high_volume and 
+leg2_bull_confirmed = pullback_done and leg_direction == 1 and
+                     close > leg1_end and high_volume and
                      bars_since_pullback <= confirmation_bars and active_session
 
-leg2_bear_confirmed = pullback_done and leg_direction == -1 and 
-                     close < leg1_end and high_volume and 
+leg2_bear_confirmed = pullback_done and leg_direction == -1 and
+                     close < leg1_end and high_volume and
                      bars_since_pullback <= confirmation_bars and active_session
 
 // Reset when confirmed or timeout
@@ -614,45 +615,45 @@ var table info_table = na
 if barstate.islast
     if not na(info_table)
         table.delete(info_table)
-    
+
     info_table := table.new(position.top_left, 2, 8, bgcolor=color.white, border_width=1)
-    
+
     // Headers
     table.cell(info_table, 0, 0, "METRIC", bgcolor=color.navy, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 0, "STATUS", bgcolor=color.navy, text_color=color.white, text_size=size.small)
-    
+
     // Session info
     session_color = is_asian ? color.purple : is_london ? color.orange : is_ny ? color.blue : color.gray
     table.cell(info_table, 0, 1, "SESSION", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 1, session_phase, bgcolor=session_color, text_color=color.white, text_size=size.small)
-    
+
     // Leg 1 status
     leg1_color = leg1_complete ? color.green : color.red
     table.cell(info_table, 0, 2, "LEG 1", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 2, leg1_complete ? "COMPLETE" : "PENDING", bgcolor=leg1_color, text_color=color.white, text_size=size.small)
-    
+
     // Pullback status
     pb_color = pullback_done ? color.green : color.red
     table.cell(info_table, 0, 3, "PULLBACK", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 3, pullback_done ? "DONE" : "PENDING", bgcolor=pb_color, text_color=color.white, text_size=size.small)
-    
+
     // Leg 2 status
     leg2_color = leg2_bull_confirmed or leg2_bear_confirmed ? color.lime : color.red
     leg2_text = leg2_bull_confirmed ? "BULL" : leg2_bear_confirmed ? "BEAR" : "WAIT"
     table.cell(info_table, 0, 4, "LEG 2", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 4, leg2_text, bgcolor=leg2_color, text_color=color.white, text_size=size.small)
-    
+
     // Volume status
     vol_color = high_volume ? color.green : color.red
     table.cell(info_table, 0, 5, "VOLUME", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 5, high_volume ? "HIGH" : "LOW", bgcolor=vol_color, text_color=color.white, text_size=size.small)
-    
+
     // Trend status
     trend_color = trend_bullish ? color.green : trend_bearish ? color.red : color.gray
     trend_text = trend_bullish ? "BULL" : trend_bearish ? "BEAR" : "NEUT"
     table.cell(info_table, 0, 6, "TREND", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(info_table, 1, 6, trend_text, bgcolor=trend_color, text_color=color.white, text_size=size.small)
-    
+
     // Leg size
     size_color = leg_size_pips >= first_leg_min_pips * 1.5 ? color.green : color.yellow
     size_text = not na(leg_size_pips) ? str.tostring(math.round(leg_size_pips)) + " pips" : "N/A"

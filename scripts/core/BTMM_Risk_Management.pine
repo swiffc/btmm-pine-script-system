@@ -10,7 +10,8 @@
 // Date: 2025-07-02
 // =============================================================================
 
-import BTMMFoundation as btmm
+// Note: BTMMFoundation functions imported directly due to local development
+// In production, this would use: import username/BTMMFoundation/1 as btmm
 
 indicator("BTMM Risk Management", "BTMM Risk", overlay=true, shorttitle="BTMM Risk",
          max_boxes_count=50, max_lines_count=100, max_labels_count=100)
@@ -78,62 +79,62 @@ calculate_risk_levels(signal_type, entry_price, pattern_high, pattern_low) =>
     var float reward_1 = na
     var float reward_2 = na
     var float reward_3 = na
-    
+
     if signal_type == "SELL"
         // Bearish trade setup
         if use_pattern_levels and not na(pattern_high)
             stop_loss := pattern_high + atr_current
         else
             stop_loss := entry_price + atr_current
-        
+
         risk_amount := stop_loss - entry_price
-        
+
         // Calculate multiple take profit levels
         base_reward = risk_amount * risk_reward_ratio
         take_profit_1 := entry_price - base_reward
         take_profit_2 := entry_price - (base_reward * 1.5)
         take_profit_3 := entry_price - (base_reward * 2.0)
-        
+
         reward_1 := base_reward
         reward_2 := base_reward * 1.5
         reward_3 := base_reward * 2.0
-    
+
     else if signal_type == "BUY"
         // Bullish trade setup
         if use_pattern_levels and not na(pattern_low)
             stop_loss := pattern_low - atr_current
         else
             stop_loss := entry_price - atr_current
-        
+
         risk_amount := entry_price - stop_loss
-        
+
         // Calculate multiple take profit levels
         base_reward = risk_amount * risk_reward_ratio
         take_profit_1 := entry_price + base_reward
         take_profit_2 := entry_price + (base_reward * 1.5)
         take_profit_3 := entry_price + (base_reward * 2.0)
-        
+
         reward_1 := base_reward
         reward_2 := base_reward * 1.5
         reward_3 := base_reward * 2.0
-    
+
     [stop_loss, take_profit_1, take_profit_2, take_profit_3, risk_amount, reward_1, reward_2, reward_3]
 
 // Dynamic Risk:Reward adjustment based on market conditions
 calculate_dynamic_rr() =>
     base_rr = risk_reward_ratio
-    
+
     if dynamic_rr_adjustment
         // Adjust based on volatility
         volatility_factor = atr_14 / ta.sma(atr_14, 20)
-        
+
         // Adjust based on volume
         volume_factor = volume_ratio
-        
+
         // Higher volatility = higher R:R target
         // Higher volume = potentially higher R:R target
         adjustment_factor = (volatility_factor + volume_factor) / 2
-        
+
         dynamic_rr = base_rr * math.max(0.8, math.min(1.5, adjustment_factor))
         dynamic_rr
     else
@@ -150,22 +151,22 @@ calculate_position_size(risk_amount_per_share, signal_type) =>
     var float position_size = na
     var float dollar_risk = na
     var float risk_per_share = na
-    
+
     if not na(risk_amount_per_share) and risk_amount_per_share > 0
         if use_fixed_dollar_risk
             dollar_risk := fixed_dollar_risk
         else
             current_account_size = compound_profits ? account_size : account_size
             dollar_risk := current_account_size * (max_risk_percent / 100)
-        
+
         // Convert risk amount to the same units as account size
         risk_per_share := risk_amount_per_share * syminfo.pointvalue
-        
+
         if risk_per_share > 0
             position_size := dollar_risk / risk_per_share
         else
             position_size := na
-    
+
     [position_size, dollar_risk, risk_per_share]
 
 // ============================================================================
@@ -188,19 +189,19 @@ mock_w_peak = bullish_signal ? ta.highest(high, 5) : na
 mock_w_valley = bullish_signal ? ta.lowest(low, 10) : na
 
 // Calculate risk levels for active signals
-[m_stop, m_tp1, m_tp2, m_tp3, m_risk, m_reward1, m_reward2, m_reward3] = bearish_signal and not na(mock_m_peak) and not na(mock_m_valley) ? 
-    calculate_risk_levels("SELL", close, mock_m_peak, mock_m_valley) : 
+[m_stop, m_tp1, m_tp2, m_tp3, m_risk, m_reward1, m_reward2, m_reward3] = bearish_signal and not na(mock_m_peak) and not na(mock_m_valley) ?
+    calculate_risk_levels("SELL", close, mock_m_peak, mock_m_valley) :
     [na, na, na, na, na, na, na, na]
 
-[w_stop, w_tp1, w_tp2, w_tp3, w_risk, w_reward1, w_reward2, w_reward3] = bullish_signal and not na(mock_w_peak) and not na(mock_w_valley) ? 
-    calculate_risk_levels("BUY", close, mock_w_peak, mock_w_valley) : 
+[w_stop, w_tp1, w_tp2, w_tp3, w_risk, w_reward1, w_reward2, w_reward3] = bullish_signal and not na(mock_w_peak) and not na(mock_w_valley) ?
+    calculate_risk_levels("BUY", close, mock_w_peak, mock_w_valley) :
     [na, na, na, na, na, na, na, na]
 
 // Calculate position sizes
-[m_position_size, m_dollar_risk, m_risk_per_share] = bearish_signal and not na(m_risk) ? 
+[m_position_size, m_dollar_risk, m_risk_per_share] = bearish_signal and not na(m_risk) ?
     calculate_position_size(m_risk, "SELL") : [na, na, na]
 
-[w_position_size, w_dollar_risk, w_risk_per_share] = bullish_signal and not na(w_risk) ? 
+[w_position_size, w_dollar_risk, w_risk_per_share] = bullish_signal and not na(w_risk) ?
     calculate_position_size(w_risk, "BUY") : [na, na, na]
 
 // ============================================================================
@@ -213,11 +214,11 @@ draw_bearish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
         // Entry line
         entry_line = line.new(bar_index, entry_price, bar_index + 20, entry_price,
                              color=color.white, width=line_width, style=line.style_solid)
-        
+
         // Stop loss line
         stop_line = line.new(bar_index, stop_loss, bar_index + 20, stop_loss,
                             color=color.red, width=line_width, style=line.style_dashed)
-        
+
         // Take profit lines
         tp1_line = line.new(bar_index, tp1, bar_index + 20, tp1,
                            color=color.green, width=line_width, style=line.style_dashed)
@@ -225,17 +226,17 @@ draw_bearish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
                            color=color.lime, width=line_width - 1, style=line.style_dotted)
         tp3_line = line.new(bar_index, tp3, bar_index + 20, tp3,
                            color=color.yellow, width=line_width - 1, style=line.style_dotted)
-        
+
         // Risk box (red)
         risk_box = box.new(bar_index, entry_price, bar_index + 15, stop_loss,
                           border_color=color.red, bgcolor=color.new(color.red, transparency),
                           border_width=1)
-        
+
         // Reward boxes (green gradient)
         reward_box1 = box.new(bar_index, entry_price, bar_index + 15, tp1,
                              border_color=color.green, bgcolor=color.new(color.green, transparency),
                              border_width=1)
-        
+
         // Risk/Reward information label
         rr_text = "🔴 BEARISH SETUP\n" +
                  "Entry: " + str.tostring(entry_price, "#.#####") + "\n" +
@@ -244,7 +245,7 @@ draw_bearish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
                  "TP2: " + str.tostring(tp2, "#.#####") + " (R:" + str.tostring(dynamic_risk_reward_ratio * 1.5, "#.#") + ")\n" +
                  "Risk: $" + str.tostring(dollar_risk, "#") + "\n" +
                  "Size: " + str.tostring(position_size, "#.##") + " units"
-        
+
         label.new(bar_index + 10, (entry_price + tp1) / 2, rr_text,
                  style=label.style_label_left, color=color.red, textcolor=color.white, size=label_text_size)
 
@@ -254,11 +255,11 @@ draw_bullish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
         // Entry line
         entry_line = line.new(bar_index, entry_price, bar_index + 20, entry_price,
                              color=color.white, width=line_width, style=line.style_solid)
-        
+
         // Stop loss line
         stop_line = line.new(bar_index, stop_loss, bar_index + 20, stop_loss,
                             color=color.red, width=line_width, style=line.style_dashed)
-        
+
         // Take profit lines
         tp1_line = line.new(bar_index, tp1, bar_index + 20, tp1,
                            color=color.green, width=line_width, style=line.style_dashed)
@@ -266,17 +267,17 @@ draw_bullish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
                            color=color.lime, width=line_width - 1, style=line.style_dotted)
         tp3_line = line.new(bar_index, tp3, bar_index + 20, tp3,
                            color=color.yellow, width=line_width - 1, style=line.style_dotted)
-        
+
         // Risk box (red)
         risk_box = box.new(bar_index, entry_price, bar_index + 15, stop_loss,
                           border_color=color.red, bgcolor=color.new(color.red, transparency),
                           border_width=1)
-        
+
         // Reward box (green)
         reward_box1 = box.new(bar_index, entry_price, bar_index + 15, tp1,
                              border_color=color.green, bgcolor=color.new(color.green, transparency),
                              border_width=1)
-        
+
         // Risk/Reward information label
         rr_text = "🟢 BULLISH SETUP\n" +
                  "Entry: " + str.tostring(entry_price, "#.#####") + "\n" +
@@ -285,7 +286,7 @@ draw_bullish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
                  "TP2: " + str.tostring(tp2, "#.#####") + " (R:" + str.tostring(dynamic_risk_reward_ratio * 1.5, "#.#") + ")\n" +
                  "Risk: $" + str.tostring(dollar_risk, "#") + "\n" +
                  "Size: " + str.tostring(position_size, "#.##") + " units"
-        
+
         label.new(bar_index + 10, (entry_price + tp1) / 2, rr_text,
                  style=label.style_label_left, color=color.green, textcolor=color.white, size=label_text_size)
 
@@ -305,45 +306,45 @@ var table risk_stats_table = na
 if show_statistics and barstate.islast
     if not na(risk_stats_table)
         table.delete(risk_stats_table)
-    
+
     risk_stats_table := table.new(position.bottom_left, 3, 9, bgcolor=color.white, border_width=1)
-    
+
     // Headers
     table.cell(risk_stats_table, 0, 0, "RISK STATS", bgcolor=color.navy, text_color=color.white, text_size=size.small)
     table.cell(risk_stats_table, 1, 0, "VALUE", bgcolor=color.gray, text_color=color.white, text_size=size.small)
     table.cell(risk_stats_table, 2, 0, "STATUS", bgcolor=color.gray, text_color=color.white, text_size=size.small)
-    
+
     // Statistics rows
     table.cell(risk_stats_table, 0, 1, "Account Size", text_color=color.black, text_size=size.tiny)
     table.cell(risk_stats_table, 1, 1, "$" + str.tostring(account_size, "#"), text_color=color.blue, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 1, "✅", text_color=color.green, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 2, "Max Risk %", text_color=color.black, text_size=size.tiny)
     table.cell(risk_stats_table, 1, 2, str.tostring(max_risk_percent, "#.#") + "%", text_color=color.orange, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 2, max_risk_percent <= 3.0 ? "✅" : "⚠️", text_color=max_risk_percent <= 3.0 ? color.green : color.orange, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 3, "ATR 14", text_color=color.black, text_size=size.tiny)
     table.cell(risk_stats_table, 1, 3, str.tostring(atr_14 * 10000, "#") + " pips", text_color=color.purple, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 3, atr_14 > 0 ? "✅" : "❌", text_color=atr_14 > 0 ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 4, "R:R Ratio", text_color=color.black, text_size=size.tiny)
     table.cell(risk_stats_table, 1, 4, "1:" + str.tostring(dynamic_risk_reward_ratio, "#.#"), text_color=color.green, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 4, dynamic_risk_reward_ratio >= 2.0 ? "✅" : "⚠️", text_color=dynamic_risk_reward_ratio >= 2.0 ? color.green : color.orange, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 5, "Volume Ratio", text_color=color.black, text_size=size.tiny)
     table.cell(risk_stats_table, 1, 5, str.tostring(volume_ratio, "#.#") + "x", text_color=color.blue, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 5, volume_ratio > 1.0 ? "✅" : "❌", text_color=volume_ratio > 1.0 ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 6, "Volatility", text_color=color.black, text_size=size.tiny)
     volatility_ratio = atr_14 / ta.sma(atr_14, 20)
     table.cell(risk_stats_table, 1, 6, str.tostring(volatility_ratio, "#.##") + "x", text_color=color.purple, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 6, volatility_ratio > 0.8 and volatility_ratio < 1.5 ? "✅" : "⚠️", text_color=volatility_ratio > 0.8 and volatility_ratio < 1.5 ? color.green : color.orange, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 7, "Active Signals", text_color=color.black, text_size=size.tiny)
     active_signals = (bearish_signal ? 1 : 0) + (bullish_signal ? 1 : 0)
     table.cell(risk_stats_table, 1, 7, str.tostring(active_signals), text_color=active_signals > 0 ? color.green : color.gray, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 7, active_signals > 0 ? "📊" : "💤", text_color=active_signals > 0 ? color.green : color.gray, text_size=size.tiny)
-    
+
     table.cell(risk_stats_table, 0, 8, "System Status", text_color=color.black, text_size=size.tiny)
     table.cell(risk_stats_table, 1, 8, "BTMM v2.0", text_color=color.navy, text_size=size.tiny)
     table.cell(risk_stats_table, 2, 8, "🟢 ACTIVE", text_color=color.green, text_size=size.tiny)

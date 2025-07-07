@@ -11,7 +11,8 @@
 // @date 2025-07-02
 // =============================================================================
 
-import BTMMFoundation as btmm
+// Note: BTMMFoundation functions imported directly due to local development
+// In production, this would use: import username/BTMMFoundation/1 as btmm
 
 // =============================================================================
 // BTMM ENTRY SYSTEM - OTE & INSTITUTIONAL SIGNAL VALIDATION
@@ -89,11 +90,11 @@ detect_second_leg_ote() =>
     var bool in_retracement = false
     var string leg_direction = "NONE"
     var bool ote_setup_active = false
-    
+
     // Detect swing points
     swing_high = ta.pivothigh(high, ote_swing_lookback, ote_swing_lookback)
     swing_low = ta.pivotlow(low, ote_swing_lookback, ote_swing_lookback)
-    
+
     // Reset if too old
     if not na(first_leg_start_bar) and bar_index - first_leg_start_bar > 200
         first_leg_high := na
@@ -104,7 +105,7 @@ detect_second_leg_ote() =>
         in_retracement := false
         leg_direction := "NONE"
         ote_setup_active := false
-    
+
     // Detect first leg completion
     if not na(swing_high) and not in_retracement
         // Look for first leg down (high to low)
@@ -117,7 +118,7 @@ detect_second_leg_ote() =>
             leg_direction := "DOWN"
             in_retracement := true
             ote_setup_active := true
-    
+
     if not na(swing_low) and not in_retracement
         // Look for first leg up (low to high)
         potential_start_high = ta.highest(high, 50)
@@ -129,31 +130,31 @@ detect_second_leg_ote() =>
             leg_direction := "UP"
             in_retracement := true
             ote_setup_active := true
-    
+
     // Calculate OTE zones
     var float ote_382 = na
     var float ote_500 = na
     var float ote_618 = na
     var float ote_786 = na
-    
+
     if ote_setup_active and leg_direction == "DOWN" and not na(first_leg_high) and not na(first_leg_low)
         first_leg_range = first_leg_high - first_leg_low
         ote_382 := first_leg_low + (first_leg_range * 0.382)
         ote_500 := first_leg_low + (first_leg_range * 0.500)
         ote_618 := first_leg_low + (first_leg_range * 0.618)
         ote_786 := first_leg_low + (first_leg_range * 0.786)
-    
+
     else if ote_setup_active and leg_direction == "UP" and not na(first_leg_high) and not na(first_leg_low)
         first_leg_range = first_leg_high - first_leg_low
         ote_382 := first_leg_high - (first_leg_range * 0.382)
         ote_500 := first_leg_high - (first_leg_range * 0.500)
         ote_618 := first_leg_high - (first_leg_range * 0.618)
         ote_786 := first_leg_high - (first_leg_range * 0.786)
-    
+
     // Detect if in optimal OTE zones
     in_bearish_ote_zone = leg_direction == "DOWN" and not na(ote_500) and not na(ote_618) and close >= ote_500 and close <= ote_618
     in_bullish_ote_zone = leg_direction == "UP" and not na(ote_382) and not na(ote_500) and close >= ote_382 and close <= ote_500
-    
+
     [in_bearish_ote_zone, in_bullish_ote_zone, leg_direction, ote_382, ote_500, ote_618, ote_786, ote_setup_active]
 
 // Execute OTE detection
@@ -168,14 +169,14 @@ ema_13 = ta.ema(close, 13)
 check_13_ema_confirmation(pattern_type) =>
     confirmation = false
     strong_confirmation = false
-    
+
     if pattern_type == "M"
         confirmation := close < ema_13 and close[1] >= ema_13
         strong_confirmation := close < ema_13 and close < ta.ema(close, 50)
     else if pattern_type == "W"
         confirmation := close > ema_13 and close[1] <= ema_13
         strong_confirmation := close > ema_13 and close > ta.ema(close, 50)
-    
+
     [confirmation, strong_confirmation]
 
 // BTMM Bias Filtering (simplified)
@@ -183,10 +184,10 @@ simple_bias_calculation() =>
     ema_5 = ta.ema(close, 5)
     ema_50 = ta.ema(close, 50)
     ema_200 = ta.ema(close, 200)
-    
+
     bullish_bias = close > ema_13 and ema_5 > ema_13 and ema_50 > ema_200
     bearish_bias = close < ema_13 and ema_5 < ema_13 and ema_50 < ema_200
-    
+
     bias = bullish_bias ? "BULLISH" : bearish_bias ? "BEARISH" : "NEUTRAL"
     bias
 
@@ -194,7 +195,7 @@ btmm_market_bias = simple_bias_calculation()
 
 filter_by_btmm_bias(pattern_found, pattern_type) =>
     valid_signal = false
-    
+
     if pattern_found and enable_bias_filter
         if btmm_market_bias == "BULLISH" and pattern_type == "W"
             valid_signal := true
@@ -202,7 +203,7 @@ filter_by_btmm_bias(pattern_found, pattern_type) =>
             valid_signal := true
     else if pattern_found and not enable_bias_filter
         valid_signal := true
-    
+
     valid_signal
 
 // Session filtering (simplified)
@@ -220,16 +221,16 @@ institutional_support = volume > volume_spike_threshold and math.abs(close - ope
 // Confluence factor analysis
 calculate_confluence_factors(signal_type) =>
     confluence_factors = array.new<bool>()
-    
+
     // Factor 1: OTE Zone
     if signal_type == "M"
         array.push(confluence_factors, in_bearish_ote)
     else
         array.push(confluence_factors, in_bullish_ote)
-    
+
     // Factor 2: Volume confirmation
     array.push(confluence_factors, volume > volume_spike_threshold)
-    
+
     // Factor 3: 13 EMA confirmation
     if enable_13_ema_confirmation
         if signal_type == "M"
@@ -238,7 +239,7 @@ calculate_confluence_factors(signal_type) =>
             array.push(confluence_factors, close > ema_13)
     else
         array.push(confluence_factors, true)
-    
+
     // Factor 4: BTMM Bias alignment
     if enable_bias_filter
         if signal_type == "M"
@@ -247,26 +248,26 @@ calculate_confluence_factors(signal_type) =>
             array.push(confluence_factors, btmm_market_bias == "BULLISH")
     else
         array.push(confluence_factors, true)
-    
+
     // Factor 5: Session filter
     if enable_session_filter
         array.push(confluence_factors, trading_allowed)
     else
         array.push(confluence_factors, true)
-    
+
     // Factor 6: ATR-based momentum
     momentum_valid = math.abs(close - open) > atr_14 * 0.3
     array.push(confluence_factors, momentum_valid)
-    
+
     // Factor 7: Institutional support
     array.push(confluence_factors, institutional_support)
-    
+
     // Count confluences
     confluence_count = 0
     for i = 0 to array.size(confluence_factors) - 1
         if array.get(confluence_factors, i)
             confluence_count += 1
-    
+
     confluence_count
 
 // Mock pattern completion signals (since we don't have direct access to pattern detection here)
@@ -306,9 +307,9 @@ if show_ote_zones and ote_active and not na(ote_500)
             box.new(bar_index - 5, ote_786, bar_index + 15, ote_618, border_color=color.red, bgcolor=color.new(color.red, 90), border_width=1)
             box.new(bar_index - 5, ote_618, bar_index + 15, ote_500, border_color=color.red, bgcolor=color.new(color.red, 85), border_width=2)
             box.new(bar_index - 5, ote_500, bar_index + 15, ote_382, border_color=color.red, bgcolor=color.new(color.red, 90), border_width=1)
-        
+
         label.new(bar_index, ote_618, "🎯 OTE Bearish Zone", style=label.style_label_left, color=color.red, textcolor=color.white, size=size.small)
-    
+
     if current_leg_direction == "UP" and not na(ote_382)
         if ote_optimal_only
             ote_box = box.new(bar_index - 5, ote_500, bar_index + 15, ote_382,
@@ -318,7 +319,7 @@ if show_ote_zones and ote_active and not na(ote_500)
             box.new(bar_index - 5, ote_786, bar_index + 15, ote_618, border_color=color.green, bgcolor=color.new(color.green, 90), border_width=1)
             box.new(bar_index - 5, ote_618, bar_index + 15, ote_500, border_color=color.green, bgcolor=color.new(color.green, 90), border_width=1)
             box.new(bar_index - 5, ote_500, bar_index + 15, ote_382, border_color=color.green, bgcolor=color.new(color.green, 85), border_width=2)
-        
+
         label.new(bar_index, ote_382, "🎯 OTE Bullish Zone", style=label.style_label_left, color=color.green, textcolor=color.white, size=size.small)
 
 // Signal Arrows
@@ -338,40 +339,40 @@ var table confluence_table = na
 if show_confluence_table and barstate.islast
     if not na(confluence_table)
         table.delete(confluence_table)
-    
+
     confluence_table := table.new(position.top_left, 3, 8, bgcolor=color.white, border_width=1)
-    
+
     // Headers
     table.cell(confluence_table, 0, 0, "CONFLUENCE", bgcolor=color.navy, text_color=color.white, text_size=size.small)
     table.cell(confluence_table, 1, 0, "M (BEAR)", bgcolor=color.red, text_color=color.white, text_size=size.small)
     table.cell(confluence_table, 2, 0, "W (BULL)", bgcolor=color.green, text_color=color.white, text_size=size.small)
-    
+
     // Confluence factors
     table.cell(confluence_table, 0, 1, "OTE Zone", text_color=color.black, text_size=size.tiny)
     table.cell(confluence_table, 1, 1, in_bearish_ote ? "✅" : "❌", text_color=in_bearish_ote ? color.green : color.red, text_size=size.tiny)
     table.cell(confluence_table, 2, 1, in_bullish_ote ? "✅" : "❌", text_color=in_bullish_ote ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(confluence_table, 0, 2, "Volume", text_color=color.black, text_size=size.tiny)
     vol_confirmed = volume > volume_spike_threshold
     table.cell(confluence_table, 1, 2, vol_confirmed ? "✅" : "❌", text_color=vol_confirmed ? color.green : color.red, text_size=size.tiny)
     table.cell(confluence_table, 2, 2, vol_confirmed ? "✅" : "❌", text_color=vol_confirmed ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(confluence_table, 0, 3, "13 EMA", text_color=color.black, text_size=size.tiny)
     table.cell(confluence_table, 1, 3, close < ema_13 ? "✅" : "❌", text_color=close < ema_13 ? color.green : color.red, text_size=size.tiny)
     table.cell(confluence_table, 2, 3, close > ema_13 ? "✅" : "❌", text_color=close > ema_13 ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(confluence_table, 0, 4, "Bias", text_color=color.black, text_size=size.tiny)
     table.cell(confluence_table, 1, 4, btmm_market_bias == "BEARISH" ? "✅" : "❌", text_color=btmm_market_bias == "BEARISH" ? color.green : color.red, text_size=size.tiny)
     table.cell(confluence_table, 2, 4, btmm_market_bias == "BULLISH" ? "✅" : "❌", text_color=btmm_market_bias == "BULLISH" ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(confluence_table, 0, 5, "Session", text_color=color.black, text_size=size.tiny)
     table.cell(confluence_table, 1, 5, trading_allowed ? "✅" : "❌", text_color=trading_allowed ? color.green : color.red, text_size=size.tiny)
     table.cell(confluence_table, 2, 5, trading_allowed ? "✅" : "❌", text_color=trading_allowed ? color.green : color.red, text_size=size.tiny)
-    
+
     table.cell(confluence_table, 0, 6, "Count", bgcolor=color.gray, text_color=color.white, text_size=size.tiny)
     table.cell(confluence_table, 1, 6, str.tostring(m_confluence_count) + "/7", bgcolor=m_confluence_count >= min_confluence_count ? color.green : color.red, text_color=color.white, text_size=size.tiny)
     table.cell(confluence_table, 2, 6, str.tostring(w_confluence_count) + "/7", bgcolor=w_confluence_count >= min_confluence_count ? color.green : color.red, text_color=color.white, text_size=size.tiny)
-    
+
     table.cell(confluence_table, 0, 7, "Signal", bgcolor=color.blue, text_color=color.white, text_size=size.tiny)
     table.cell(confluence_table, 1, 7, ultimate_bearish ? "🔥" : ote_m_signal ? "🎯" : m_signal_valid ? "✅" : "❌", bgcolor=ultimate_bearish ? color.purple : m_signal_valid ? color.green : color.red, text_color=color.white, text_size=size.tiny)
     table.cell(confluence_table, 2, 7, ultimate_bullish ? "🔥" : ote_w_signal ? "🎯" : w_signal_valid ? "✅" : "❌", bgcolor=ultimate_bullish ? color.purple : w_signal_valid ? color.green : color.red, text_color=color.white, text_size=size.tiny)
@@ -434,7 +435,7 @@ var g_MASTER_VISUAL = "🎨 MASTER VISUAL CONTROLS"
 show_master_labels      = input.bool(true,  "Show Master Signal Labels",    group=g_MASTER_VISUAL)
 show_master_strength    = input.bool(true,  "Show Master Strength Meter",   group=g_MASTER_VISUAL)
 show_master_confluence  = input.bool(true,  "Show Master Confluence Box",   group=g_MASTER_VISUAL)
-master_label_size       = input.string("normal", "Master Label Size", 
+master_label_size       = input.string("normal", "Master Label Size",
   options=["tiny", "small", "normal", "large"], group=g_MASTER_VISUAL)
 
 // Enhanced Colors
@@ -500,17 +501,17 @@ master_bear_signals += master_risk_valid ? 1 : 0
 // MASTER SIGNAL GENERATION
 // ============================================================================
 
-master_confluence_met = master_confluence_req ? 
+master_confluence_met = master_confluence_req ?
   (master_bull_signals >= master_confluence_count or master_bear_signals >= master_confluence_count) : true
 
 master_signal_strength_calc = math.max(master_bull_signals, master_bear_signals) * (100.0 / 8.0)
 master_quality_met = master_signal_strength_calc >= master_signal_strength
 
 // Final Master Signals (enhanced versions that override basic signals when enabled)
-master_ultimate_bull = enable_master_system and enable_master_signals and 
+master_ultimate_bull = enable_master_system and enable_master_signals and
   master_bull_signals > master_bear_signals and master_confluence_met and master_quality_met
 
-master_ultimate_bear = enable_master_system and enable_master_signals and 
+master_ultimate_bear = enable_master_system and enable_master_signals and
   master_bear_signals > master_bull_signals and master_confluence_met and master_quality_met
 
 // Enhanced Ultimate Signals (combining existing ultimate signals with master control)
@@ -523,33 +524,33 @@ enhanced_ultimate_bear = master_ultimate_bear or (enable_master_system and ultim
 
 // Master signal labels (enhanced versions)
 if show_master_labels and master_ultimate_bull
-    label.new(bar_index, low - atr_14, "🚀 MASTER BULL", 
-      style=label.style_label_up, color=master_bull_color, 
+    label.new(bar_index, low - atr_14, "🚀 MASTER BULL",
+      style=label.style_label_up, color=master_bull_color,
       textcolor=color.white, size=master_label_size)
 
 if show_master_labels and master_ultimate_bear
-    label.new(bar_index, high + atr_14, "🚀 MASTER BEAR", 
-      style=label.style_label_down, color=master_bear_color, 
+    label.new(bar_index, high + atr_14, "🚀 MASTER BEAR",
+      style=label.style_label_down, color=master_bear_color,
       textcolor=color.white, size=master_label_size)
 
 // Enhanced Ultimate signals (special markers)
 if show_master_labels and enhanced_ultimate_bull
-    label.new(bar_index, low - atr_14 * 1.5, "⚡ ULTIMATE BULL", 
-      style=label.style_label_up, color=color.orange, 
+    label.new(bar_index, low - atr_14 * 1.5, "⚡ ULTIMATE BULL",
+      style=label.style_label_up, color=color.orange,
       textcolor=color.black, size=size.large)
 
 if show_master_labels and enhanced_ultimate_bear
-    label.new(bar_index, high + atr_14 * 1.5, "⚡ ULTIMATE BEAR", 
-      style=label.style_label_down, color=color.purple, 
+    label.new(bar_index, high + atr_14 * 1.5, "⚡ ULTIMATE BEAR",
+      style=label.style_label_down, color=color.purple,
       textcolor=color.white, size=size.large)
 
 // Master strength meter
-plotchar(show_master_strength ? master_signal_strength_calc : na, "Master Strength", "●", 
-  location.top, color=master_signal_strength_calc > 75 ? color.green : 
+plotchar(show_master_strength ? master_signal_strength_calc : na, "Master Strength", "●",
+  location.top, color=master_signal_strength_calc > 75 ? color.green :
   master_signal_strength_calc > 50 ? color.yellow : color.red, size=size.normal)
 
 // Master confluence background
-bgcolor(show_master_confluence and master_confluence_met ? 
+bgcolor(show_master_confluence and master_confluence_met ?
   color.new(master_conf_color, 95) : na, title="Master Confluence Background")
 
 // ============================================================================
@@ -557,58 +558,58 @@ bgcolor(show_master_confluence and master_confluence_met ?
 // ============================================================================
 
 if enable_master_dashboard and barstate.islast
-    var table master_table = table.new(position.bottom_right, 3, 10, 
+    var table master_table = table.new(position.bottom_right, 3, 10,
       bgcolor=color.new(color.black, 80), border_width=2)
-    
+
     table.cell(master_table, 0, 0, "BTMM MASTER CONTROL", text_color=color.white, text_size=size.normal)
     table.cell(master_table, 1, 0, "STATUS", text_color=color.white, text_size=size.normal)
     table.cell(master_table, 2, 0, "VALUE", text_color=color.white, text_size=size.normal)
-    
+
     table.cell(master_table, 0, 1, "Master System", text_color=color.white)
-    table.cell(master_table, 1, 1, enable_master_system ? "ACTIVE" : "DISABLED", 
+    table.cell(master_table, 1, 1, enable_master_system ? "ACTIVE" : "DISABLED",
       text_color=enable_master_system ? color.green : color.red)
     table.cell(master_table, 2, 1, "", text_color=color.white)
-    
+
     table.cell(master_table, 0, 2, "Signal Strength", text_color=color.white)
-    table.cell(master_table, 1, 2, str.tostring(math.round(master_signal_strength_calc)) + "%", 
+    table.cell(master_table, 1, 2, str.tostring(math.round(master_signal_strength_calc)) + "%",
       text_color=master_signal_strength_calc > 75 ? color.green : master_signal_strength_calc > 50 ? color.yellow : color.red)
     table.cell(master_table, 2, 2, str.tostring(master_signal_strength) + "% min", text_color=color.white)
-    
+
     table.cell(master_table, 0, 3, "Bull Confluence", text_color=color.white)
-    table.cell(master_table, 1, 3, str.tostring(master_bull_signals) + "/8", 
+    table.cell(master_table, 1, 3, str.tostring(master_bull_signals) + "/8",
       text_color=master_bull_signals >= master_confluence_count ? color.green : color.red)
     table.cell(master_table, 2, 3, str.tostring(master_confluence_count) + " min", text_color=color.white)
-    
+
     table.cell(master_table, 0, 4, "Bear Confluence", text_color=color.white)
-    table.cell(master_table, 1, 4, str.tostring(master_bear_signals) + "/8", 
+    table.cell(master_table, 1, 4, str.tostring(master_bear_signals) + "/8",
       text_color=master_bear_signals >= master_confluence_count ? color.green : color.red)
     table.cell(master_table, 2, 4, str.tostring(master_confluence_count) + " min", text_color=color.white)
-    
+
     table.cell(master_table, 0, 5, "Master Signal", text_color=color.white)
     master_signal_text = master_ultimate_bull ? "BULL" : master_ultimate_bear ? "BEAR" : "NONE"
     master_signal_color = master_ultimate_bull ? color.green : master_ultimate_bear ? color.red : color.gray
     table.cell(master_table, 1, 5, master_signal_text, text_color=master_signal_color)
     table.cell(master_table, 2, 5, "", text_color=color.white)
-    
+
     table.cell(master_table, 0, 6, "Ultimate Signal", text_color=color.white)
     ultimate_signal_text = enhanced_ultimate_bull ? "ULTIMATE BULL" : enhanced_ultimate_bear ? "ULTIMATE BEAR" : "NONE"
     ultimate_signal_color = enhanced_ultimate_bull ? color.orange : enhanced_ultimate_bear ? color.purple : color.gray
     table.cell(master_table, 1, 6, ultimate_signal_text, text_color=ultimate_signal_color)
     table.cell(master_table, 2, 6, "", text_color=color.white)
-    
+
     table.cell(master_table, 0, 7, "OTE Status", text_color=color.white)
     ote_status = in_bullish_ote ? "BULL OTE" : in_bearish_ote ? "BEAR OTE" : "NO OTE"
     ote_color = in_bullish_ote ? color.green : in_bearish_ote ? color.red : color.gray
     table.cell(master_table, 1, 7, ote_status, text_color=ote_color)
     table.cell(master_table, 2, 7, ote_active ? "ACTIVE" : "INACTIVE", text_color=ote_active ? color.green : color.red)
-    
+
     table.cell(master_table, 0, 8, "Session", text_color=color.white)
-    table.cell(master_table, 1, 8, trading_allowed ? "TRADING" : "CLOSED", 
+    table.cell(master_table, 1, 8, trading_allowed ? "TRADING" : "CLOSED",
       text_color=trading_allowed ? color.green : color.red)
     table.cell(master_table, 2, 8, "", text_color=color.white)
-    
+
     table.cell(master_table, 0, 9, "Risk/ATR", text_color=color.white)
-    table.cell(master_table, 1, 9, str.tostring(math.round(atr_14 * 10000)) + " pips", 
+    table.cell(master_table, 1, 9, str.tostring(math.round(atr_14 * 10000)) + " pips",
       text_color=color.white)
     table.cell(master_table, 2, 9, str.tostring(math.round(volume_ratio * 100)) + "% vol", text_color=color.white)
 
