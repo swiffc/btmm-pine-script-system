@@ -212,14 +212,10 @@ if show_asian_levels and asian_session_ending and not na(asian_high)
         label.delete(asian_quality_label)
 
     // Draw new levels
-    asian_high_line := line.new(bar_index, asian_high, bar_index + extend_levels, asian_high,
-                               color=color.red, width=line_width, style=line.style_solid)
-    asian_low_line := line.new(bar_index, asian_low, bar_index + extend_levels, asian_low,
-                              color=color.green, width=line_width, style=line.style_solid)
-    asian_open_line := line.new(bar_index, asian_open, bar_index + extend_levels, asian_open,
-                               color=color.orange, width=line_width, style=line.style_dashed)
-    asian_50_line := line.new(bar_index, asian_50_level, bar_index + extend_levels, asian_50_level,
-                             color=color.blue, width=line_width, style=line.style_dotted)
+    asian_high_line := line.new(bar_index, asian_high, bar_index + extend_levels, asian_high, color=color.red, width=line_width, style=line.style_solid)
+    asian_low_line := line.new(bar_index, asian_low, bar_index + extend_levels, asian_low, color=color.green, width=line_width, style=line.style_solid)
+    asian_open_line := line.new(bar_index, asian_open, bar_index + extend_levels, asian_open, color=color.orange, width=line_width, style=line.style_dashed)
+    asian_50_line := line.new(bar_index, asian_50_level, bar_index + extend_levels, asian_50_level, color=color.blue, width=line_width, style=line.style_dotted)
 
     // Draw Asian box
     if show_asian_box
@@ -231,8 +227,7 @@ if show_asian_levels and asian_session_ending and not na(asian_high)
             "TOO_WIDE" => color.new(color.red, transparency)
             => color.new(color.gray, transparency)
 
-        asian_range_box := box.new(asian_start_bar, asian_high, asian_end_bar, asian_low,
-                                  border_color=color.gray, bgcolor=box_color, border_width=1)
+        asian_range_box := box.new(asian_start_bar, asian_high, asian_end_bar, asian_low, border_color=color.gray, bgcolor=box_color, border_width=1)
 
     // Quality assessment label
     if show_quality_assessment
@@ -253,9 +248,7 @@ if show_asian_levels and asian_session_ending and not na(asian_high)
             "TOO_WIDE" => color.red
             => color.gray
 
-        asian_quality_label := label.new(bar_index + 5, asian_high + ta.atr(14) * 0.5, quality_text,
-                                        style=label.style_label_down, color=label_color,
-                                        textcolor=color.white, size=label_text_size)
+        asian_quality_label := label.new(bar_index + 5, asian_high + ta.atr(14) * 0.5, quality_text, style=label.style_label_down, color=label_color, textcolor=color.white, size=label_text_size)
 
 // Level labels
 if show_level_labels and barstate.islast and not na(asian_high)

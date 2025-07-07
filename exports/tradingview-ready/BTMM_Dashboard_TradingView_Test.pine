@@ -126,9 +126,7 @@ if enable_dashboard and barstate.islast
         "large" => size.large
         => size.normal
 
-    dashboard := table.new(table_position, 6, 6,
-                          bgcolor=color.new(color.white, 10),
-                          border_width=2, border_color=color.gray)
+    dashboard := table.new(table_position, 6, 6, bgcolor=color.new(color.white, 10), border_width=2, border_color=color.gray)
 
     // HEADERS
     table.cell(dashboard, 0, 0, "BTMM SYSTEM",
