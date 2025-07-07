@@ -31,18 +31,18 @@ show_bias_warning = input.bool(true, "Show Lower TF Warning", group=bias_group)
 btmm_bias_score_threshold = input.float(2.0, "BTMM Bias Score Threshold", minval=1.0, maxval=5.0, step=0.5, group=bias_group, tooltip="Score needed for strong bias (±2.0 recommended)")
 
 // === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-show_bias_table = input.bool(true, "Show BTMM Bias Table", group=visual_group)
-show_perfect_stack = input.bool(true, "Show Perfect Stack Alerts", group=visual_group)
-line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
-label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
+alerts_visual_group = "🎨 Alerts Visual Configuration"
+show_bias_table = input.bool(true, "Show BTMM Bias Table", group=alerts_visual_group)
+show_perfect_stack = input.bool(true, "Show Perfect Stack Alerts", group=alerts_visual_group)
+alerts_line_width = input.int(2, "Line Width", minval=1, maxval=5, group=alerts_visual_group)
+alerts_label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=alerts_visual_group)
 
 // === ALERT SETTINGS ===
-alert_group = "🚨 Alert Configuration"
-enable_bias_alerts = input.bool(true, "BTMM Bias Change Alerts", group=alert_group)
-enable_stack_alerts = input.bool(true, "Perfect Stack Alerts", group=alert_group)
-enable_ketchup_alerts = input.bool(true, "Ketchup Line Break Alerts", group=alert_group)
-alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close", "all"], group=alert_group)
+alerts_alert_group = "🚨 Alerts Configuration"
+enable_bias_alerts = input.bool(true, "BTMM Bias Change Alerts", group=alerts_alert_group)
+enable_stack_alerts = input.bool(true, "Perfect Stack Alerts", group=alerts_alert_group)
+enable_ketchup_alerts = input.bool(true, "Ketchup Line Break Alerts", group=alerts_alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close", "all"], group=alerts_alert_group)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 📊 BTMM EMA CALCULATIONS (STEVE MAURO FOOD NAMES)
@@ -63,10 +63,10 @@ ema_800_color = close > ema_800 ? color.new(color.purple, 0) : color.new(color.n
 
 // Plot EMAs with BTMM styling
 plot(show_emas ? ema_5 : na, "5 EMA (Mustard)", color=ema_5_color, linewidth=1)
-plot(show_emas ? ema_13 : na, "13 EMA (Ketchup)", color=ema_13_color, linewidth=line_width)
-plot(show_emas ? ema_50 : na, "50 EMA (Water)", color=ema_50_color, linewidth=line_width)
-plot(show_emas ? ema_200 : na, "200 EMA (Mayo)", color=ema_200_color, linewidth=line_width + 1)
-plot(show_emas ? ema_800 : na, "800 EMA (Blueberry)", color=ema_800_color, linewidth=line_width + 1)
+plot(show_emas ? ema_13 : na, "13 EMA (Ketchup)", color=ema_13_color, linewidth=alerts_line_width)
+plot(show_emas ? ema_50 : na, "50 EMA (Water)", color=ema_50_color, linewidth=alerts_line_width)
+plot(show_emas ? ema_200 : na, "200 EMA (Mayo)", color=ema_200_color, linewidth=alerts_line_width + 1)
+plot(show_emas ? ema_800 : na, "800 EMA (Blueberry)", color=ema_800_color, linewidth=alerts_line_width + 1)
 
 // EMA Food Labels
 if show_ema_labels and barstate.islast

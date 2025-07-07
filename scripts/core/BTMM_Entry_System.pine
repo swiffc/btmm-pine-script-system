@@ -48,11 +48,11 @@ enable_13_ema_confirmation = input.bool(true, "Require 13 EMA Confirmation", gro
 volume_confirmation_threshold = input.float(1.5, "Volume Confirmation Threshold", minval=1.0, maxval=3.0, step=0.1, group=signal_group)
 
 // === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
-label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
-show_signal_arrows = input.bool(true, "Show Signal Arrows", group=visual_group)
-show_confluence_table = input.bool(true, "Show Confluence Table", group=visual_group)
+entry_visual_group = "🎨 Entry Visual Configuration"
+entry_line_width = input.int(2, "Line Width", minval=1, maxval=5, group=entry_visual_group)
+entry_label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=entry_visual_group)
+show_signal_arrows = input.bool(true, "Show Signal Arrows", group=entry_visual_group)
+show_confluence_table = input.bool(true, "Show Confluence Table", group=entry_visual_group)
 
 // ============================================================================
 // 🔧 HELPER FUNCTIONS & CALCULATIONS
@@ -68,7 +68,7 @@ volume_spike_threshold = volume_ma * volume_confirmation_threshold
 volume_ratio = volume / volume_ma
 
 // Label size conversion
-label_text_size = switch label_size
+label_text_size = switch entry_label_size
     "tiny" => size.tiny
     "small" => size.small
     "normal" => size.normal

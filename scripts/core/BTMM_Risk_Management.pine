@@ -37,11 +37,11 @@ fixed_dollar_risk = input.float(200.0, "Fixed Dollar Risk", minval=10.0, maxval=
 compound_profits = input.bool(true, "Compound Profits", group=position_group, tooltip="Increase position size as account grows")
 
 // === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-line_width = input.int(2, "Line Width", minval=1, maxval=5, group=visual_group)
-label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=visual_group)
-transparency = input.int(85, "Box Transparency", minval=50, maxval=95, group=visual_group)
-show_statistics = input.bool(true, "Show Risk Statistics", group=visual_group)
+risk_visual_group = "🎨 Risk Visual Configuration"
+risk_line_width = input.int(2, "Line Width", minval=1, maxval=5, group=risk_visual_group)
+risk_label_size = input.string("normal", "Label Size", options=["tiny", "small", "normal", "large", "huge"], group=risk_visual_group)
+risk_transparency = input.int(85, "Box Transparency", minval=50, maxval=95, group=risk_visual_group)
+show_statistics = input.bool(true, "Show Risk Statistics", group=risk_visual_group)
 
 // ============================================================================
 // 🔧 HELPER FUNCTIONS & CALCULATIONS
@@ -57,7 +57,7 @@ volume_ma = ta.sma(volume, 20)
 volume_ratio = volume / volume_ma
 
 // Label size conversion
-label_text_size = switch label_size
+label_text_size = switch risk_label_size
     "tiny" => size.tiny
     "small" => size.small
     "normal" => size.normal
@@ -213,28 +213,28 @@ draw_bearish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
     if show_risk_levels and not na(stop_loss)
         // Entry line
         entry_line = line.new(bar_index, entry_price, bar_index + 20, entry_price,
-                             color=color.white, width=line_width, style=line.style_solid)
+                             color=color.white, width=risk_line_width, style=line.style_solid)
 
         // Stop loss line
         stop_line = line.new(bar_index, stop_loss, bar_index + 20, stop_loss,
-                            color=color.red, width=line_width, style=line.style_dashed)
+                            color=color.red, width=risk_line_width, style=line.style_dashed)
 
         // Take profit lines
         tp1_line = line.new(bar_index, tp1, bar_index + 20, tp1,
-                           color=color.green, width=line_width, style=line.style_dashed)
+                           color=color.green, width=risk_line_width, style=line.style_dashed)
         tp2_line = line.new(bar_index, tp2, bar_index + 20, tp2,
-                           color=color.lime, width=line_width - 1, style=line.style_dotted)
+                           color=color.lime, width=risk_line_width - 1, style=line.style_dotted)
         tp3_line = line.new(bar_index, tp3, bar_index + 20, tp3,
-                           color=color.yellow, width=line_width - 1, style=line.style_dotted)
+                           color=color.yellow, width=risk_line_width - 1, style=line.style_dotted)
 
         // Risk box (red)
         risk_box = box.new(bar_index, entry_price, bar_index + 15, stop_loss,
-                          border_color=color.red, bgcolor=color.new(color.red, transparency),
+                          border_color=color.red, bgcolor=color.new(color.red, risk_transparency),
                           border_width=1)
 
         // Reward boxes (green gradient)
         reward_box1 = box.new(bar_index, entry_price, bar_index + 15, tp1,
-                             border_color=color.green, bgcolor=color.new(color.green, transparency),
+                             border_color=color.green, bgcolor=color.new(color.green, risk_transparency),
                              border_width=1)
 
         // Risk/Reward information label
@@ -254,28 +254,28 @@ draw_bullish_risk_levels(entry_price, stop_loss, tp1, tp2, tp3, position_size, d
     if show_risk_levels and not na(stop_loss)
         // Entry line
         entry_line = line.new(bar_index, entry_price, bar_index + 20, entry_price,
-                             color=color.white, width=line_width, style=line.style_solid)
+                             color=color.white, width=risk_line_width, style=line.style_solid)
 
         // Stop loss line
         stop_line = line.new(bar_index, stop_loss, bar_index + 20, stop_loss,
-                            color=color.red, width=line_width, style=line.style_dashed)
+                            color=color.red, width=risk_line_width, style=line.style_dashed)
 
         // Take profit lines
         tp1_line = line.new(bar_index, tp1, bar_index + 20, tp1,
-                           color=color.green, width=line_width, style=line.style_dashed)
+                           color=color.green, width=risk_line_width, style=line.style_dashed)
         tp2_line = line.new(bar_index, tp2, bar_index + 20, tp2,
-                           color=color.lime, width=line_width - 1, style=line.style_dotted)
+                           color=color.lime, width=risk_line_width - 1, style=line.style_dotted)
         tp3_line = line.new(bar_index, tp3, bar_index + 20, tp3,
-                           color=color.yellow, width=line_width - 1, style=line.style_dotted)
+                           color=color.yellow, width=risk_line_width - 1, style=line.style_dotted)
 
         // Risk box (red)
         risk_box = box.new(bar_index, entry_price, bar_index + 15, stop_loss,
-                          border_color=color.red, bgcolor=color.new(color.red, transparency),
+                          border_color=color.red, bgcolor=color.new(color.red, risk_transparency),
                           border_width=1)
 
         // Reward box (green)
         reward_box1 = box.new(bar_index, entry_price, bar_index + 15, tp1,
-                             border_color=color.green, bgcolor=color.new(color.green, transparency),
+                             border_color=color.green, bgcolor=color.new(color.green, risk_transparency),
                              border_width=1)
 
         // Risk/Reward information label

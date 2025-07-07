@@ -301,19 +301,19 @@ show_pd_zones = input.bool(true, "Show Premium/Discount Zones", group=pd_group)
 pd_zone_transparency = input.int(80, "Zone Transparency", minval=50, maxval=95, group=pd_group)
 
 // === VISUAL SETTINGS ===
-visual_group = "🎨 Visual Configuration"
-ote_zone_color = input.color(color.new(color.yellow, 70), "OTE Zone Color", group=visual_group)
-premium_zone_color = input.color(color.new(color.red, pd_zone_transparency), "Premium Zone Color", group=visual_group)
-discount_zone_color = input.color(color.new(color.green, pd_zone_transparency), "Discount Zone Color", group=visual_group)
-fib_line_width = input.int(1, "Fibonacci Line Width", minval=1, maxval=3, group=visual_group)
-show_price_labels = input.bool(true, "Show Price Labels on Levels", group=visual_group)
+stophunt_visual_group = "🎨 Stop Hunt Visual Configuration"
+ote_zone_color = input.color(color.new(color.yellow, 70), "OTE Zone Color", group=stophunt_visual_group)
+premium_zone_color = input.color(color.new(color.red, pd_zone_transparency), "Premium Zone Color", group=stophunt_visual_group)
+discount_zone_color = input.color(color.new(color.green, pd_zone_transparency), "Discount Zone Color", group=stophunt_visual_group)
+fib_line_width = input.int(1, "Fibonacci Line Width", minval=1, maxval=3, group=stophunt_visual_group)
+show_price_labels = input.bool(true, "Show Price Labels on Levels", group=stophunt_visual_group)
 
 // === ALERT CONFIGURATION ===
-alert_group = "🚨 OTE Alert Settings"
-enable_ote_alerts = input.bool(true, "OTE Zone Entry Alerts", group=alert_group)
-enable_pd_alerts = input.bool(true, "Premium/Discount Alerts", group=alert_group)
-enable_fib_touch_alerts = input.bool(true, "Fibonacci Level Touch Alerts", group=alert_group)
-alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=alert_group)
+stophunt_alert_group = "🚨 Stop Hunt Alert Settings"
+enable_ote_alerts = input.bool(true, "OTE Zone Entry Alerts", group=stophunt_alert_group)
+enable_pd_alerts = input.bool(true, "Premium/Discount Alerts", group=stophunt_alert_group)
+enable_fib_touch_alerts = input.bool(true, "Fibonacci Level Touch Alerts", group=stophunt_alert_group)
+alert_frequency = input.string("once_per_bar", "Alert Frequency", options=["once_per_bar", "once_per_bar_close"], group=stophunt_alert_group)
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // 📊 SWING POINT DETECTION
