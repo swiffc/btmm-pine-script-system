@@ -1,6 +1,6 @@
 //@version=5
-indicator("BTMM Core System - Steve Mauro Method",
-         shorttitle="BTMM-Core",
+indicator("BTMM Alert System - Steve Mauro Method",
+         shorttitle="BTMM-Alerts",
          overlay=true,
          max_boxes_count=200,
          max_lines_count=300,

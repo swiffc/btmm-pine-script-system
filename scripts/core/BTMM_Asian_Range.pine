@@ -278,10 +278,10 @@ if show_asian_levels and asian_session_ending and not na(asian_high)
         box.delete(asian_range_box)
         label.delete(asian_quality_label)
 
-    asian_high_line := line.new(bar_index, asian_high, bar_index + extend_levels, asian_high, color=color.red, width=line_width, style=line.style_solid)
-    asian_low_line := line.new(bar_index, asian_low, bar_index + extend_levels, asian_low, color=color.green, width=line_width, style=line.style_solid)
-    asian_open_line := line.new(bar_index, asian_open, bar_index + extend_levels, asian_open, color=color.orange, width=line_width, style=line.style_dashed)
-    asian_50_line := line.new(bar_index, asian_50_level, bar_index + extend_levels, asian_50_level, color=color.blue, width=line_width, style=line.style_dotted)
+    asian_high_line := line.new(bar_index, asian_high, bar_index + extend_levels, asian_high, color=color.new(color.yellow, 0), width=3, style=line.style_solid)
+    asian_low_line := line.new(bar_index, asian_low, bar_index + extend_levels, asian_low, color=color.new(color.yellow, 0), width=3, style=line.style_solid)
+    asian_open_line := line.new(bar_index, asian_open, bar_index + extend_levels, asian_open, color=color.new(color.orange, 30), width=line_width, style=line.style_dashed)
+    asian_50_line := line.new(bar_index, asian_50_level, bar_index + extend_levels, asian_50_level, color=color.new(color.yellow, 30), width=line_width, style=line.style_dotted)
 
     if show_asian_box
         box_color = switch asian_quality
@@ -298,11 +298,7 @@ if show_asian_levels and asian_session_ending and not na(asian_high)
         quality_text = "¥ ASIAN ANALYSIS\n" +
                       "Quality: " + asian_quality + " (" + str.tostring(quality_score) + "/5)\n" +
                       "Range: " + str.tostring(range_pips, "#") + " pips\n" +
-                      "Level Strength: " + level_strength + "\n" +
-                      "High: " + str.tostring(asian_high, "#.#####") + "\n" +
-                      "Low: " + str.tostring(asian_low, "#.#####") + "\n" +
-                      "Mid: " + str.tostring(asian_50_level, "#.#####") + "\n" +
-                      "Open: " + str.tostring(asian_open, "#.#####")
+                      "Level Strength: " + level_strength
 
         label_color = switch asian_quality
             "OPTIMAL" => color.green
@@ -315,8 +311,8 @@ if show_asian_levels and asian_session_ending and not na(asian_high)
         asian_quality_label := label.new(bar_index + 5, asian_high + atr_14 * 0.5, quality_text, style=label.style_label_down, color=label_color, textcolor=color.white, size=label_text_size)
 
 // Asian Range Lines (only high, low, mid)
-plot(track_asian_range and not na(asian_high) ? asian_high : na, "Asian High", color=color.new(color.red, 30), linewidth=2, style=plot.style_line)
-plot(track_asian_range and not na(asian_low) ? asian_low : na, "Asian Low", color=color.new(color.green, 30), linewidth=2, style=plot.style_line)
+plot(track_asian_range and not na(asian_high) ? asian_high : na, "Asian High", color=color.new(color.yellow, 0), linewidth=3, style=plot.style_line)
+plot(track_asian_range and not na(asian_low) ? asian_low : na, "Asian Low", color=color.new(color.yellow, 0), linewidth=3, style=plot.style_line)
 plot(asian_midpoint and not na(asian_midpoint_level) ? asian_midpoint_level : na, "Asian Midpoint", color=color.new(color.yellow, 30), linewidth=2, style=plot.style_stepline_diamond)
 
 // Remove other lines - keeping only Asian High, Low, and Midpoint
@@ -325,18 +321,7 @@ plot(asian_midpoint and not na(asian_midpoint_level) ? asian_midpoint_level : na
 // plot(show_liquidity_levels and not na(liquidity_high) ? liquidity_high : na, "Liquidity High", color=color.new(color.red, 60), linewidth=1, style=plot.style_cross)
 // plot(show_liquidity_levels and not na(liquidity_low) ? liquidity_low : na, "Liquidity Low", color=color.new(color.green, 60), linewidth=1, style=plot.style_cross)
 
-// Level labels
-if show_level_labels and barstate.islast and not na(asian_high)
-    label.new(bar_index + extend_levels + 2, asian_high, "¥ Asian High",
-             style=label.style_label_left, color=color.new(color.yellow, 0), textcolor=color.new(color.yellow, 0), size=size.tiny)
-    label.new(bar_index + extend_levels + 2, asian_low, "¥ Asian Low",
-             style=label.style_label_left, color=color.new(color.yellow, 0), textcolor=color.new(color.yellow, 0), size=size.tiny)
-    label.new(bar_index + extend_levels + 2, asian_open, "¥ Asian Open",
-             style=label.style_label_left, color=color.new(color.yellow, 0), textcolor=color.new(color.yellow, 0), size=size.tiny)
-    label.new(bar_index + extend_levels + 2, asian_50_level, "¥ Asian Mid",
-             style=label.style_label_left, color=color.new(color.yellow, 0), textcolor=color.new(color.yellow, 0), size=size.tiny)
-
-// Session Labels
+// Session Labels (keeping these)
 if show_session_labels and barstate.islast
     if not na(asian_high)
         label.new(bar_index + label_offset, asian_high, "¥ Asian High", style=label.style_label_down, color=color.new(color.yellow, 0), textcolor=color.black, size=size.small)
@@ -396,97 +381,69 @@ manipulation_at_low = asian_low_test and low < asian_low and close >= asian_low
 // ============================================================================
 
 if show_asian_stats and barstate.islast
-    // Main dashboard table - expanded for alerts
-    var table session_table = table.new(position.bottom_left, 3, 10, bgcolor=color.new(color.black, 20), border_width=2)
+    // Main dashboard table - moved to top right, slightly bigger
+    var table session_table = table.new(position.top_right, 3, 8, bgcolor=color.new(color.black, 15), border_width=1)
 
-    // Header
-    table.cell(session_table, 0, 0, "METRIC", bgcolor=color.new(color.navy, 30), text_color=color.white, text_size=size.normal)
-    table.cell(session_table, 1, 0, "CURRENT", bgcolor=color.new(color.gray, 30), text_color=color.white, text_size=size.normal)
-    table.cell(session_table, 2, 0, "SIGNAL", bgcolor=color.new(color.gray, 30), text_color=color.white, text_size=size.normal)
+    // Header - small text
+    table.cell(session_table, 0, 0, "METRIC", bgcolor=color.new(color.navy, 20), text_color=color.white, text_size=size.small)
+    table.cell(session_table, 1, 0, "CURRENT", bgcolor=color.new(color.gray, 20), text_color=color.white, text_size=size.small)
+    table.cell(session_table, 2, 0, "SIGNAL", bgcolor=color.new(color.gray, 20), text_color=color.white, text_size=size.small)
 
     // Current Session
-    session_color = current_session == "ASIAN" ? color.new(color.yellow, 30) : current_session == "LONDON" ? color.new(color.blue, 30) : current_session == "NY" ? color.new(color.green, 30) : color.new(color.gray, 30)
-    table.cell(session_table, 0, 1, "Active Session", bgcolor=color.new(color.purple, 30), text_color=color.white)
-    table.cell(session_table, 1, 1, current_session, bgcolor=session_color, text_color=color.white)
-    table.cell(session_table, 2, 1, current_mm_phase, bgcolor=session_color, text_color=color.white)
+    session_color = current_session == "ASIAN" ? color.new(color.yellow, 20) : current_session == "LONDON" ? color.new(color.blue, 20) : current_session == "NY" ? color.new(color.green, 20) : color.new(color.gray, 20)
+    table.cell(session_table, 0, 1, "Session", bgcolor=color.new(color.purple, 20), text_color=color.white, text_size=size.small)
+    table.cell(session_table, 1, 1, current_session, bgcolor=session_color, text_color=color.white, text_size=size.small)
+    table.cell(session_table, 2, 1, current_mm_phase, bgcolor=session_color, text_color=color.white, text_size=size.small)
 
     // Asian Range
-    range_color = asian_range_valid ? color.new(color.green, 30) : color.new(color.orange, 30)
-    table.cell(session_table, 0, 2, "Range Size", bgcolor=color.new(color.yellow, 30), text_color=color.black)
-    table.cell(session_table, 1, 2, not na(asian_range_pips) ? str.tostring(asian_range_pips, "#.#") + " pips" : "Pending", bgcolor=color.new(color.yellow, 50), text_color=color.black)
-    table.cell(session_table, 2, 2, asian_range_valid ? "✅ TRADEABLE" : not na(asian_range_pips) ? "⚠️ REVIEW" : "⏳ FORMING", bgcolor=range_color, text_color=color.white)
+    range_color = asian_range_valid ? color.new(color.green, 20) : color.new(color.orange, 20)
+    table.cell(session_table, 0, 2, "Range", bgcolor=color.new(color.yellow, 20), text_color=color.black, text_size=size.small)
+    table.cell(session_table, 1, 2, not na(asian_range_pips) ? str.tostring(asian_range_pips, "#") + " pips" : "N/A", bgcolor=color.new(color.yellow, 30), text_color=color.black, text_size=size.small)
+    table.cell(session_table, 2, 2, asian_range_valid ? "✅ GOOD" : not na(asian_range_pips) ? "⚠️ WIDE" : "⏳ WAIT", bgcolor=range_color, text_color=color.white, text_size=size.small)
 
-    // Asian High
-    if not na(asian_high)
-        table.cell(session_table, 0, 3, "Resistance", bgcolor=color.new(color.orange, 30), text_color=color.white)
-        table.cell(session_table, 1, 3, str.tostring(asian_high, "#.#####"), bgcolor=color.new(color.orange, 50), text_color=color.white)
-        table.cell(session_table, 2, 3, close > asian_high ? "🚀 BREAKOUT" : "🛡️ HOLDING", bgcolor=close > asian_high ? color.new(color.red, 30) : color.new(color.gray, 50), text_color=color.white)
+    // Asian High/Low combined info
+    if not na(asian_high) and not na(asian_low)
+        high_broken = close > asian_high
+        low_broken = close < asian_low
+        level_status = high_broken ? "🚀 HIGH BREAK" : low_broken ? "📉 LOW BREAK" : "📊 IN RANGE"
+        level_color = high_broken ? color.new(color.lime, 20) : low_broken ? color.new(color.red, 20) : color.new(color.gray, 30)
 
-    // Asian Low
-    if not na(asian_low)
-        table.cell(session_table, 0, 4, "Support", bgcolor=color.new(color.orange, 30), text_color=color.white)
-        table.cell(session_table, 1, 4, str.tostring(asian_low, "#.#####"), bgcolor=color.new(color.orange, 50), text_color=color.white)
-        table.cell(session_table, 2, 4, close < asian_low ? "📉 BREAKDOWN" : "💪 HOLDING", bgcolor=close < asian_low ? color.new(color.red, 30) : color.new(color.gray, 50), text_color=color.white)
+        table.cell(session_table, 0, 3, "Levels", bgcolor=color.new(color.orange, 20), text_color=color.white, text_size=size.small)
+        table.cell(session_table, 1, 3, str.tostring(asian_high, "#.####") + " / " + str.tostring(asian_low, "#.####"), bgcolor=color.new(color.orange, 30), text_color=color.white, text_size=size.small)
+        table.cell(session_table, 2, 3, level_status, bgcolor=level_color, text_color=color.white, text_size=size.small)
 
     // Asian Midpoint
     if not na(asian_50_level)
-        table.cell(session_table, 0, 5, "Equilibrium", bgcolor=color.new(color.yellow, 30), text_color=color.black)
-        table.cell(session_table, 1, 5, str.tostring(asian_50_level, "#.#####"), bgcolor=color.new(color.yellow, 50), text_color=color.black)
+        table.cell(session_table, 0, 4, "Midpoint", bgcolor=color.new(color.yellow, 20), text_color=color.black, text_size=size.small)
+        table.cell(session_table, 1, 4, str.tostring(asian_50_level, "#.####"), bgcolor=color.new(color.yellow, 30), text_color=color.black, text_size=size.small)
         mid_status = math.abs(close - asian_50_level) <= atr_14 * 0.5 ? "⚖️ BALANCED" : close > asian_50_level ? "📈 BULLISH" : "📉 BEARISH"
-        table.cell(session_table, 2, 5, mid_status, bgcolor=color.new(color.yellow, 50), text_color=color.black)
+        table.cell(session_table, 2, 4, mid_status, bgcolor=color.new(color.yellow, 30), text_color=color.black, text_size=size.small)
 
-    // Stop Hunt Status
-    hunt_color = bullish_stop_hunt or bearish_stop_hunt ? color.new(color.red, 30) : color.new(color.gray, 50)
-    hunt_status = bullish_stop_hunt ? "🐂 BULL TRAP" : bearish_stop_hunt ? "🐻 BEAR TRAP" : "🟢 CLEAN"
-    table.cell(session_table, 0, 6, "Liquidity Hunt", bgcolor=color.new(color.red, 30), text_color=color.white)
-    table.cell(session_table, 1, 6, bullish_stop_hunt or bearish_stop_hunt ? "DETECTED" : "NONE", bgcolor=hunt_color, text_color=color.white)
-    table.cell(session_table, 2, 6, hunt_status, bgcolor=hunt_color, text_color=color.white)
+    // Combined Quality/Strength
+    quality_score_combined = quality_score + (level_strength == "PERFECT" ? 2 : level_strength == "STRONG" ? 1 : level_strength == "MODERATE" ? 0 : -1)
+    setup_quality = quality_score_combined >= 6 ? "💎 ELITE" : quality_score_combined >= 4 ? "🔥 GOOD" : quality_score_combined >= 2 ? "⚡ OK" : "🚫 POOR"
+    setup_color = quality_score_combined >= 6 ? color.new(color.green, 20) : quality_score_combined >= 4 ? color.new(color.lime, 20) : quality_score_combined >= 2 ? color.new(color.yellow, 20) : color.new(color.red, 20)
 
-    // Quality Assessment
-    quality_color = switch asian_quality
-        "OPTIMAL" => color.new(color.green, 30)
-        "GOOD" => color.new(color.lime, 30)
-        "ACCEPTABLE" => color.new(color.yellow, 30)
-        "WIDE" => color.new(color.orange, 30)
-        "TOO_WIDE" => color.new(color.red, 30)
-        => color.new(color.gray, 30)
+    table.cell(session_table, 0, 5, "Setup", bgcolor=color.new(color.blue, 20), text_color=color.white, text_size=size.small)
+    table.cell(session_table, 1, 5, str.tostring(quality_score_combined) + "/7", bgcolor=setup_color, text_color=color.white, text_size=size.small)
+    table.cell(session_table, 2, 5, setup_quality, bgcolor=setup_color, text_color=color.white, text_size=size.small)
 
-    table.cell(session_table, 0, 7, "Trade Quality", bgcolor=color.new(color.blue, 30), text_color=color.white)
-    table.cell(session_table, 1, 7, asian_quality, bgcolor=quality_color, text_color=color.white)
-    quality_signal = quality_score >= 4 ? "🎯 HIGH PROB" : quality_score >= 3 ? "⚠️ MODERATE" : "❌ LOW PROB"
-    table.cell(session_table, 2, 7, quality_signal, bgcolor=quality_color, text_color=color.white)
-
-    // Level Strength
-    strength_color = switch level_strength
-        "PERFECT" => color.new(color.green, 30)
-        "STRONG" => color.new(color.lime, 30)
-        "MODERATE" => color.new(color.yellow, 30)
-        "WEAK" => color.new(color.red, 30)
-        => color.new(color.gray, 30)
-
-    table.cell(session_table, 0, 8, "Setup Strength", bgcolor=color.new(color.teal, 30), text_color=color.white)
-    table.cell(session_table, 1, 8, level_strength, bgcolor=strength_color, text_color=color.white)
-    strength_signal = level_strength == "PERFECT" ? "💎 ELITE" : level_strength == "STRONG" ? "🔥 STRONG" : level_strength == "MODERATE" ? "⚡ FAIR" : "🚫 WEAK"
-    table.cell(session_table, 2, 8, strength_signal, bgcolor=strength_color, text_color=color.white)
-
-    // Alert Status Row
+    // Stop Hunt + Alerts combined
+    hunt_color = bullish_stop_hunt or bearish_stop_hunt ? color.new(color.red, 20) : color.new(color.gray, 30)
     alert_active = (pre_london_stop_hunt or pre_ny_stop_hunt or bullish_stop_hunt or bearish_stop_hunt or asian_high_break or asian_low_break)
-    alert_color = alert_active ? color.new(color.red, 30) : color.new(color.green, 30)
-    alert_text = alert_active ? "TRIGGERED" : "MONITORING"
-    alert_desc = pre_london_stop_hunt ? "🕐 PRE-LONDON" : pre_ny_stop_hunt ? "🕘 PRE-NY" : bullish_stop_hunt ? "🐂 BULL HUNT" : bearish_stop_hunt ? "🐻 BEAR HUNT" : asian_high_break ? "🚀 HIGH BREAK" : asian_low_break ? "📉 LOW BREAK" : "🟢 ALL CLEAR"
+    combined_status = bullish_stop_hunt ? "🐂 BULL HUNT" : bearish_stop_hunt ? "🐻 BEAR HUNT" : pre_london_stop_hunt ? "🕐 PRE-LONDON" : pre_ny_stop_hunt ? "🕘 PRE-NY" : asian_high_break ? "🚀 HIGH BREAK" : asian_low_break ? "📉 LOW BREAK" : "🟢 ALL CLEAR"
 
-    table.cell(session_table, 0, 9, "Alert System", bgcolor=color.new(color.maroon, 30), text_color=color.white)
-    table.cell(session_table, 1, 9, alert_text, bgcolor=alert_color, text_color=color.white)
-    table.cell(session_table, 2, 9, alert_desc, bgcolor=alert_color, text_color=color.white)
+    table.cell(session_table, 0, 6, "Alerts", bgcolor=color.new(color.maroon, 20), text_color=color.white, text_size=size.small)
+    table.cell(session_table, 1, 6, alert_active ? "ACTIVE" : "QUIET", bgcolor=hunt_color, text_color=color.white, text_size=size.small)
+    table.cell(session_table, 2, 6, combined_status, bgcolor=hunt_color, text_color=color.white, text_size=size.small)
 
-    // Red box callout label pointing to dashboard
-    if not na(asian_high)
-        label.new(bar_index - 50, asian_high * 0.995, "📊 DASHBOARD",
-                 style=label.style_label_up,
-                 color=color.new(color.red, 20),
-                 textcolor=color.white,
-                 size=size.normal,
-                 tooltip="Live session analysis and alerts dashboard")
+    // Trading Status
+    trading_status = trading_allowed ? "🟢 TRADE OK" : analysis_only ? "🟡 WATCH ONLY" : "🔴 AVOID"
+    trading_color = trading_allowed ? color.new(color.green, 20) : analysis_only ? color.new(color.yellow, 20) : color.new(color.red, 20)
+
+    table.cell(session_table, 0, 7, "Status", bgcolor=color.new(color.teal, 20), text_color=color.white, text_size=size.small)
+    table.cell(session_table, 1, 7, trading_allowed ? "TRADING" : analysis_only ? "STUDYING" : "WAITING", bgcolor=trading_color, text_color=color.white, text_size=size.small)
+    table.cell(session_table, 2, 7, trading_status, bgcolor=trading_color, text_color=color.white, text_size=size.small)
 
 // ============================================================================
 // 🚨 SESSION ALERTS
