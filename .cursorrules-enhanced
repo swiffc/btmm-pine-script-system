@@ -1,11 +1,13 @@
 # BTMM Pine Script v5 Development Rules for Cursor AI
 
 ## Project Overview
+
 This is a comprehensive development template for creating custom TradingView Pine Script v5 indicators based on Steve Mauro's Beat The Market Maker (BTMM) methodology. The system is constrained to a MAXIMUM of 10 integrated Pine Script files that work together as a cohesive trading system.
 
 ## CRITICAL CONSTRAINT: 10-Script Integration Architecture
 
 ### Maximum 10 Pine Script Files (HARD LIMIT)
+
 The system must never exceed 10 Pine Script files. Each script must be part of an integrated system:
 
 1. **BTMM-Core-System.pine** - Main indicator with EMA system and bias calculations
@@ -20,6 +22,7 @@ The system must never exceed 10 Pine Script files. Each script must be part of a
 10. **Performance-Analytics.pine** - Trading performance tracking and analytics
 
 ### Integration Requirements (MANDATORY)
+
 - All scripts must share common data structures and variable naming
 - Cross-script communication through study() references
 - Unified color schemes and visual standards (BTMM compliant)
@@ -29,6 +32,7 @@ The system must never exceed 10 Pine Script files. Each script must be part of a
 ## BTMM Methodology Implementation (Steve Mauro Standards)
 
 ### 1. EMA Food System (MANDATORY for all scripts)
+
 ```pinescript
 // Steve Mauro EMA Configuration (EXACT IMPLEMENTATION REQUIRED)
 ema_5 = ta.ema(close, 5)      // Mustard (Signal Line)
@@ -39,6 +43,7 @@ ema_800 = ta.ema(close, 800)  // Blueberry Pie (HTF Reference)
 ```
 
 **Color Scheme Requirements**:
+
 - Mustard: color.new(color.yellow, 0) / color.new(color.orange, 0)
 - Ketchup: color.new(color.red, 0) / color.new(color.maroon, 0)
 - Water: color.new(color.aqua, 0) / color.new(color.blue, 0)
@@ -46,6 +51,7 @@ ema_800 = ta.ema(close, 800)  // Blueberry Pie (HTF Reference)
 - Blueberry: color.new(color.purple, 0) / color.new(color.navy, 0)
 
 ### 2. BTMM Bias Scoring (MANDATORY Implementation)
+
 ```pinescript
 // 8-Point BTMM Bias Calculation (Steve Mauro Algorithm)
 calculate_btmm_bias_score() =>
@@ -54,20 +60,21 @@ calculate_btmm_bias_score() =>
     score_50 = close > ema_50 ? 1.0 : -1.0
     score_200 = close > ema_200 ? 1.0 : -1.0
     score_800 = close > ema_800 ? 1.0 : -1.0
-    
+
     // Perfect Stack Alignment Bonus (±2.0)
     bullish_alignment = ema_5 > ema_13 and ema_13 > ema_50 and ema_50 > ema_200 and ema_200 > ema_800
     bearish_alignment = ema_5 < ema_13 and ema_13 < ema_50 and ema_50 < ema_200 and ema_200 < ema_800
     alignment_bonus = bullish_alignment ? 2.0 : bearish_alignment ? -2.0 : 0.0
-    
+
     // 50/200 Relationship (±1.0)
     trend_score = ema_50 > ema_200 ? 1.0 : ema_50 < ema_200 ? -1.0 : 0.0
-    
+
     total_score = score_5 + score_13 + score_50 + score_200 + score_800 + alignment_bonus + trend_score
     total_score
 ```
 
 ### 3. Session-Based Trading Windows (EXACT TIMING)
+
 ```pinescript
 // Market Maker Cycle Sessions (EST Times)
 asian_session_time = input.session("1700-0500", "Asian Session (Accumulation)")
@@ -80,6 +87,7 @@ pre_ny_stop_hunt = (hour == 9 and minute >= 15 and minute <= 45)
 ```
 
 ### 4. M&W Pattern Detection (Second Leg Focus)
+
 ```pinescript
 // M&W Pattern Validation (Steve Mauro Specifications)
 min_pattern_bars = 8                    // Minimum bars between pattern points
@@ -89,6 +97,7 @@ pattern_min_size = ta.atr(14) * 2.0    // ATR-based minimum size
 ```
 
 ### 5. Timeframe Enforcement (MANDATORY)
+
 ```pinescript
 // 15-Minute Minimum Enforcement (Steve Mauro Rule)
 is_15m_or_higher = timeframe.in_seconds() >= 900
@@ -100,17 +109,19 @@ if not is_15m_or_higher and enable_15m_bias_only
 ## Pine Script v5 Standards (MANDATORY)
 
 ### 1. Script Header Requirements
+
 ```pinescript
 //@version=5
-indicator("BTMM [Component Name]", 
-         shorttitle="BTMM-[Short]", 
-         overlay=true, 
+indicator("BTMM [Component Name]",
+         shorttitle="BTMM-[Short]",
+         overlay=true,
          max_boxes_count=200,
-         max_lines_count=300, 
+         max_lines_count=300,
          max_labels_count=500)
 ```
 
 ### 2. Input Organization (BTMM Groups)
+
 ```pinescript
 // === BTMM EMA SETTINGS ===
 ema_group = "🥪 BTMM EMA Configuration (Steve Mauro)"
@@ -128,6 +139,7 @@ session_group = "⏰ Session Timing (Market Maker Cycle)"
 ```
 
 ### 3. Error Prevention Framework
+
 - Always validate inputs with proper min/max ranges
 - Implement na checks for all calculations
 - Use proper variable scoping with var/varip keywords
@@ -135,6 +147,7 @@ session_group = "⏰ Session Timing (Market Maker Cycle)"
 - Add comprehensive tooltips for all inputs
 
 ### 4. Alert System Integration
+
 ```pinescript
 // Coordinated Alert System (Cross-Script Compatible)
 if enable_pattern_alerts and m_signal_valid
@@ -148,18 +161,21 @@ if enable_pattern_alerts and m_signal_valid
 ## Development Workflow Standards
 
 ### 1. Template-Based Development
+
 - Always start with one of the 10 defined script templates
 - Maintain consistency across all scripts in the system
 - Use shared functions and libraries where possible
 - Implement proper version control for script updates
 
 ### 2. Integration Testing
+
 - Ensure all scripts load without conflicts on same chart
 - Test cross-script study() references
 - Validate performance with all 10 scripts active
 - Confirm alert coordination across modules
 
 ### 3. BTMM Compliance Validation
+
 - Verify EMA food system implementation
 - Confirm session timing accuracy
 - Validate pattern detection against Steve Mauro standards
@@ -168,12 +184,14 @@ if enable_pattern_alerts and m_signal_valid
 ## Performance Optimization Rules
 
 ### 1. Resource Management
+
 - Limit drawing objects per script (max 50 boxes, 100 lines, 200 labels)
 - Use efficient calculation methods
 - Implement proper barstate checks
 - Optimize multi-timeframe security calls
 
 ### 2. Memory Efficiency
+
 - Use var for persistent variables only when necessary
 - Clear historical arrays when limits reached
 - Implement efficient pattern storage methods
@@ -182,17 +200,20 @@ if enable_pattern_alerts and m_signal_valid
 ## Code Quality Standards
 
 ### 1. Naming Conventions
+
 - Variables: `snake_case` (e.g., `btmm_bias_score`)
 - Constants: `UPPER_CASE` (e.g., `BTMM_THRESHOLD`)
 - Functions: `descriptive_action` (e.g., `calculate_ote_zone`)
 
 ### 2. Documentation Requirements
+
 - Add header comment explaining script's role in 10-script system
 - Document all functions with parameter descriptions
 - Include BTMM methodology references
 - Add performance notes and limitations
 
 ### 3. Visual Standards
+
 - Use BTMM-compliant color schemes
 - Ensure readability on dark/light backgrounds
 - Implement consistent sizing and positioning
@@ -201,20 +222,23 @@ if enable_pattern_alerts and m_signal_valid
 ## Integration Architecture Rules
 
 ### 1. Cross-Script Communication
+
 ```pinescript
 // Example: Reference another script in the system
-btmm_core_bias = request.security(syminfo.tickerid, timeframe.period, 
-                                 source=close, 
+btmm_core_bias = request.security(syminfo.tickerid, timeframe.period,
+                                 source=close,
                                  lookahead=barmerge.lookahead_off)
 ```
 
 ### 2. Shared Data Structures
+
 - Use consistent variable naming across all scripts
 - Implement common color definitions
 - Share calculation methods through libraries
 - Coordinate alert message formatting
 
 ### 3. System-Wide Configuration
+
 - Allow global enable/disable of script components
 - Implement unified visual theme switching
 - Support coordinated timeframe changes
@@ -223,17 +247,20 @@ btmm_core_bias = request.security(syminfo.tickerid, timeframe.period,
 ## Forbidden Practices
 
 ### 1. Never Exceed 10 Scripts
+
 - Do not create additional Pine Script files beyond the 10 defined
 - Consolidate similar functionality into existing scripts
 - Use script modularity within the 10-script constraint
 
 ### 2. Never Break BTMM Standards
+
 - Do not modify EMA food system values (5,13,50,200,800)
 - Do not ignore session timing requirements
 - Do not skip 13 EMA confirmation requirements
 - Do not allow bias calculations below 15M timeframe
 
 ### 3. Never Compromise Integration
+
 - Do not create standalone scripts that don't integrate
 - Do not use conflicting color schemes
 - Do not duplicate functionality across scripts
