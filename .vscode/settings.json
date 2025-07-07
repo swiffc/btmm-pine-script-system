@@ -34,6 +34,32 @@
     "editor.guides.bracketPairsHorizontal": true
   },
 
+  // MAXIMUM FILE VISIBILITY SETTINGS
+  "files.exclude": {},
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.git": true
+  },
+
+  // EXPLORER SETTINGS FOR MAXIMUM VISIBILITY
+  "explorer.fileNesting.enabled": false,
+  "explorer.fileNesting.expand": true,
+  "explorer.compactFolders": false,
+  "explorer.sortOrder": "default",
+  "explorer.autoReveal": true,
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+
+  // ENSURE ALL FILES ARE SHOWN
+  "files.autoSave": "onFocusChange",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
   // Editor settings optimized for Pine Script
   "editor.tabSize": 4,
   "editor.insertSpaces": true,
@@ -52,12 +78,6 @@
   "cursor.ai.useCodebaseContext": true,
   "cursor.ai.enableRulesSuggestions": true,
 
-  // File explorer settings
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.patterns": {
-    "*.pine": "${capture}.md"
-  },
-
   // Auto-save for Pine Script development
   "files.autoSave": "afterDelay",
   "files.autoSaveDelay": 1000,
@@ -70,14 +90,6 @@
   "pine.dependencyTracking": true,
   "pine.preventBreakingChanges": true,
 
-  "files.watcherExclude": {
-    "**/node_modules/**": true,
-    "**/.git/**": true,
-    "**/*.blocked": true,
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true
-  },
-
   "pine.btmm.autoCheck": {
     "enabled": true,
     "checkOnSave": true,
@@ -85,16 +97,6 @@
     "validateIntegrations": true,
     "enforceScriptLimit": true
   },
-
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/dist": true,
-    "**/.git": true
-  },
-
-  "files.autoSave": "onFocusChange",
-  "files.trimTrailingWhitespace": true,
-  "files.insertFinalNewline": true,
 
   "editor.formatOnSave": true,
   "editor.formatOnPaste": true,
@@ -106,14 +108,6 @@
   "editor.semanticHighlighting.enabled": true,
   "editor.bracketPairColorization.enabled": true,
   "editor.guides.bracketPairs": "active",
-
-  "explorer.fileNesting.expand": false,
-  "explorer.fileNesting.patterns": {
-    "*.pine": "$(capture).blocked",
-    "package.json": "package-lock.json,yarn.lock",
-    ".cursor-rules.js": ".cursor/**",
-    "README.md": "*.md"
-  },
 
   "btmm.scriptLimit": {
     "enabled": true,
@@ -159,11 +153,6 @@
   "breadcrumbs.showFiles": true,
   "breadcrumbs.showSymbols": true,
 
-  "files.exclude": {
-    "**/.git": true,
-    "**/node_modules": true
-  },
-
   "extensions.ignoreRecommendations": false,
 
   "cursor.rules.enabled": true,
@@ -189,38 +178,5 @@
   "problems.showCurrentInStatus": true,
 
   "debug.allowBreakpointsEverywhere": true,
-  "debug.openDebug": "openOnDebugBreak",
-
-  "terminal.integrated.env.windows": {
-    "BTMM_PROJECT_ROOT": "${workspaceFolder}",
-    "BTMM_SCRIPT_LIMIT": "10"
-  },
-
-  "pinescript.languageServer.enabled": true,
-  "pinescript.validation.enabled": true,
-  "pinescript.completion.enabled": true,
-  "pinescript.hover.enabled": true,
-  "pinescript.signature.enabled": true,
-
-  "security.workspace.trust.untrustedFiles": "open",
-  "security.workspace.trust.enabled": false,
-
-  "workbench.experimental.cloudChanges": false,
-  "editor.experimental.asyncTokenization": true,
-
-  "typescript.validate.enable": false,
-  "javascript.validate.enable": false,
-
-  "pinescript.snippets.enabled": true,
-  "pinescript.snippets.path": ".vscode/snippets",
-
-  "btmm.foundation.autoImport": true,
-  "btmm.dataWindow.validate": true,
-  "btmm.crossScript.monitor": true,
-  "btmm.performance.track": true,
-
-  "btmm.quality.enforceStandards": true,
-  "btmm.quality.antiRepainting": true,
-  "btmm.quality.performanceCheck": true,
-  "btmm.quality.integrationTest": true
+  "debug.openDebug": "openOnDebugBreak"
 }
