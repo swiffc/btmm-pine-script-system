@@ -29,7 +29,7 @@ jobs:
       run: npm run validate-all
       
     - name: 🚀 Create PR if Changes
-      uses: peter-evans/create-pull-request@v5
+      uses: peter-evans/create-pull-request@v7
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: 'chore: automated dependency updates'
