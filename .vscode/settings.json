@@ -56,7 +56,6 @@
   "explorer.confirmDragAndDrop": false,
 
   // ENSURE ALL FILES ARE SHOWN
-  "files.autoSave": "onFocusChange",
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
 

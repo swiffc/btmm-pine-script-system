@@ -1,6 +1,7 @@
 # 🛡️ BTMM Trading System - Development Rules & Lessons Learned
 
 ## 📋 **PURPOSE**
+
 This document captures all errors we've encountered and fixed, providing rules and guidelines to prevent future issues in the BTMM Trading System development.
 
 ---
@@ -8,6 +9,7 @@ This document captures all errors we've encountered and fixed, providing rules a
 ## 🔧 **TYPESCRIPT CONFIGURATION RULES**
 
 ### ✅ **Rule 1: Path Mapping Accuracy**
+
 ```json
 // ❌ WRONG - Paths don't match actual directory structure
 "include": ["client/src/**/*", "shared/**/*", "server/**/*"]
@@ -19,6 +21,7 @@ This document captures all errors we've encountered and fixed, providing rules a
 **Lesson Learned**: Always verify `tsconfig.json` paths match your actual folder structure exactly.
 
 ### ✅ **Rule 2: Essential Compiler Options**
+
 ```json
 {
   "compilerOptions": {
@@ -33,6 +36,7 @@ This document captures all errors we've encountered and fixed, providing rules a
 **Lesson Learned**: Missing `forceConsistentCasingInFileNames` causes cross-platform compatibility issues.
 
 ### ✅ **Rule 3: Proper Type Declarations**
+
 ```bash
 # Always install required type declarations
 npm install -D @types/react @types/node @types/cors @types/express
@@ -45,6 +49,7 @@ npm install -D @types/react @types/node @types/cors @types/express
 ## ⚛️ **REACT/TYPESCRIPT IMPORT RULES**
 
 ### ✅ **Rule 4: React Import Syntax**
+
 ```typescript
 // ❌ WRONG - Modern React doesn't have default export
 import React from 'react';
@@ -56,6 +61,7 @@ import * as React from 'react';
 **Lesson Learned**: React 18+ doesn't export a default export, use namespace import instead.
 
 ### ✅ **Rule 5: Component Interface Definitions**
+
 ```typescript
 // ✅ ALWAYS define interfaces for component props
 interface ComponentProps {
@@ -75,6 +81,7 @@ const Component: React.FC<ComponentProps> = ({ className, children }) => {
 ## 📁 **FILE VISIBILITY & VSCODE RULES**
 
 ### ✅ **Rule 6: VSCode Settings Configuration**
+
 ```json
 // .vscode/settings.json
 {
@@ -92,6 +99,7 @@ const Component: React.FC<ComponentProps> = ({ className, children }) => {
 **Lesson Learned**: Overly restrictive `files.exclude` settings hide important project folders.
 
 ### ✅ **Rule 7: Directory Structure Validation**
+
 ```bash
 # Always verify directory structure exists
 npm run validate:structure
@@ -105,6 +113,7 @@ npm run show:structure
 ## 📝 **MARKDOWN LINTING RULES**
 
 ### ✅ **Rule 8: Heading Formatting (MD022)**
+
 ```markdown
 <!-- ❌ WRONG - No blank lines around headings -->
 ## My Heading
@@ -120,6 +129,7 @@ Content here
 **Lesson Learned**: All headings must be surrounded by blank lines for proper markdown formatting.
 
 ### ✅ **Rule 9: Unique Headings (MD024)**
+
 ```markdown
 <!-- ❌ WRONG - Duplicate heading content -->
 ### PRIMARY RESPONSIBILITIES
@@ -133,6 +143,7 @@ Content here
 **Lesson Learned**: All headings must have unique content, use role identifiers to differentiate.
 
 ### ✅ **Rule 10: Proper Heading Syntax (MD036)**
+
 ```markdown
 <!-- ❌ WRONG - Bold text used as heading -->
 **Important Section**
@@ -148,6 +159,7 @@ Content here
 ## 🤖 **AUTOMATION & TOOLING RULES**
 
 ### ✅ **Rule 11: ES Module vs CommonJS**
+
 ```javascript
 // ❌ WRONG - CommonJS in ES module project
 const fs = require('fs');
@@ -160,6 +172,7 @@ import { fileURLToPath } from 'url';
 **Lesson Learned**: Match import syntax to package.json module type to avoid "require is not defined" errors.
 
 ### ✅ **Rule 12: Script Path Corrections**
+
 ```json
 // package.json
 {
@@ -180,6 +193,7 @@ import { fileURLToPath } from 'url';
 ## 🔍 **VALIDATION & TESTING RULES**
 
 ### ✅ **Rule 13: Pre-Commit Validation**
+
 ```bash
 # Always run these before committing
 npm run validate:structure
@@ -190,6 +204,7 @@ npm run fix:typescript
 **Lesson Learned**: Automated validation prevents broken commits and deployment issues.
 
 ### ✅ **Rule 14: Dependency Installation**
+
 ```bash
 # Install missing dependencies immediately when errors occur
 npm install -D typescript @types/node @types/react
@@ -203,7 +218,8 @@ npm install cors express
 ## 📦 **PROJECT STRUCTURE RULES**
 
 ### ✅ **Rule 15: Required Directory Structure**
-```
+
+```text
 btmm-trading-system/
 ├── platform/
 │   ├── client/src/
@@ -219,7 +235,8 @@ btmm-trading-system/
 **Lesson Learned**: Consistent directory structure prevents path resolution issues.
 
 ### ✅ **Rule 16: Configuration File Locations**
-```
+
+```text
 Root Level Required Files:
 - tsconfig.json (TypeScript configuration)
 - package.json (Dependencies and scripts)
@@ -234,6 +251,7 @@ Root Level Required Files:
 ## 🎯 **PREVENTION STRATEGIES**
 
 ### ✅ **Rule 17: Automated Setup System**
+
 ```bash
 # Use our automated setup for new environments
 npm run setup:automated
@@ -244,6 +262,7 @@ npm run validate:structure
 **Lesson Learned**: Automated setup prevents manual configuration errors.
 
 ### ✅ **Rule 18: Error Pattern Recognition**
+
 ```typescript
 // Common Error Patterns to Watch For:
 1. "Cannot find module" → Missing dependencies or wrong paths
@@ -260,6 +279,7 @@ npm run validate:structure
 ## 🔄 **CONTINUOUS IMPROVEMENT PROCESS**
 
 ### ✅ **Rule 19: Error Documentation**
+
 ```markdown
 When New Errors Occur:
 1. Document the error message exactly
@@ -270,6 +290,7 @@ When New Errors Occur:
 ```
 
 ### ✅ **Rule 20: Regular Validation**
+
 ```bash
 # Run weekly validation
 npm run validate:structure
@@ -284,6 +305,7 @@ npm run quality:check
 ## 🏆 **SUCCESS METRICS**
 
 ### ✅ **Zero-Error Goals:**
+
 - ✅ No TypeScript compilation errors
 - ✅ All files visible in VSCode explorer
 - ✅ Clean markdown linting (no MD022/MD024/MD036)
