@@ -388,11 +388,7 @@ if enable_cycle_tracking and show_bias_table and barstate.islast
     table.cell(enhanced_table, 2, 4, "", text_color=color.white)
 
     table.cell(enhanced_table, 0, 5, "Cycle Pattern", text_color=color.white)
-    pattern_status = monday_accumulation ? "ACCUMULATION" :
-      tuesday_breakout ? "BREAKOUT" :
-      wednesday_reversal ? "REVERSAL" :
-      thursday_positioning ? "POSITIONING" :
-      friday_positioning ? "CLOSE SETUP" : "MONITORING"
+    pattern_status = monday_accumulation ? "ACCUMULATION" : tuesday_breakout ? "BREAKOUT" : wednesday_reversal ? "REVERSAL" : thursday_positioning ? "POSITIONING" : friday_positioning ? "CLOSE SETUP" : "MONITORING"
     table.cell(enhanced_table, 1, 5, pattern_status, text_color=color.yellow)
     table.cell(enhanced_table, 2, 5, "", text_color=color.white)
 

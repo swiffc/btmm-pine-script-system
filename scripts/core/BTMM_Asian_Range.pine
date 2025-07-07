@@ -71,9 +71,7 @@ is_ny = not na(in_ny)
 
 // Market Maker Phase
 get_market_maker_phase() =>
-    phase = is_asian ? "ACCUMULATION" :
-            is_london ? "MANIPULATION" :
-            is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
+    phase = is_asian ? "ACCUMULATION" : is_london ? "MANIPULATION" : is_ny ? "DISTRIBUTION" : "CONSOLIDATION"
     phase
 
 current_mm_phase = get_market_maker_phase()
