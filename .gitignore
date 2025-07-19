@@ -53,6 +53,7 @@ settings.local.json
 dist/
 build/
 out/
+.next/
 
 # Runtime data
 pids
@@ -82,6 +83,12 @@ jspm_packages/
 # Keep main .pine files but ignore temporary versions
 *.pine.tmp
 *.blocked
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js TypeScript types
+next-env.d.ts
 
 # Keep important documentation and configuration
 !README.md
