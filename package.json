@@ -113,7 +113,14 @@
     "fix:typescript": "npx --yes typescript@latest tsc --noEmit || echo 'TypeScript validation complete (with warnings)'",
     "fix:typescript-errors": "node typescript-fixer.js",
     "fix:all": "npm run setup:automated && npm run fix:typescript-errors && npm run fix:typescript",
-    "commit:all": "npm run fix:all && npm run git-auto-commit"
+    "commit:all": "npm run fix:all && npm run git-auto-commit",
+    "nextjs:dev": "cd platform/nextjs && npm run dev",
+    "nextjs:build": "cd platform/nextjs && npm run build",
+    "nextjs:start": "cd platform/nextjs && npm run start",
+    "nextjs:install": "cd platform/nextjs && npm install",
+    "nextjs:setup": "npm run nextjs:install && echo 'Next.js setup complete'",
+    "platform:dev": "concurrently \"npm run nextjs:dev\" \"npm run web-dev\"",
+    "platform:setup": "npm run nextjs:setup && echo 'Platform setup complete'"
   },
   "keywords": [
     "trading",
@@ -210,7 +217,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.18.0",
-    "@types/node": "^20.16.11",
+    "@types/node": "^20.19.9",
     "@types/passport": "^1.0.16",
     "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.11",
@@ -219,6 +226,7 @@
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "chokidar": "^3.5.3",
+    "concurrently": "^9.2.0",
     "drizzle-kit": "^0.30.4",
     "esbuild": "^0.25.0",
     "fs-extra": "^11.1.1",
