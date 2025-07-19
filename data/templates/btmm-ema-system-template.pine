@@ -1,0 +1,90 @@
+//@version=5
+// BTMM EMA Food System Template
+// This template provides the foundation for Steve Mauro's EMA analysis
+
+indicator("BTMM EMA Food System", shorttitle="BTMM EMA", overlay=true)
+
+// === INPUTS ===
+show_emas = input.bool(true, "Show EMA Lines", group="Display")
+show_stack_bg = input.bool(true, "Show Stack Background", group="Display")
+show_bias_label = input.bool(true, "Show Bias Label", group="Display")
+
+// EMA Periods (Steve Mauro's Food System)
+ema5_period = input.int(5, "5 EMA (Mustard)", minval=1, group="EMA Settings")
+ema13_period = input.int(13, "13 EMA (Ketchup)", minval=1, group="EMA Settings")
+ema50_period = input.int(50, "50 EMA (Water)", minval=1, group="EMA Settings")
+ema200_period = input.int(200, "200 EMA (Mayo)", minval=1, group="EMA Settings")
+ema800_period = input.int(800, "800 EMA (Blueberry)", minval=1, group="EMA Settings")
+
+// === EMA CALCULATIONS ===
+ema5 = ta.ema(close, ema5_period)    // Mustard
+ema13 = ta.ema(close, ema13_period)  // Ketchup
+ema50 = ta.ema(close, ema50_period)  // Water
+ema200 = ta.ema(close, ema200_period) // Mayo
+ema800 = ta.ema(close, ema800_period) // Blueberry
+
+// === EMA PLOTS ===
+plot(show_emas ? ema5 : na, "5 EMA (Mustard)", color.yellow, 2)
+plot(show_emas ? ema13 : na, "13 EMA (Ketchup)", color.red, 2)
+plot(show_emas ? ema50 : na, "50 EMA (Water)", color.blue, 2)
+plot(show_emas ? ema200 : na, "200 EMA (Mayo)", color.green, 2)
+plot(show_emas ? ema800 : na, "800 EMA (Blueberry)", color.purple, 2)
+
+// === STACK ANALYSIS ===
+// Perfect Bull Stack: Price > 5 > 13 > 50 > 200 > 800
+perfect_bull_stack = close > ema5 and ema5 > ema13 and ema13 > ema50 and ema50 > ema200 and ema200 > ema800
+
+// Perfect Bear Stack: Price < 5 < 13 < 50 < 200 < 800
+perfect_bear_stack = close < ema5 and ema5 < ema13 and ema13 < ema50 and ema50 < ema200 and ema200 < ema800
+
+// Mixed Stack (neither perfect bull nor bear)
+mixed_stack = not perfect_bull_stack and not perfect_bear_stack
+
+// === 8-POINT BIAS SYSTEM ===
+// Calculate bias points (0-8 scale)
+bias_points = 0
+bias_points := (close > ema5 ? 1 : 0) + 
+               (close > ema13 ? 1 : 0) + 
+               (close > ema50 ? 1 : 0) + 
+               (close > ema200 ? 1 : 0) + 
+               (close > ema800 ? 1 : 0)
+
+// Add perfect stack bonus (+3 points)
+bias_points := bias_points + (perfect_bull_stack ? 3 : 0)
+
+// Determine bias
+bias_strength = bias_points >= 6 ? "Strong Bullish" : 
+                bias_points >= 3 ? "Neutral" : "Strong Bearish"
+
+// === BACKGROUND COLORING ===
+bg_color = show_stack_bg and perfect_bull_stack ? color.new(color.green, 95) :
+           show_stack_bg and perfect_bear_stack ? color.new(color.red, 95) :
+           show_stack_bg and mixed_stack ? color.new(color.gray, 98) : na
+
+bgcolor(bg_color)
+
+// === BIAS LABEL ===
+if show_bias_label and barstate.islast
+    label.new(bar_index, high, 
+              text="Bias: " + bias_strength + "\nPoints: " + str.tostring(bias_points) + "/8", 
+              style=label.style_label_down, 
+              color=bias_points >= 6 ? color.green : bias_points <= 2 ? color.red : color.gray,
+              textcolor=color.white,
+              size=size.normal)
+
+// === ALERTS ===
+alertcondition(perfect_bull_stack and not perfect_bull_stack[1], "Perfect Bull Stack", "Perfect Bull Stack Formed")
+alertcondition(perfect_bear_stack and not perfect_bear_stack[1], "Perfect Bear Stack", "Perfect Bear Stack Formed")
+alertcondition(ta.crossover(close, ema13), "Price Above 13 EMA", "Price Crossed Above 13 EMA (Ketchup)")
+alertcondition(ta.crossunder(close, ema13), "Price Below 13 EMA", "Price Crossed Below 13 EMA (Ketchup)")
+
+// === NOTES ===
+// This template provides:
+// 1. Steve Mauro's 5-layer EMA system
+// 2. Perfect stack detection
+// 3. 8-point bias calculation
+// 4. Visual background coloring
+// 5. Real-time bias label
+// 6. Key alert conditions
+//
+// Customize as needed for your specific trading style

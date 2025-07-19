@@ -1,0 +1,157 @@
+//@version=5
+// BTMM Session Analysis Template
+// Track Asian, London, and NY sessions with key levels
+
+indicator("BTMM Session Analysis", shorttitle="BTMM Sessions", overlay=true)
+
+// === INPUTS ===
+show_session_boxes = input.bool(true, "Show Session Boxes", group="Display")
+show_session_levels = input.bool(true, "Show Session High/Low", group="Display")
+show_session_labels = input.bool(true, "Show Session Labels", group="Display")
+extend_levels = input.int(20, "Extend Levels (bars)", minval=0, group="Display")
+
+// Session Colors
+asian_color = input.color(color.new(color.yellow, 80), "Asian Session", group="Colors")
+london_color = input.color(color.new(color.blue, 80), "London Session", group="Colors")
+ny_color = input.color(color.new(color.red, 80), "New York Session", group="Colors")
+
+// === SESSION DEFINITIONS ===
+// Asian Session: 5:00 PM - 12:00 AM EST (21:00 - 00:00 UTC)
+asian_session = time(timeframe.period, "2100-0000", "UTC")
+
+// London Session: 2:00 AM - 9:00 AM EST (07:00 - 14:00 UTC)  
+london_session = time(timeframe.period, "0700-1400", "UTC")
+
+// New York Session: 9:30 AM - 5:00 PM EST (14:30 - 22:00 UTC)
+ny_session = time(timeframe.period, "1430-2200", "UTC")
+
+// === SESSION DETECTION ===
+var float asian_high = na
+var float asian_low = na
+var float london_high = na
+var float london_low = na
+var float ny_high = na
+var float ny_low = na
+
+var int asian_start_bar = na
+var int london_start_bar = na
+var int ny_start_bar = na
+
+// Asian Session Logic
+if asian_session and not asian_session[1]
+    asian_high := high
+    asian_low := low
+    asian_start_bar := bar_index
+else if asian_session
+    asian_high := math.max(asian_high, high)
+    asian_low := math.min(asian_low, low)
+
+// London Session Logic
+if london_session and not london_session[1]
+    london_high := high
+    london_low := low
+    london_start_bar := bar_index
+else if london_session
+    london_high := math.max(london_high, high)
+    london_low := math.min(london_low, low)
+
+// New York Session Logic
+if ny_session and not ny_session[1]
+    ny_high := high
+    ny_low := low
+    ny_start_bar := bar_index
+else if ny_session
+    ny_high := math.max(ny_high, high)
+    ny_low := math.min(ny_low, low)
+
+// === SESSION BOXES ===
+if show_session_boxes
+    // Asian Session Box
+    if asian_session and not asian_session[1]
+        box.new(asian_start_bar, asian_high, bar_index + 1, asian_low, 
+                border_color=asian_color, bgcolor=asian_color, 
+                border_width=1, extend=extend.none)
+    
+    // London Session Box  
+    if london_session and not london_session[1]
+        box.new(london_start_bar, london_high, bar_index + 1, london_low,
+                border_color=london_color, bgcolor=london_color,
+                border_width=1, extend=extend.none)
+    
+    // NY Session Box
+    if ny_session and not ny_session[1]
+        box.new(ny_start_bar, ny_high, bar_index + 1, ny_low,
+                border_color=ny_color, bgcolor=ny_color,
+                border_width=1, extend=extend.none)
+
+// === SESSION LEVELS ===
+if show_session_levels
+    // Asian Levels
+    if asian_session[1] and not asian_session
+        line.new(bar_index, asian_high, bar_index + extend_levels, asian_high,
+                color=asian_color, width=2, style=line.style_dashed, extend=extend.right)
+        line.new(bar_index, asian_low, bar_index + extend_levels, asian_low,
+                color=asian_color, width=2, style=line.style_dashed, extend=extend.right)
+    
+    // London Levels
+    if london_session[1] and not london_session
+        line.new(bar_index, london_high, bar_index + extend_levels, london_high,
+                color=london_color, width=2, style=line.style_dashed, extend=extend.right)
+        line.new(bar_index, london_low, bar_index + extend_levels, london_low,
+                color=london_color, width=2, style=line.style_dashed, extend=extend.right)
+    
+    // NY Levels
+    if ny_session[1] and not ny_session
+        line.new(bar_index, ny_high, bar_index + extend_levels, ny_high,
+                color=ny_color, width=2, style=line.style_dashed, extend=extend.right)
+        line.new(bar_index, ny_low, bar_index + extend_levels, ny_low,
+                color=ny_color, width=2, style=line.style_dashed, extend=extend.right)
+
+// === SESSION LABELS ===
+if show_session_labels
+    // Label at session start
+    if asian_session and not asian_session[1]
+        label.new(bar_index, low, "ASIAN", style=label.style_label_up, 
+                 color=asian_color, textcolor=color.black, size=size.small)
+    
+    if london_session and not london_session[1]
+        label.new(bar_index, low, "LONDON", style=label.style_label_up,
+                 color=london_color, textcolor=color.white, size=size.small)
+    
+    if ny_session and not ny_session[1]
+        label.new(bar_index, low, "NEW YORK", style=label.style_label_up,
+                 color=ny_color, textcolor=color.white, size=size.small)
+
+// === CURRENT SESSION INFO ===
+current_session = asian_session ? "Asian" : 
+                 london_session ? "London" : 
+                 ny_session ? "New York" : "Off Hours"
+
+// === SESSION STATISTICS ===
+asian_range = asian_high - asian_low
+london_range = london_high - london_low  
+ny_range = ny_high - ny_low
+
+// === ALERTS ===
+alertcondition(asian_session and not asian_session[1], "Asian Session Start", "Asian Session Started")
+alertcondition(london_session and not london_session[1], "London Session Start", "London Session Started")
+alertcondition(ny_session and not ny_session[1], "NY Session Start", "New York Session Started")
+
+// Session breakout alerts
+alertcondition(close > asian_high, "Asian High Break", "Price broke above Asian session high")
+alertcondition(close < asian_low, "Asian Low Break", "Price broke below Asian session low")
+alertcondition(close > london_high, "London High Break", "Price broke above London session high")
+alertcondition(close < london_low, "London Low Break", "Price broke below London session low")
+
+// === NOTES ===
+// This template provides:
+// 1. Visual session identification
+// 2. Session high/low levels
+// 3. Session range calculations
+// 4. Breakout detection
+// 5. Session timing alerts
+//
+// Key BTMM concepts:
+// - Asian session sets the daily range
+// - London session often provides manipulation
+// - NY session typically shows institutional direction
